@@ -150,8 +150,8 @@ dotnet build
 ### Method 3: Docker
 
 ```bash
-docker pull sarmkadan/dotnet-workflow-engine:latest
-docker run -p 5000:80 sarmkadan/dotnet-workflow-engine:latest
+docker pull sarmkadan/dotnet-workflow-engine:2.0.2
+docker run -p 5000:80 sarmkadan/dotnet-workflow-engine:2.0.2
 ```
 
 ### Method 4: Docker Compose
