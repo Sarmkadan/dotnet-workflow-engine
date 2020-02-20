@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>DotNetWorkflowEngine</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Vladyslav Zaiets</Authors>
+    <Description>Visual workflow engine for .NET with BPMN-like DSL, parallel execution, retry policies, and audit trail</Description>
+    <PackageProjectUrl>https://github.com/zaiets-v/dotnet-workflow-engine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/zaiets-v/dotnet-workflow-engine</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+  </ItemGroup>
+
+</Project>
