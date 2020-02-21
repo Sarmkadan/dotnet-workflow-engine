@@ -4,7 +4,6 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Enums;
-using Newtonsoft.Json;
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -20,7 +19,7 @@ public class ActivityResult
     public ActivityStatus Status { get; set; } = ActivityStatus.Pending;
 
     /// <summary>Gets or sets the output data from the activity.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Output { get; set; } = new();
 
     /// <summary>Gets or sets any error message if execution failed.</summary>
@@ -45,7 +44,7 @@ public class ActivityResult
     public int TotalAttempts { get; set; } = 1;
 
     /// <summary>Gets or sets custom metadata.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Metadata { get; set; } = new();
 
     /// <summary>

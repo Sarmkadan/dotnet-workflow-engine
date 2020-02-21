@@ -4,7 +4,6 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Enums;
-using Newtonsoft.Json;
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -32,11 +31,11 @@ public class Activity
     public string? HandlerType { get; set; }
 
     /// <summary>Gets or sets input parameters for the activity.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> InputParameters { get; set; } = new();
 
     /// <summary>Gets or sets output mapping for the activity results.</summary>
-    [JsonProperty]
+
     public Dictionary<string, string> OutputMapping { get; set; } = new();
 
     /// <summary>Gets or sets the retry policy for failed execution.</summary>
@@ -55,7 +54,7 @@ public class Activity
     public string? ConditionExpression { get; set; }
 
     /// <summary>Gets or sets custom metadata associated with the activity.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Metadata { get; set; } = new();
 
     /// <summary>Gets or sets when the activity was created.</summary>

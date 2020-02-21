@@ -3,8 +3,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Newtonsoft.Json;
-
 namespace DotNetWorkflowEngine.Models;
 
 /// <summary>
@@ -22,19 +20,19 @@ public class ExecutionContext
     public string CorrelationId { get; set; } = string.Empty;
 
     /// <summary>Gets or sets variables stored during execution.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Variables { get; set; } = new();
 
     /// <summary>Gets or sets execution state data.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> State { get; set; } = new();
 
     /// <summary>Gets or sets input data for the current activity.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> ActivityInput { get; set; } = new();
 
     /// <summary>Gets or sets output data from the current activity.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> ActivityOutput { get; set; } = new();
 
     /// <summary>Gets or sets when the execution started.</summary>
@@ -53,7 +51,7 @@ public class ExecutionContext
     public string? ExecutionError { get; set; }
 
     /// <summary>Gets or sets custom metadata.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Metadata { get; set; } = new();
 
     /// <summary>
