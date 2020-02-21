@@ -36,11 +36,13 @@ TestResults/
 *.snupkg
 *.nuget.props
 *.nuget.targets
+packages/
 
 # ReSharper is a .NET coding add-in
 .idea/
 *.sln.iml
 _ReSharper*/
+*.DotSettings.user
 
 # Local Environment
 .env
