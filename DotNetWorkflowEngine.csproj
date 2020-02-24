@@ -7,16 +7,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <PackageId>DotNetWorkflowEngine</PackageId>
+    <PackageId>Zaiets.dotnet.workflow.engine</PackageId>
     <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
-    <Description>Visual workflow engine for .NET with BPMN-like DSL, parallel execution, retry policies, and audit trail</Description>
+    <Description>Visual workflow engine for .NET - BPMN-like DSL, parallel execution, retry policies, audit trail</Description>
+    <PackageTags>workflow engine bpmn dotnet csharp parallel retry</PackageTags>
     <PackageProjectUrl>https://github.com/sarmkadan/dotnet-workflow-engine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-workflow-engine</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
