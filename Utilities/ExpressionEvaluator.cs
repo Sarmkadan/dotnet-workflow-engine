@@ -4,6 +4,7 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Models;
+using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Utilities;
 

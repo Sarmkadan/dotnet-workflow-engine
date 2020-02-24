@@ -14,10 +14,10 @@ class Program
     static async Task Main(string[] args)
     {
         // Configure services
-        var services = new ServiceCollection();
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
         services.AddWorkflowEngine(options =>
         {
-            options.DefaultRetryPolicy = Models.RetryPolicyConfig.CreateExponentialBackoff(3, 1000, 300000);
+            options.DefaultRetryPolicy = RetryPolicyConfig.CreateExponentialBackoff(3, 1000, 300000);
             options.EnableAuditLogging = true;
             options.DefaultActivityTimeoutSeconds = 300;
         });
@@ -25,7 +25,7 @@ class Program
         var provider = services.BuildServiceProvider();
 
         // Initialize database
-        await ServiceCollection.InitializeWorkflowEngineAsync(provider);
+        await DotNetWorkflowEngine.Configuration.ServiceCollection.InitializeWorkflowEngineAsync(provider);
 
         // Get services
         var workflowService = provider.GetRequiredService<WorkflowDefinitionService>();
@@ -114,7 +114,7 @@ class Program
 /// </summary>
 class SimpleActivityHandler : ActivityService.IActivityHandler
 {
-    public Task<Dictionary<string, object?>> ExecuteAsync(Models.Activity activity, Models.ExecutionContext context)
+    public Task<Dictionary<string, object?>> ExecuteAsync(Activity activity, DotNetWorkflowEngine.Models.ExecutionContext context)
     {
         // Simulate work
         Thread.Sleep(100);

@@ -94,7 +94,7 @@ public class WorkflowInstance
     {
         CompletedAt = DateTime.UtcNow;
         Status = WorkflowStatus.Archived;
-        ExecutionTimeMs = (long)(CompletedAt.Value - StartedAt ?? CreatedAt).TotalMilliseconds;
+        ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class WorkflowInstance
         CompletedAt = DateTime.UtcNow;
         ErrorMessage = errorMessage;
         Status = WorkflowStatus.Suspended;
-        ExecutionTimeMs = (long)(CompletedAt.Value - StartedAt ?? CreatedAt).TotalMilliseconds;
+        ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
     }
 
     /// <summary>

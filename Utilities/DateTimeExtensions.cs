@@ -186,18 +186,18 @@ public static class DateTimeExtensions
             return futureSpan.TotalSeconds < 60
                 ? "just now"
                 : futureSpan.TotalMinutes < 60
-                    ? $"in {(int)futureSpan.TotalMinutes} minute{(int)futureSpan.TotalMinutes != 1 ? "s" : ""}"
+                    ? $"in {(int)futureSpan.TotalMinutes} minute{((int)futureSpan.TotalMinutes != 1 ? "s" : "")}"
                     : futureSpan.TotalHours < 24
-                        ? $"in {(int)futureSpan.TotalHours} hour{(int)futureSpan.TotalHours != 1 ? "s" : ""}"
-                        : $"in {(int)futureSpan.TotalDays} day{(int)futureSpan.TotalDays != 1 ? "s" : ""}";
+                        ? $"in {(int)futureSpan.TotalHours} hour{((int)futureSpan.TotalHours != 1 ? "s" : "")}"
+                        : $"in {(int)futureSpan.TotalDays} day{((int)futureSpan.TotalDays != 1 ? "s" : "")}";
         }
 
         return span.TotalSeconds < 60
             ? "just now"
             : span.TotalMinutes < 60
-                ? $"{(int)span.TotalMinutes} minute{(int)span.TotalMinutes != 1 ? "s" : ""} ago"
+                ? $"{(int)span.TotalMinutes} minute{((int)span.TotalMinutes != 1 ? "s" : "")} ago"
                 : span.TotalHours < 24
-                    ? $"{(int)span.TotalHours} hour{(int)span.TotalHours != 1 ? "s" : ""} ago"
-                    : $"{(int)span.TotalDays} day{(int)span.TotalDays != 1 ? "s" : ""} ago";
+                    ? $"{(int)span.TotalHours} hour{((int)span.TotalHours != 1 ? "s" : "")} ago"
+                    : $"{(int)span.TotalDays} day{((int)span.TotalDays != 1 ? "s" : "")} ago";
     }
 }

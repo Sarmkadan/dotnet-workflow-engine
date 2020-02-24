@@ -6,6 +6,7 @@
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
+using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Services;
 

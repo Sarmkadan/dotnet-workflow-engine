@@ -218,6 +218,15 @@ public static class DependencyInjection
 /// </summary>
 public class WorkflowEngineOptions
 {
+    // Core engine options
+    public string? ConnectionString { get; set; }
+    public DotNetWorkflowEngine.Models.RetryPolicyConfig? DefaultRetryPolicy { get; set; }
+    public bool EnableAuditLogging { get; set; } = true;
+    public int MaxConcurrentWorkflows { get; set; } = 100;
+    public int DefaultActivityTimeoutSeconds { get; set; } = 300;
+    public bool ValidateWorkflowsOnLoad { get; set; } = true;
+
+    // Infrastructure options
     public bool UseCaching { get; set; } = true;
     public bool UseDistributedCache { get; set; } = false;
     public string? RedisConnectionString { get; set; }

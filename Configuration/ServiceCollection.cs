@@ -81,21 +81,15 @@ public static class ServiceCollection
 /// </summary>
 public class WorkflowEngineOptions
 {
-    /// <summary>Gets or sets the database connection string.</summary>
     public string? ConnectionString { get; set; }
-
-    /// <summary>Gets or sets the default retry policy.</summary>
-    public Models.RetryPolicyConfig? DefaultRetryPolicy { get; set; }
-
-    /// <summary>Gets or sets whether to enable audit logging.</summary>
+    public DotNetWorkflowEngine.Models.RetryPolicyConfig? DefaultRetryPolicy { get; set; }
     public bool EnableAuditLogging { get; set; } = true;
-
-    /// <summary>Gets or sets the maximum concurrent workflows.</summary>
     public int MaxConcurrentWorkflows { get; set; } = 100;
-
-    /// <summary>Gets or sets the default activity timeout in seconds.</summary>
     public int DefaultActivityTimeoutSeconds { get; set; } = 300;
-
-    /// <summary>Gets or sets whether to validate workflows on load.</summary>
     public bool ValidateWorkflowsOnLoad { get; set; } = true;
+    public bool UseCaching { get; set; } = true;
+    public bool UseDistributedCache { get; set; } = false;
+    public string? RedisConnectionString { get; set; }
+    public TimeSpan DefaultCacheExpiration { get; set; } = TimeSpan.FromHours(1);
+    public bool EnableBackgroundJobs { get; set; } = true;
 }
