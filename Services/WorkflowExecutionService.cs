@@ -3,6 +3,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Collections.Concurrent;
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
@@ -15,7 +16,7 @@ namespace DotNetWorkflowEngine.Services;
 /// </summary>
 public class WorkflowExecutionService
 {
-    private readonly Dictionary<string, WorkflowInstance> _instances = new();
+    private readonly ConcurrentDictionary<string, WorkflowInstance> _instances = new();
     private readonly WorkflowDefinitionService _definitionService;
     private readonly AuditService _auditService;
     private readonly ActivityService _activityService;
