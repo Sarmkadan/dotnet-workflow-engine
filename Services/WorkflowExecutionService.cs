@@ -140,7 +140,7 @@ public class WorkflowExecutionService
                 context.SetActivityInput(param.Key, param.Value);
             }
 
-            var result = var result = await _activityService.ExecuteAsync(activity, context);
+            var result = await _activityService.ExecuteAsync(activity, context);
                     if (result.Output.TryGetValue("ExecutionMode", out var executionModeValue) && executionModeValue.ToString() == "Parallel")
                     {
                         // Add proper synchronization
@@ -165,14 +165,16 @@ public class WorkflowExecutionService
             {
                 await ExecuteActivityAsync(instance, next.Id);
             }
-
-            instance.ActiveActivities.Remove(activityId);
         }
         catch (Exception ex)
         {
             _auditService.LogActivityFailed(instance.Id, activityId, ex.Message);
             instance.Fail(ex.Message);
             throw;
+        }
+        finally
+        {
+            instance.ActiveActivities.Remove(activityId);
         }
     }
 
