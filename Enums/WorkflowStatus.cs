@@ -23,5 +23,8 @@ public enum WorkflowStatus
     Archived = 3,
 
     /// <summary>Workflow is suspended and execution is paused</summary>
-    Suspended = 4
+    Suspended = 4,
+
+    /// <summary>Workflow instance is waiting for a correlated message</summary>
+    WaitingForMessage = 5
 }
