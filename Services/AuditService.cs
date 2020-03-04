@@ -12,7 +12,7 @@ namespace DotNetWorkflowEngine.Services;
 /// <summary>
 /// Service for managing audit logs and tracking workflow events.
 /// </summary>
-public class AuditService
+public class AuditService : IAuditTrailQuery
 {
     private readonly IAuditRepository _auditRepository;
 
@@ -251,5 +251,55 @@ public class AuditService
     private async Task AddEntry(AuditLogEntry entry)
     {
         await _auditRepository.AddAsync(entry);
+    }
+
+    // -------------------------------------------------------------------------
+    // IAuditTrailQuery implementation
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc/>
+    public async Task<(List<AuditLogEntry> Items, int Total)> QueryAsync(
+        string? workflowId = null,
+        string? instanceId = null,
+        string? stepName = null,
+        string? activityType = null,
+        string? outcome = null,
+        string? actor = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        int skip = 0,
+        int take = 100)
+    {
+        return await _auditRepository.GetFilteredAndPagedAsync(
+            workflowId: workflowId,
+            instanceId: instanceId,
+            activityId: stepName,
+            eventType: activityType,
+            severity: outcome,
+            fromDate: fromDate,
+            toDate: toDate,
+            actor: actor,
+            skip: skip,
+            take: take);
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<string>> GetEventTypesAsync()
+    {
+        var (all, _) = await _auditRepository.GetFilteredAndPagedAsync(take: int.MaxValue);
+        return all.Select(e => e.EventType).Distinct().OrderBy(t => t).ToList();
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyDictionary<string, int>> GetOutcomeSummaryAsync(
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
+    {
+        var (all, _) = await _auditRepository.GetFilteredAndPagedAsync(
+            fromDate: fromDate,
+            toDate: toDate,
+            take: int.MaxValue);
+        return all.GroupBy(e => e.EventType)
+                  .ToDictionary(g => g.Key, g => g.Count());
     }
 }
