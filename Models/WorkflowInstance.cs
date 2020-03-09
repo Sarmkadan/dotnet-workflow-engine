@@ -73,8 +73,10 @@ public class WorkflowInstance
     public string? InitiatedBy { get; set; }
 
     /// <summary>
-    /// Initializes a new instance with required information.
+    /// Initializes a new instance of the <see cref="WorkflowInstance"/> class.
     /// </summary>
+    /// <param name="workflowId">The unique identifier of the workflow definition.</param>
+    /// <param name="correlationId">Optional correlation ID for tracking related instances.</param>
     public WorkflowInstance(string workflowId, string? correlationId = null)
     {
         Id = Guid.NewGuid().ToString();
