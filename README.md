@@ -149,18 +149,28 @@ dotnet build
 
 ### Method 3: Docker
 
+Build the Docker image:
+
 ```bash
-docker pull sarmkadan/dotnet-workflow-engine:2.0.2
-docker run -p 5000:80 sarmkadan/dotnet-workflow-engine:2.0.2
+docker build -t dotnet-workflow-engine .
+```
+
+Run the container:
+
+```bash
+docker run -p 8080:8080 dotnet-workflow-engine
 ```
 
 ### Method 4: Docker Compose
 
+Start the application with its dependencies (Database and Redis):
+
 ```bash
-git clone https://github.com/Sarmkadan/dotnet-workflow-engine.git
-cd dotnet-workflow-engine
 docker-compose up -d
 ```
+
+The application will be accessible at `http://localhost:8080`.
+
 
 ## Quick Start
 
