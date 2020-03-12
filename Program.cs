@@ -8,18 +8,49 @@ using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 partial class Program
 {
     static async Task Main(string[] args)
     {
-        // Configure services
+        // Configure services with IOptions pattern
         var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
         services.AddWorkflowEngine(options =>
         {
+            options.ConnectionString = "Server=localhost;Database=WorkflowEngine;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;";
             options.DefaultRetryPolicy = RetryPolicyConfig.CreateExponentialBackoff(3, 1000, 300000);
             options.EnableAuditLogging = true;
+            options.MaxConcurrentWorkflows = 100;
             options.DefaultActivityTimeoutSeconds = 300;
+            options.ValidateWorkflowsOnLoad = true;
+            options.CachingEnabled = true;
+            options.CacheProvider = "Memory";
+            options.EnableBackgroundJobs = true;
+            options.EnableMetrics = true;
+            options.EnableAuditTrail = true;
+            options.EnableRequestLogging = true;
+            options.EnableRateLimiting = true;
+            options.EnableCors = true;
+            options.EnableWebhookValidation = true;
+            options.EnableActivityValidation = true;
+            options.EnableWorkflowValidation = true;
+            options.EnableExpressionEvaluation = true;
+            options.MaxExpressionDepth = 20;
+            options.MaxWorkflowVariables = 1000;
+            options.MaxWorkflowDepth = 50;
+            options.ExecutionMode = "Sequential";
+            options.EnableParallelExecution = true;
+            options.MaxParallelActivities = 10;
+            options.EnableConditionalBranching = true;
+            options.EnableErrorRecovery = true;
+            options.EnableCircuitBreaker = true;
+            options.EnableImmutableAuditTrail = true;
+            options.AuditTrailRetentionDays = 365;
+            options.EnableHealthChecks = true;
+            options.HealthCheckIntervalSeconds = 30;
+            options.EnablePrometheusMetrics = false;
+            options.MetricsPort = 9090;
         });
 
         var provider = services.BuildServiceProvider();
