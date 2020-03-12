@@ -38,6 +38,21 @@ public class WorkflowDefinitionService
     }
 
     /// <summary>
+    /// Registers an already-constructed workflow definition, overwriting any
+    /// existing definition with the same ID.
+    /// </summary>
+    public void AddWorkflow(Workflow workflow)
+    {
+        if (workflow == null)
+            throw new ArgumentNullException(nameof(workflow));
+
+        if (string.IsNullOrWhiteSpace(workflow.Id))
+            throw new ValidationException("Workflow ID cannot be empty", "INVALID_ID");
+
+        _workflows[workflow.Id] = workflow;
+    }
+
+    /// <summary>
     /// Gets a workflow definition by ID.
     /// </summary>
     public virtual Workflow? GetWorkflow(string id)

@@ -10,7 +10,7 @@ namespace DotNetWorkflowEngine.Benchmarks.Benchmarks;
 /// Measures performance of workflow definition loading, validation, and traversal.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net100)]
+[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net10_0)]
 public class WorkflowDefinitionBenchmarks
 {
     private WorkflowDefinitionService _definitionService;
@@ -21,7 +21,7 @@ public class WorkflowDefinitionBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _definitionService = new WorkflowDefinitionService(null);
+        _definitionService = new WorkflowDefinitionService();
 
         _smallWorkflow = CreateSmallWorkflow();
         _definitionService.AddWorkflow(_smallWorkflow);
