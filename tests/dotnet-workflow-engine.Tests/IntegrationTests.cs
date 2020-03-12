@@ -4,6 +4,7 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Enums;
+using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Data.Repositories;

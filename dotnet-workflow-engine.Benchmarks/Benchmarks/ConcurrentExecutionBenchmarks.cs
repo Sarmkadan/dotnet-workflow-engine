@@ -10,7 +10,7 @@ namespace DotNetWorkflowEngine.Benchmarks.Benchmarks;
 /// Measures scalability and thread safety under load.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net100)]
+[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net10_0)]
 public class ConcurrentExecutionBenchmarks
 {
     private WorkflowExecutionService _executionService;
@@ -26,7 +26,7 @@ public class ConcurrentExecutionBenchmarks
         var retryPolicyService = new RetryPolicyService();
         _activityService = new ActivityService(retryPolicyService);
         _auditService = new AuditService(null); // Null audit service for benchmarks
-        _definitionService = new WorkflowDefinitionService(null);
+        _definitionService = new WorkflowDefinitionService();
         _executionService = new WorkflowExecutionService(_definitionService, _auditService, _activityService);
 
         // Register a simple handler
@@ -112,7 +112,7 @@ public class ConcurrentExecutionBenchmarks
             Id = "start_activity",
             Name = "Start Activity",
             HandlerType = "Simple",
-            ActivityType = "StartActivity"
+            Type = "StartActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -120,7 +120,7 @@ public class ConcurrentExecutionBenchmarks
             Id = "activity1",
             Name = "Activity 1",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -128,14 +128,14 @@ public class ConcurrentExecutionBenchmarks
             Id = "activity2",
             Name = "Activity 2",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
         {
             Id = "end_activity",
             Name = "End Activity",
-            ActivityType = "EndActivity"
+            Type = "EndActivity"
         });
 
         workflow.Transitions.Add(new Transition
@@ -167,7 +167,7 @@ public class ConcurrentExecutionBenchmarks
     /// </summary>
     private class SimpleActivityHandler : ActivityService.IActivityHandler
     {
-        public async Task<Dictionary<string, object?>> ExecuteAsync(Activity activity, ExecutionContext context)
+        public async Task<Dictionary<string, object?>> ExecuteAsync(Activity activity, DotNetWorkflowEngine.Models.ExecutionContext context)
         {
             await Task.Delay(1); // Simulate minimal work
             return new Dictionary<string, object?> { { "Result", "Success" } };

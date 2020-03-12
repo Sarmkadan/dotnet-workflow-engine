@@ -11,7 +11,7 @@ namespace DotNetWorkflowEngine.Benchmarks.Benchmarks;
 /// Measures throughput of complete workflow execution with different topologies.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net100)]
+[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net10_0)]
 public class WorkflowExecutionBenchmarks
 {
     private WorkflowExecutionService _executionService;
@@ -29,7 +29,7 @@ public class WorkflowExecutionBenchmarks
         var retryPolicyService = new RetryPolicyService();
         _activityService = new ActivityService(retryPolicyService);
         _auditService = new AuditService(null); // Null audit service for benchmarks
-        _definitionService = new WorkflowDefinitionService(null);
+        _definitionService = new WorkflowDefinitionService();
         _executionService = new WorkflowExecutionService(_definitionService, _auditService, _activityService);
 
         // Register a simple handler
@@ -137,7 +137,7 @@ public class WorkflowExecutionBenchmarks
             Id = "start_activity",
             Name = "Start Activity",
             HandlerType = "Simple",
-            ActivityType = "StartActivity"
+            Type = "StartActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -145,7 +145,7 @@ public class WorkflowExecutionBenchmarks
             Id = "activity1",
             Name = "Activity 1",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -153,14 +153,14 @@ public class WorkflowExecutionBenchmarks
             Id = "activity2",
             Name = "Activity 2",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
         {
             Id = "end_activity",
             Name = "End Activity",
-            ActivityType = "EndActivity"
+            Type = "EndActivity"
         });
 
         workflow.Transitions.Add(new Transition
@@ -204,7 +204,7 @@ public class WorkflowExecutionBenchmarks
             Id = "start_activity",
             Name = "Start Activity",
             HandlerType = "Simple",
-            ActivityType = "StartActivity"
+            Type = "StartActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -212,7 +212,7 @@ public class WorkflowExecutionBenchmarks
             Id = "fork_activity",
             Name = "Fork Activity",
             ExecutionMode = ExecutionMode.Fork,
-            ActivityType = "ForkGateway"
+            Type = "ForkGateway"
         });
 
         workflow.Activities.Add(new Activity
@@ -220,7 +220,7 @@ public class WorkflowExecutionBenchmarks
             Id = "parallel_activity1",
             Name = "Parallel Activity 1",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -228,21 +228,21 @@ public class WorkflowExecutionBenchmarks
             Id = "parallel_activity2",
             Name = "Parallel Activity 2",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
         {
             Id = "join_activity",
             Name = "Join Activity",
-            ActivityType = "JoinGateway"
+            Type = "JoinGateway"
         });
 
         workflow.Activities.Add(new Activity
         {
             Id = "end_activity",
             Name = "End Activity",
-            ActivityType = "EndActivity"
+            Type = "EndActivity"
         });
 
         workflow.Transitions.Add(new Transition
@@ -307,7 +307,7 @@ public class WorkflowExecutionBenchmarks
             Id = "start_activity",
             Name = "Start Activity",
             HandlerType = "Simple",
-            ActivityType = "StartActivity"
+            Type = "StartActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -315,7 +315,7 @@ public class WorkflowExecutionBenchmarks
             Id = "condition_activity",
             Name = "Condition Activity",
             ConditionExpression = "${shouldProceed}",
-            ActivityType = "ConditionGateway"
+            Type = "ConditionGateway"
         });
 
         workflow.Activities.Add(new Activity
@@ -323,7 +323,7 @@ public class WorkflowExecutionBenchmarks
             Id = "path1_activity",
             Name = "Path 1 Activity",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
@@ -331,14 +331,14 @@ public class WorkflowExecutionBenchmarks
             Id = "path2_activity",
             Name = "Path 2 Activity",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         });
 
         workflow.Activities.Add(new Activity
         {
             Id = "end_activity",
             Name = "End Activity",
-            ActivityType = "EndActivity"
+            Type = "EndActivity"
         });
 
         workflow.Transitions.Add(new Transition

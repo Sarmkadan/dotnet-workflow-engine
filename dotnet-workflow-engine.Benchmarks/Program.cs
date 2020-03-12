@@ -19,11 +19,11 @@ Console.WriteLine("  dotnet run -- ActivityExecutionBenchmarks");
 Console.WriteLine("  dotnet run -- *");
 Console.WriteLine();
 
-var args = Environment.GetCommandLineArgs();
+var cliArgs = Environment.GetCommandLineArgs();
 
-if (args.Length > 1)
+if (cliArgs.Length > 1)
 {
-    var benchmarkName = args[1];
+    var benchmarkName = cliArgs[1];
 
     switch (benchmarkName.ToLower())
     {
