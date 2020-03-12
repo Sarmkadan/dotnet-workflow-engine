@@ -7,14 +7,15 @@ using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Utilities;
 using FluentAssertions;
 using Xunit;
+using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
 public class ExpressionEvaluatorTests
 {
-    private ExecutionContext CreateContext(Dictionary<string, object?>? variables = null)
+    private WorkflowExecutionContext CreateContext(Dictionary<string, object?>? variables = null)
     {
-        var context = new ExecutionContext
+        var context = new WorkflowExecutionContext
         {
             WorkflowInstanceId = "test-instance",
             Variables = variables ?? new Dictionary<string, object?>()
