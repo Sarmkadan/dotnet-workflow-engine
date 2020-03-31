@@ -1,0 +1,100 @@
+# =============================================================================
+# Author: Vladyslav Zaiets | https://sarmkadan.com
+# CTO & Software Architect
+# =============================================================================
+
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=db;Database=WorkflowEngine;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true;
+      - WorkflowEngine__DefaultExecutionMode=Parallel
+      - WorkflowEngine__MaxConcurrentActivities=10
+      - WorkflowEngine__EnableAuditTrail=true
+      - WorkflowEngine__EnableMetrics=true
+      - Caching__Provider=Redis
+      - Caching__RedisConnection=redis:6379
+      - Hangfire__Enabled=true
+      - Hangfire__ConnectionString=Server=db;Database=Hangfire;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true;
+      - Security__EnableAuthorization=true
+      - Security__JwtSecret=your-very-long-secret-key-at-least-32-characters-change-in-production
+      - Logging__LogLevel__Default=Information
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - workflow-network
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourPassword123!
+      - MSSQL_PID=Developer
+    volumes:
+      - sql_data:/var/opt/mssql/data
+      - sql_logs:/var/opt/mssql/log
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourPassword123!", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - workflow-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workflow-network
+
+  hangfire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspnet:10.0
+    ports:
+      - "5555:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - db
+    networks:
+      - workflow-network
+    # Note: Hangfire dashboard is served from the main API
+
+volumes:
+  sql_data:
+    driver: local
+  sql_logs:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  workflow-network:
+    driver: bridge
