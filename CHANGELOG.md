@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-05-26
+
+### Security
+- Added input validation and length limits to public methods
+- Added request timeout configuration to HttpClient calls
+- Added security policy and vulnerability reporting
+- Added CancellationToken parameters to async methods
+
 ## [2.0.0] - 2026-03-04
 
 ### Added
