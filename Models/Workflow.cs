@@ -8,8 +8,22 @@ using DotNetWorkflowEngine.Enums;
 namespace DotNetWorkflowEngine.Models;
 
 /// <summary>
-/// Represents a workflow definition that can be executed.
+/// Represents a workflow definition - a directed graph of <see cref="Activity"/> nodes
+/// connected by <see cref="Transition"/> edges. A workflow must be validated and published
+/// (status = <see cref="WorkflowStatus.Active"/>) before instances can be created from it.
 /// </summary>
+/// <remarks>
+/// <para>
+/// A valid workflow requires:
+/// <list type="bullet">
+///   <item>A non-empty <see cref="Id"/> and <see cref="Name"/></item>
+///   <item>At least one <see cref="Activity"/> in <see cref="Activities"/></item>
+///   <item>A <see cref="StartActivityId"/> referencing an existing activity</item>
+///   <item>All <see cref="Transition"/> endpoints referencing existing activities</item>
+/// </list>
+/// Use <see cref="Validate"/> to check these constraints before calling <see cref="Publish"/>.
+/// </para>
+/// </remarks>
 public class Workflow
 {
     /// <summary>Gets or sets the unique identifier of the workflow.</summary>
@@ -54,8 +68,14 @@ public class Workflow
     public string? ModifiedBy { get; set; }
 
     /// <summary>
-    /// Validates the workflow definition for required properties and valid transitions.
+    /// Validates the workflow definition by checking required properties and verifying
+    /// that all transition endpoints reference existing activities.
     /// </summary>
+    /// <param name="errors">
+    /// When the method returns <c>false</c>, contains one or more human-readable error messages
+    /// describing validation failures.
+    /// </param>
+    /// <returns><c>true</c> if the workflow definition is valid; otherwise <c>false</c>.</returns>
     public bool Validate(out List<string> errors)
     {
         errors = new List<string>();
