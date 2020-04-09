@@ -10,7 +10,7 @@ namespace DotNetWorkflowEngine.Data.Repositories;
 /// <summary>
 /// Repository for audit log persistence.
 /// </summary>
-public class AuditRepository : IRepository<AuditLogEntry>
+public class AuditRepository : IAuditRepository
 {
     private readonly Dictionary<string, List<AuditLogEntry>> _auditLogs = new();
     private readonly List<AuditLogEntry> _allEntries = new();
@@ -194,5 +194,55 @@ public class AuditRepository : IRepository<AuditLogEntry>
         _auditLogs.Clear();
         _allEntries.Clear();
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets filtered and paginated audit entries across all workflows/instances.
+    /// </summary>
+    public Task<(List<AuditLogEntry> Items, int Total)> GetFilteredAndPagedAsync(
+        string? workflowId = null,
+        string? instanceId = null,
+        string? activityId = null,
+        string? eventType = null,
+        string? severity = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? actor = null,
+        int skip = 0,
+        int take = 100)
+    {
+        IQueryable<AuditLogEntry> query = _allEntries.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(workflowId))
+            query = query.Where(e => e.WorkflowInstanceId.StartsWith(workflowId)); // Assuming instanceId can identify workflow
+
+        if (!string.IsNullOrWhiteSpace(instanceId))
+            query = query.Where(e => e.WorkflowInstanceId == instanceId);
+
+        if (!string.IsNullOrWhiteSpace(activityId))
+            query = query.Where(e => e.ActivityId == activityId);
+
+        if (!string.IsNullOrWhiteSpace(eventType))
+            query = query.Where(e => e.EventType == eventType);
+
+        if (!string.IsNullOrWhiteSpace(severity))
+            query = query.Where(e => e.Severity == severity);
+
+        if (fromDate.HasValue)
+            query = query.Where(e => e.Timestamp >= fromDate.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(e => e.Timestamp <= toDate.Value);
+
+        if (!string.IsNullOrWhiteSpace(actor))
+            query = query.Where(e => e.Actor == actor);
+
+        var total = query.Count();
+        var items = query.OrderByDescending(e => e.Timestamp)
+                         .Skip(skip)
+                         .Take(take)
+                         .ToList();
+
+        return Task.FromResult((items, total));
     }
 }

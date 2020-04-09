@@ -25,11 +25,13 @@ namespace DotNetWorkflowEngine.Controllers;
 public class AuditController : ControllerBase
 {
     private readonly AuditService _auditService;
+    private readonly IAuditRepository _auditRepository;
     private readonly ILogger<AuditController> _logger;
 
-    public AuditController(AuditService auditService, ILogger<AuditController> logger)
+    public AuditController(AuditService auditService, IAuditRepository auditRepository, ILogger<AuditController> logger)
     {
         _auditService = auditService;
+        _auditRepository = auditRepository;
         _logger = logger;
     }
 
@@ -75,12 +77,21 @@ public class AuditController : ControllerBase
             }
 
             _logger.LogInformation(
-                "Retrieving audit logs: workflowId={WorkflowId}, instanceId={InstanceId}, action={Action}, skip={Skip}, take={Take}",
-                workflowId, instanceId, action, skip, take);
+                "Retrieving audit logs: workflowId={WorkflowId}, instanceId={InstanceId}, action={Action}, executedBy={ExecutedBy}, fromDate={FromDate}, toDate={ToDate}, skip={Skip}, take={Take}",
+                workflowId, instanceId, action, executedBy, fromDate, toDate, skip, take);
 
-            // TODO: Implement audit log retrieval with filtering and pagination
-            var logs = new List<AuditLogEntry>();
+            var (logs, total) = await _auditService.GetFilteredAuditLogsAsync(
+                workflowId: workflowId,
+                instanceId: instanceId,
+                eventType: action, // map action to eventType
+                actor: executedBy, // map executedBy to actor
+                fromDate: fromDate,
+                toDate: toDate,
+                skip: skip,
+                take: take
+            );
 
+            Response.Headers.Add("X-Total-Count", total.ToString());
             return Ok(logs);
         }
         catch (Exception ex)
@@ -113,15 +124,18 @@ public class AuditController : ControllerBase
 
             _logger.LogInformation("Retrieving audit log for workflow: {WorkflowId}", workflowId);
 
-            // TODO: Implement workflow-specific audit log retrieval
-            var logs = new List<AuditLogEntry>();
+            var (logs, total) = await _auditService.GetFilteredAuditLogsAsync(
+                workflowId: workflowId,
+                skip: skip,
+                take: take
+            );
 
             if (logs.Count == 0)
             {
                 _logger.LogWarning("No audit logs found for workflow {WorkflowId}", workflowId);
                 return NotFound(new { error = $"No audit logs found for workflow '{workflowId}'" });
             }
-
+            Response.Headers.Add("X-Total-Count", total.ToString());
             return Ok(logs);
         }
         catch (Exception ex)
@@ -154,12 +168,16 @@ public class AuditController : ControllerBase
 
             _logger.LogInformation("Retrieving audit log for instance: {InstanceId}", instanceId);
 
-            // TODO: Implement instance-specific audit log retrieval
-            var logs = new List<AuditLogEntry>();
+            var (logs, total) = await _auditService.GetFilteredAuditLogsAsync(
+                instanceId: instanceId,
+                skip: skip,
+                take: take
+            );
 
             if (logs.Count == 0)
                 return NotFound(new { error = $"No audit logs found for instance '{instanceId}'" });
-
+            
+            Response.Headers.Add("X-Total-Count", total.ToString());
             return Ok(logs);
         }
         catch (Exception ex)
@@ -186,8 +204,7 @@ public class AuditController : ControllerBase
 
             _logger.LogInformation("Retrieving audit log entry: {AuditId}", auditId);
 
-            // TODO: Implement specific audit entry retrieval
-            var entry = await Task.FromResult<AuditLogEntry?>(null);
+            var entry = await _auditRepository.GetByIdAsync(auditId);
 
             if (entry == null)
                 return NotFound(new { error = $"Audit log entry '{auditId}' not found" });
@@ -216,13 +233,24 @@ public class AuditController : ControllerBase
         {
             _logger.LogInformation("Retrieving audit statistics");
 
-            // TODO: Implement statistics calculation
+            var (allLogs, totalEntries) = await _auditService.GetFilteredAuditLogsAsync(
+                fromDate: fromDate,
+                toDate: toDate,
+                take: int.MaxValue // Retrieve all logs within the date range
+            );
+
+            var entriesByAction = allLogs.GroupBy(e => e.EventType)
+                                         .ToDictionary(g => g.Key, g => g.Count());
+
+            var entriesByDay = allLogs.GroupBy(e => e.Timestamp.Date)
+                                      .ToDictionary(g => g.Key.ToString("yyyy-MM-dd"), g => g.Count());
+
             var stats = new
             {
-                totalEntries = 0,
+                totalEntries = totalEntries,
                 dateRange = new { from = fromDate, to = toDate },
-                entriesByAction = new Dictionary<string, int>(),
-                entriesByDay = new Dictionary<string, int>()
+                entriesByAction = entriesByAction,
+                entriesByDay = entriesByDay
             };
 
             return Ok(stats);
@@ -256,11 +284,46 @@ public class AuditController : ControllerBase
 
             _logger.LogInformation("Exporting audit logs in {Format}", format);
 
-            // TODO: Implement audit log export
-            var exportData = new byte[] { };
-            var fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.{format}";
+            var (logs, total) = await _auditService.GetFilteredAuditLogsAsync(
+                workflowId: workflowId,
+                fromDate: fromDate,
+                toDate: toDate,
+                take: int.MaxValue // Get all filtered logs for export
+            );
 
-            return File(exportData, GetContentType(format), fileName);
+            byte[] exportData;
+            string contentType;
+            string fileName;
+
+            switch (format.ToLowerInvariant())
+            {
+                case "csv":
+                    var csvContent = new System.Text.StringBuilder();
+                    csvContent.AppendLine("Timestamp,EventType,WorkflowInstanceId,ActivityId,Severity,Description,Actor,CorrelationId");
+                    foreach (var entry in logs.OrderBy(e => e.Timestamp))
+                    {
+                        csvContent.AppendLine($"\"{entry.GetFormattedTimestamp()}\",\"{entry.EventType}\",\"{entry.WorkflowInstanceId}\",\"{entry.ActivityId}\",\"{entry.Severity}\",\"{entry.Description.Replace("\"", "\"\"")}\",\"{entry.Actor}\",\"{entry.CorrelationId}\"");
+                    }
+                    exportData = System.Text.Encoding.UTF8.GetBytes(csvContent.ToString());
+                    contentType = "text/csv";
+                    fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.csv";
+                    break;
+                case "json":
+                    exportData = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(logs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    contentType = "application/json";
+                    fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.json";
+                    break;
+                // case "xml": // XML export would require an XML formatter
+                //     // For now, default to JSON or CSV
+                //     exportData = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(logs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                //     contentType = "application/json";
+                //     fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.json";
+                //     break;
+                default:
+                    return BadRequest(new { error = $"Unsupported export format: {format}" });
+            }
+
+            return File(exportData, contentType, fileName);
         }
         catch (Exception ex)
         {
@@ -269,13 +332,5 @@ public class AuditController : ControllerBase
         }
     }
 
-    private string GetContentType(string format)
-    {
-        return format.ToLowerInvariant() switch
-        {
-            "csv" => "text/csv",
-            "xml" => "application/xml",
-            _ => "application/json"
-        };
-    }
+
 }

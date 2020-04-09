@@ -82,7 +82,7 @@ class Program
             Console.WriteLine($"  Activities executed: {instance.ExecutedActivities.Count}\n");
 
             // Show audit log
-            var auditLog = auditService.GetAuditLog(instance.Id);
+            var auditLog = await auditService.GetAuditLog(instance.Id);
             Console.WriteLine($"Audit Log ({auditLog.Count} entries):");
             foreach (var entry in auditLog.OrderBy(e => e.Timestamp))
             {
