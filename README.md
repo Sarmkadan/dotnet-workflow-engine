@@ -276,7 +276,13 @@ public class OrderController : ControllerBase
 
 ## Usage Examples
 
-Complete examples for all major workflows are available in the `examples/` directory:
+Practical usage snippets:
+
+- **BasicUsage.cs** - Minimal setup and first workflow execution
+- **AdvancedUsage.cs** - Configuration, custom options, retry policies, and error handling
+- **IntegrationExample.cs** - Wiring the workflow engine into ASP.NET Core Dependency Injection
+
+Complete examples for specific scenarios are also available in the `examples/` directory:
 
 - **OrderProcessingExample.cs** - Multi-step order workflow with validation, payment, and shipping
 - **ApprovalChainExample.cs** - Document approval process with multiple reviewers
