@@ -7,11 +7,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <PackageId>Zaiets.dotnet.workflow.engine</PackageId>
-    <Version>2.0.2</Version>
+    <PackageId>dotnet-workflow-engine</PackageId>
+    <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
-    <Description>Visual workflow engine for .NET - BPMN-like DSL, parallel execution, retry policies, audit trail</Description>
-    <PackageTags>workflow engine bpmn dotnet csharp parallel retry</PackageTags>
+    <Description>A lightweight, flexible workflow engine for .NET applications that enables robust process automation and orchestration.</Description>
+    <PackageTags>workflow engine dotnet orchestration automation</PackageTags>
     <PackageProjectUrl>https://github.com/sarmkadan/dotnet-workflow-engine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-workflow-engine</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
