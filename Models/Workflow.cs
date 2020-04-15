@@ -41,6 +41,9 @@ public class Workflow
     /// <summary>Gets or sets the current status of the workflow.</summary>
     public WorkflowStatus Status { get; set; } = WorkflowStatus.Draft;
 
+    /// <summary>Gets whether the workflow has been published (status is <see cref="WorkflowStatus.Active"/>).</summary>
+    public bool IsPublished => Status == WorkflowStatus.Active;
+
     /// <summary>Gets or sets the list of activities in this workflow.</summary>
 
     public List<Activity> Activities { get; set; } = new();

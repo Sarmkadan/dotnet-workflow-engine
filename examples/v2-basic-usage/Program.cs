@@ -1,181 +1,124 @@
+using DotNetWorkflowEngine.Configuration;
+using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
-using DotNetWorkflowEngine.Utilities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-// This example demonstrates the basic usage of dotnet-workflow-engine v2.0
+// This example demonstrates the basic usage of dotnet-workflow-engine
 // It shows how to create a simple workflow, register services, and execute it
 
 var builder = Host.CreateApplicationBuilder(args);
 
 // Configure services
-builder.Services
-    .AddWorkflowEngine(builder.Configuration)
-    .AddDbContext<DatabaseContext>(options =>
-        options.UseSqlite("Data Source=workflow.db"))
-    .AddLogging();
+builder.Services.AddWorkflowEngine("Data Source=workflow.db");
 
 var host = builder.Build();
 
 // Create a simple workflow definition
-var workflow = new Workflow
+var definitionService = host.Services.GetRequiredService<WorkflowDefinitionService>();
+var workflow = definitionService.CreateWorkflow(
+    "approval-workflow",
+    "SimpleApprovalWorkflow",
+    "A simple approval workflow with validation and notification");
+
+definitionService.AddActivity(workflow.Id, new Activity
 {
-    Id = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
-    Name = "SimpleApprovalWorkflow",
-    Version = 1,
-    Status = WorkflowStatus.Active,
-    Description = "A simple approval workflow with validation and notification",
-    Activities = new List<Activity>
-    {
-        new Activity
-        {
-            Id = "start",
-            Name = "Start Workflow",
-            ActivityType = "StartActivity",
-            Display = new ActivityDisplay
-            {
-                PositionX = 50,
-                PositionY = 100,
-                Color = "#4CAF50"
-            }
-        },
-        new Activity
-        {
-            Id = "validate_request",
-            Name = "Validate Request",
-            ActivityType = "ValidatorActivity",
-            Timeout = TimeSpan.FromSeconds(30),
-            Display = new ActivityDisplay
-            {
-                PositionX = 200,
-                PositionY = 100,
-                Color = "#FF9800"
-            }
-        },
-        new Activity
-        {
-            Id = "approve",
-            Name = "Get Approval",
-            ActivityType = "ApprovalActivity",
-            Timeout = TimeSpan.FromHours(24),
-            Display = new ActivityDisplay
-            {
-                PositionX = 350,
-                PositionY = 100,
-                Color = "#2196F3"
-            }
-        },
-        new Activity
-        {
-            Id = "notify",
-            Name = "Send Notification",
-            ActivityType = "EmailActivity",
-            Timeout = TimeSpan.FromSeconds(60),
-            Display = new ActivityDisplay
-            {
-                PositionX = 500,
-                PositionY = 100,
-                Color = "#9C27B0"
-            }
-        },
-        new Activity
-        {
-            Id = "end",
-            Name = "End Workflow",
-            ActivityType = "EndActivity",
-            Display = new ActivityDisplay
-            {
-                PositionX = 650,
-                PositionY = 100,
-                Color = "#795548"
-            }
-        }
-    },
-    Transitions = new List<Transition>
-    {
-        new Transition
-        {
-            Id = "t1",
-            SourceActivityId = "start",
-            TargetActivityId = "validate_request",
-            Display = new TransitionDisplay
-            {
-                Path = "M 100 125 L 200 125",
-                Label = "Start"
-            }
-        },
-        new Transition
-        {
-            Id = "t2",
-            SourceActivityId = "validate_request",
-            TargetActivityId = "approve",
-            Display = new TransitionDisplay
-            {
-                Path = "M 250 125 L 350 125",
-                Label = "Valid?"
-            }
-        },
-        new Transition
-        {
-            Id = "t3",
-            SourceActivityId = "approve",
-            TargetActivityId = "notify",
-            Display = new TransitionDisplay
-            {
-                Path = "M 400 125 L 500 125",
-                Label = "Approved"
-            }
-        },
-        new Transition
-        {
-            Id = "t4",
-            SourceActivityId = "notify",
-            TargetActivityId = "end",
-            Display = new TransitionDisplay
-            {
-                Path = "M 550 125 L 650 125",
-                Label = "Complete"
-            }
-        }
-    }
-};
+    Id = "start",
+    Name = "Start Workflow",
+    Type = "StartActivity"
+});
 
-// Register the workflow
-var workflowService = host.Services.GetRequiredService<IWorkflowDefinitionService>();
-await workflowService.SaveAsync(workflow);
+definitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "validate_request",
+    Name = "Validate Request",
+    Type = "ValidatorActivity",
+    TimeoutSeconds = 30
+});
 
-Console.WriteLine("✅ Workflow registered successfully!");
+definitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "approve",
+    Name = "Get Approval",
+    Type = "ApprovalActivity",
+    TimeoutSeconds = 86400
+});
+
+definitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "notify",
+    Name = "Send Notification",
+    Type = "EmailActivity",
+    TimeoutSeconds = 60
+});
+
+definitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "end",
+    Name = "End Workflow",
+    Type = "EndActivity"
+});
+
+definitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "t1",
+    FromActivityId = "start",
+    ToActivityId = "validate_request",
+    Label = "Start"
+});
+
+definitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "t2",
+    FromActivityId = "validate_request",
+    ToActivityId = "approve",
+    Label = "Valid?"
+});
+
+definitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "t3",
+    FromActivityId = "approve",
+    ToActivityId = "notify",
+    Label = "Approved"
+});
+
+definitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "t4",
+    FromActivityId = "notify",
+    ToActivityId = "end",
+    Label = "Complete"
+});
+
+definitionService.SetStartActivity(workflow.Id, "start");
+definitionService.SetEndActivity(workflow.Id, "end");
+definitionService.PublishWorkflow(workflow.Id);
+
+Console.WriteLine("Workflow registered successfully!");
 
 // Execute the workflow
-var executionService = host.Services.GetRequiredService<IWorkflowExecutionService>();
+var executionService = host.Services.GetRequiredService<WorkflowExecutionService>();
 
-var executionContext = new ExecutionContext
-{
-    WorkflowId = workflow.Id,
-    InstanceId = Guid.NewGuid(),
-    Variables = new Dictionary<string, object>
-    {
-        { "RequestId", Guid.NewGuid() },
-        { "Requester", "john.doe@example.com" },
-        { "Amount", 1500.00m },
-        { "ApprovalRequired", true }
-    }
-};
+var instance = executionService.CreateInstance(workflow.Id, initiatedBy: "john.doe@example.com");
+instance.SetContextVariable("RequestId", Guid.NewGuid());
+instance.SetContextVariable("Requester", "john.doe@example.com");
+instance.SetContextVariable("Amount", 1500.00m);
+instance.SetContextVariable("ApprovalRequired", true);
 
-Console.WriteLine($"🚀 Starting workflow execution...");
+Console.WriteLine("Starting workflow execution...");
 Console.WriteLine($"Workflow ID: {workflow.Id}");
-Console.WriteLine($"Instance ID: {executionContext.InstanceId}");
+Console.WriteLine($"Instance ID: {instance.Id}");
 
-var result = await executionService.ExecuteAsync(executionContext);
+var result = await executionService.StartAsync(instance.Id);
 
-Console.WriteLine($"\n✅ Workflow execution completed!");
+Console.WriteLine("\nWorkflow execution completed!");
 Console.WriteLine($"Status: {result.Status}");
-Console.WriteLine($"Instance ID: {result.InstanceId}");
-Console.WriteLine($"Completed Activities: {result.CompletedActivities.Count}");
-Console.WriteLine($"Variables:");
-foreach (var variable in result.Variables)
+Console.WriteLine($"Instance ID: {result.Id}");
+Console.WriteLine($"Executed Activities: {result.ExecutedActivities.Count}");
+Console.WriteLine("Context:");
+foreach (var variable in result.Context)
 {
     Console.WriteLine($"  - {variable.Key}: {variable.Value}");
 }

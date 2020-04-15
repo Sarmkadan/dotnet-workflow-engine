@@ -66,7 +66,8 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var activity = CreateActivity("gateway-act", null!);
-        activity.ActivityType = "ParallelGateway";
+        activity.Type = "ParallelGateway";
+        activity.ExecutionMode = ExecutionMode.Fork;
         var context = CreateContext();
 
         var result = await service.ExecuteAsync(activity, context);
@@ -80,7 +81,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var activity = CreateActivity();
-        activity.Validate = _ => false; // Mark as invalid
+        activity.Id = string.Empty; // Mark as invalid
 
         var context = CreateContext();
 
@@ -339,9 +340,8 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var activity = CreateActivity("simple-act");
-        activity.ActivityType = "SimpleAction";  // Mark as not requiring handler
+        activity.Type = "Event";  // Mark as not requiring handler
         activity.HandlerType = null;
-        activity.RequiresHandler = () => false;
         var context = CreateContext();
 
         var result = await service.ExecuteAsync(activity, context);
