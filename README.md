@@ -462,8 +462,27 @@ Key performance characteristics:
 To run benchmarks locally:
 
 ```bash
-dotnet run -c Release -- benchmark run --scenario all
+cd dotnet-workflow-engine.Benchmarks
+dotnet run -c Release -- all
 ```
+
+## Running Benchmarks
+
+For detailed performance measurements, run the benchmarks project:
+
+```bash
+# Navigate to benchmarks directory
+cd dotnet-workflow-engine.Benchmarks
+
+# Run all benchmarks (Release mode recommended)
+dotnet run -c Release -- all
+
+# Run specific benchmark
+cd dotnet-workflow-engine.Benchmarks
+dotnet run -c Release -- ActivityExecutionBenchmarks
+```
+
+See the [benchmarks README](dotnet-workflow-engine.Benchmarks/README.md) for more details.
 
 ## Related Projects
 

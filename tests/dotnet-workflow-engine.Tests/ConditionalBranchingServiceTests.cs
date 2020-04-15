@@ -9,6 +9,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
@@ -32,9 +33,9 @@ public class ConditionalBranchingServiceTests
         };
     }
 
-    private ExecutionContext CreateContext(Dictionary<string, object?>? variables = null)
+    private WorkflowExecutionContext CreateContext(Dictionary<string, object?>? variables = null)
     {
-        return new ExecutionContext
+        return new WorkflowExecutionContext
         {
             WorkflowInstanceId = "inst-1",
             Variables = variables ?? new Dictionary<string, object?>()
