@@ -16,6 +16,8 @@ using DotNetWorkflowEngine.Middleware;
 using DotNetWorkflowEngine.Monitoring;
 using DotNetWorkflowEngine.BackgroundJobs;
 using DotNetWorkflowEngine.Filters;
+using Microsoft.Extensions.Options;
+using FluentValidation;
 
 namespace DotNetWorkflowEngine.Configuration;
 
@@ -27,20 +29,26 @@ namespace DotNetWorkflowEngine.Configuration;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers all workflow engine services into the DI container.
+    /// Registers all workflow engine services into the DI container with IOptions pattern.
     /// Call this method in Program.cs during application startup.
     /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="configureOptions">Optional configuration action</param>
+    /// <returns>The configured service collection</returns>
     public static IServiceCollection AddWorkflowEngine(
         this IServiceCollection services,
-        WorkflowEngineOptions? options = null)
+        Action<DotnetWorkflowEngineOptions>? configureOptions = null)
     {
-        options ??= new WorkflowEngineOptions();
-
-        // Register core services (assumes these are in ServiceCollection.cs)
-        // services.AddScoped<WorkflowDefinitionService>();
-        // services.AddScoped<WorkflowExecutionService>();
-        // services.AddScoped<AuditService>();
-        // services.AddScoped<ActivityService>();
+        // Configure options with validation
+        if (configureOptions != null)
+        {
+            services.Configure(configureOptions);
+        }
+        else
+        {
+            services.AddOptions<DotnetWorkflowEngineOptions>()
+                .ValidateOnStart();
+        }
 
         // Register formatters
         services.AddSingleton<JsonOutputFormatter>();
@@ -48,29 +56,35 @@ public static class DependencyInjection
         services.AddScoped<IOutputFormatter>(sp => sp.GetRequiredService<JsonOutputFormatter>());
 
         // Register caching based on configuration
-        if (options.UseCaching)
+        services.AddScoped<ICacheService>(sp =>
         {
-            if (options.UseDistributedCache && !string.IsNullOrEmpty(options.RedisConnectionString))
-            {
-                services.AddStackExchangeRedisCache(config =>
-                    config.Configuration = options.RedisConnectionString);
+            var options = sp.GetRequiredService<IOptions<DotnetWorkflowEngineOptions>>().Value;
 
-                services.AddScoped<ICacheService>(sp =>
-                    new DistributedCacheService(
+            if (options.CachingEnabled)
+            {
+                if (options.UseDistributedCache && !string.IsNullOrEmpty(options.RedisConnectionString))
+                {
+                    services.AddStackExchangeRedisCache(config =>
+                        config.Configuration = options.RedisConnectionString);
+
+                    return new DistributedCacheService(
                         sp.GetRequiredService<IDistributedCache>(),
                         sp.GetRequiredService<ILogger<DistributedCacheService>>(),
-                        options.DefaultCacheExpiration));
-            }
-            else
-            {
-                services.AddSingleton<IMemoryCache, MemoryCache>();
-                services.AddScoped<ICacheService>(sp =>
-                    new MemoryCacheService(
+                        options.DefaultCacheExpiration);
+                }
+                else
+                {
+                    services.AddSingleton<IMemoryCache, MemoryCache>();
+                    return new MemoryCacheService(
                         sp.GetRequiredService<IMemoryCache>(),
                         sp.GetRequiredService<ILogger<MemoryCacheService>>(),
-                        options.DefaultCacheExpiration));
+                        options.DefaultCacheExpiration);
+                }
             }
-        }
+
+            // Return a no-op cache service if caching is disabled
+            return new NoOpCacheService();
+        });
 
         // Register event bus
         services.AddSingleton<IEventBus, EventBus>();
@@ -88,16 +102,15 @@ public static class DependencyInjection
         services.AddScoped<MetricsEndpoint>();
 
         // Register background job processor
-        if (options.EnableBackgroundJobs)
-        {
-            services.AddHostedService<WorkflowJobProcessor>();
-            services.AddScoped<IWorkflowJobProcessor>(sp =>
-                sp.GetRequiredService<WorkflowJobProcessor>());
-        }
+        services.AddHostedService<WorkflowJobProcessor>();
+        services.AddScoped<IWorkflowJobProcessor>(sp => sp.GetRequiredService<WorkflowJobProcessor>());
 
         // Register filters
         services.AddScoped<ValidationFilter>();
         services.AddScoped<DataAnnotationValidationFilter>();
+
+        // Register options validator
+        services.AddSingleton<IValidator<DotnetWorkflowEngineOptions>, DotnetWorkflowEngineOptionsValidator>();
 
         return services;
     }
@@ -211,27 +224,6 @@ public static class DependencyInjection
 
         return services;
     }
-}
-
-/// <summary>
-/// Configuration options for the workflow engine.
-/// </summary>
-public class WorkflowEngineOptions
-{
-    // Core engine options
-    public string? ConnectionString { get; set; }
-    public DotNetWorkflowEngine.Models.RetryPolicyConfig? DefaultRetryPolicy { get; set; }
-    public bool EnableAuditLogging { get; set; } = true;
-    public int MaxConcurrentWorkflows { get; set; } = 100;
-    public int DefaultActivityTimeoutSeconds { get; set; } = 300;
-    public bool ValidateWorkflowsOnLoad { get; set; } = true;
-
-    // Infrastructure options
-    public bool UseCaching { get; set; } = true;
-    public bool UseDistributedCache { get; set; } = false;
-    public string? RedisConnectionString { get; set; }
-    public TimeSpan DefaultCacheExpiration { get; set; } = TimeSpan.FromHours(1);
-    public bool EnableBackgroundJobs { get; set; } = true;
 }
 
 /// <summary>
