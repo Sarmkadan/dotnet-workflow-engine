@@ -3,28 +3,42 @@
 // CTO & Software Architect
 // =====================================================================
 
+using System;
 using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Enums;
 
 namespace DotNetWorkflowEngine.Models;
 
 /// <summary>
-/// Extension methods for <see cref="RetryPolicyConfig"/> to provide additional retry policy utilities.
+/// Provides extension methods for <see cref="RetryPolicyConfig"/> to configure and customize retry policies.
 /// </summary>
+/// <remarks>
+/// This static class contains factory methods and fluent configuration methods for creating and modifying
+/// <see cref="RetryPolicyConfig"/> instances with various retry strategies including linear backoff, exponential backoff,
+/// fixed delay, and custom configurations.
+/// </remarks>
 public static class RetryPolicyConfigExtensions
 {
     /// <summary>
     /// Creates a linear backoff retry configuration.
     /// </summary>
-    /// <param name="maxAttempts">Maximum number of retry attempts.</param>
-    /// <param name="initialDelayMs">Initial delay in milliseconds.</param>
-    /// <param name="maxDelayMs">Maximum delay in milliseconds (optional).</param>
-    /// <param name="jitterFactor">Jitter factor to randomize delays (optional).</param>
-    /// <returns>Configured retry policy.</returns>
+    /// <param name="maxAttempts">Maximum number of retry attempts. Must be greater than 0.</param>
+    /// <param name="initialDelayMs">Initial delay in milliseconds. Must be greater than 0.</param>
+    /// <param name="maxDelayMs">Maximum delay in milliseconds (optional). Default is 300000 (5 minutes).</param>
+    /// <param name="jitterFactor">Jitter factor to randomize delays (optional). Must be between 0.0 and 1.0.</param>
+    /// <returns>Configured retry policy with <see cref="RetryPolicy.LinearBackoff"/> policy type.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxAttempts"/> or <paramref name="initialDelayMs"/> is less than or equal to 0.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="jitterFactor"/> is less than 0.0 or greater than 1.0.</exception>
     public static RetryPolicyConfig CreateLinearBackoff(this int maxAttempts, int initialDelayMs, int maxDelayMs = 300000, double jitterFactor = 0.1)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxAttempts, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(initialDelayMs, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(jitterFactor, 0.0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(jitterFactor, 1.0);
+
         return new RetryPolicyConfig
         {
-            PolicyType = Enums.RetryPolicy.LinearBackoff,
+            PolicyType = RetryPolicy.LinearBackoff,
             MaxAttempts = maxAttempts,
             InitialDelayMs = initialDelayMs,
             MaxDelayMs = maxDelayMs,
@@ -36,16 +50,17 @@ public static class RetryPolicyConfigExtensions
     /// Creates a custom retry configuration with all parameters.
     /// </summary>
     /// <param name="policyType">The retry policy type.</param>
-    /// <param name="maxAttempts">Maximum number of retry attempts.</param>
-    /// <param name="initialDelayMs">Initial delay in milliseconds.</param>
-    /// <param name="maxDelayMs">Maximum delay in milliseconds.</param>
-    /// <param name="backoffMultiplier">Backoff multiplier for exponential/linear backoff.</param>
-    /// <param name="jitterFactor">Jitter factor to randomize delays.</param>
+    /// <param name="maxAttempts">Maximum number of retry attempts. Must be greater than 0.</param>
+    /// <param name="initialDelayMs">Initial delay in milliseconds. Must be greater than 0.</param>
+    /// <param name="maxDelayMs">Maximum delay in milliseconds. Must be greater than 0.</param>
+    /// <param name="backoffMultiplier">Backoff multiplier for exponential/linear backoff. Must be greater than 0.</param>
+    /// <param name="jitterFactor">Jitter factor to randomize delays. Must be between 0.0 and 1.0.</param>
     /// <param name="retryableExceptionTypes">List of exception types that should trigger retry.</param>
     /// <param name="retryOnTimeout">Whether to retry on timeout.</param>
     /// <returns>Configured retry policy.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when any numeric parameter is invalid.</exception>
     public static RetryPolicyConfig CreateCustomRetry(
-        this Enums.RetryPolicy policyType,
+        this RetryPolicy policyType,
         int maxAttempts = 3,
         int initialDelayMs = 1000,
         int maxDelayMs = 300000,
@@ -54,6 +69,13 @@ public static class RetryPolicyConfigExtensions
         List<string>? retryableExceptionTypes = null,
         bool retryOnTimeout = true)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxAttempts, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(initialDelayMs, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxDelayMs, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(backoffMultiplier, 0.0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(jitterFactor, 0.0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(jitterFactor, 1.0);
+
         return new RetryPolicyConfig
         {
             PolicyType = policyType,
@@ -72,10 +94,10 @@ public static class RetryPolicyConfigExtensions
     /// </summary>
     /// <param name="config">The retry policy configuration to clone.</param>
     /// <returns>A deep copy of the retry policy configuration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
     public static RetryPolicyConfig Clone(this RetryPolicyConfig config)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
 
         return new RetryPolicyConfig
         {
@@ -96,12 +118,12 @@ public static class RetryPolicyConfigExtensions
     /// <param name="config">The retry policy configuration.</param>
     /// <param name="exceptionTypes">Exception type names to add.</param>
     /// <returns>The same retry policy configuration for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
     public static RetryPolicyConfig AddRetryableExceptions(this RetryPolicyConfig config, params string[] exceptionTypes)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
 
-        if (exceptionTypes != null && exceptionTypes.Length > 0)
+        if (exceptionTypes is { Length: > 0 })
         {
             config.RetryableExceptionTypes ??= new List<string>();
             config.RetryableExceptionTypes.AddRange(exceptionTypes);
@@ -116,10 +138,10 @@ public static class RetryPolicyConfigExtensions
     /// <param name="config">The retry policy configuration.</param>
     /// <param name="exceptionTypes">Exception type names that should trigger retry.</param>
     /// <returns>The same retry policy configuration for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
     public static RetryPolicyConfig WithRetryableExceptions(this RetryPolicyConfig config, params string[] exceptionTypes)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
 
         config.RetryableExceptionTypes = new List<string>(exceptionTypes ?? Array.Empty<string>());
         return config;
@@ -131,10 +153,10 @@ public static class RetryPolicyConfigExtensions
     /// <param name="config">The retry policy configuration.</param>
     /// <param name="retryOnTimeout">Whether to retry on timeout.</param>
     /// <returns>The same retry policy configuration for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
     public static RetryPolicyConfig WithRetryOnTimeout(this RetryPolicyConfig config, bool retryOnTimeout)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
 
         config.RetryOnTimeout = retryOnTimeout;
         return config;
@@ -144,12 +166,14 @@ public static class RetryPolicyConfigExtensions
     /// Sets the maximum delay for the retry policy.
     /// </summary>
     /// <param name="config">The retry policy configuration.</param>
-    /// <param name="maxDelayMs">Maximum delay in milliseconds.</param>
+    /// <param name="maxDelayMs">Maximum delay in milliseconds. Must be greater than 0.</param>
     /// <returns>The same retry policy configuration for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxDelayMs"/> is less than or equal to 0.</exception>
     public static RetryPolicyConfig WithMaxDelay(this RetryPolicyConfig config, int maxDelayMs)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxDelayMs, 0);
 
         config.MaxDelayMs = maxDelayMs;
         return config;
@@ -159,12 +183,14 @@ public static class RetryPolicyConfigExtensions
     /// Sets the backoff multiplier for exponential or linear backoff policies.
     /// </summary>
     /// <param name="config">The retry policy configuration.</param>
-    /// <param name="multiplier">Backoff multiplier value.</param>
+    /// <param name="multiplier">Backoff multiplier value. Must be greater than 0.</param>
     /// <returns>The same retry policy configuration for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="multiplier"/> is less than or equal to 0.</exception>
     public static RetryPolicyConfig WithBackoffMultiplier(this RetryPolicyConfig config, double multiplier)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(multiplier, 0.0);
 
         config.BackoffMultiplier = multiplier;
         return config;
@@ -176,10 +202,13 @@ public static class RetryPolicyConfigExtensions
     /// <param name="config">The retry policy configuration.</param>
     /// <param name="jitterFactor">Jitter factor (0.0 to 1.0).</param>
     /// <returns>The same retry policy configuration for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="jitterFactor"/> is less than 0.0 or greater than 1.0.</exception>
     public static RetryPolicyConfig WithJitter(this RetryPolicyConfig config, double jitterFactor)
     {
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentOutOfRangeException.ThrowIfLessThan(jitterFactor, 0.0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(jitterFactor, 1.0);
 
         config.JitterFactor = jitterFactor;
         return config;
