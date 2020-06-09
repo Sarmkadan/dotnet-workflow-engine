@@ -19,6 +19,9 @@ public static class ConditionalBranchingExtensions
     /// configuration into the DI container.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="services"/> is <see langword="null"/>.
+    /// </exception>
     /// <param name="configure">
     /// Optional delegate to customise <see cref="ConditionalBranchingOptions"/>.
     /// When omitted, default options are used.
@@ -37,6 +40,8 @@ public static class ConditionalBranchingExtensions
         this IServiceCollection services,
         Action<ConditionalBranchingOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         var options = new ConditionalBranchingOptions();
         configure?.Invoke(options);
 
@@ -51,7 +56,7 @@ public static class ConditionalBranchingExtensions
 /// Configuration options that govern how the conditional branching service behaves
 /// at runtime and during workflow load.
 /// </summary>
-public class ConditionalBranchingOptions
+public sealed class ConditionalBranchingOptions
 {
     /// <summary>
     /// Gets or sets whether to propagate an exception when a transition expression
