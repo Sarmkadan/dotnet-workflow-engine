@@ -13,6 +13,10 @@ using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Provides unit tests for the <see cref="ConditionalBranchingService"/> class,
+/// verifying branch resolution, activity navigation, and transition expression validation.
+/// </summary>
 public class ConditionalBranchingServiceTests
 {
     private ConditionalBranchingService CreateService()
@@ -42,6 +46,7 @@ public class ConditionalBranchingServiceTests
         };
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync returns no transitions when an activity has no outgoing transitions.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_NoOutgoingTransitions_ReturnsEmpty()
     {
@@ -56,6 +61,7 @@ public class ConditionalBranchingServiceTests
         result.SkippedTransitions.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync selects an unconditional transition.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_UnconditionalTransition_SelectsIt()
     {
@@ -71,6 +77,7 @@ public class ConditionalBranchingServiceTests
         result.SkippedTransitions.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync selects a conditional transition when the condition evaluates to true.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_ConditionalTransitionMatches_SelectsIt()
     {
@@ -91,6 +98,7 @@ public class ConditionalBranchingServiceTests
         result.SkippedTransitions.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync skips a conditional transition when the condition evaluates to false.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_ConditionalTransitionDoesNotMatch_SkipsIt()
     {
@@ -111,6 +119,7 @@ public class ConditionalBranchingServiceTests
         result.SkippedTransitions.Should().HaveCount(1);
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync selects multiple conditional transitions when all conditions evaluate to true.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_MultipleConditionalTransitions_SelectsAllMatching()
     {
@@ -138,6 +147,7 @@ public class ConditionalBranchingServiceTests
         result.SkippedTransitions.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync selects both conditional and unconditional transitions when the conditional one matches.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_MixedConditionalAndUnconditional_SelectsBoth()
     {
@@ -163,6 +173,7 @@ public class ConditionalBranchingServiceTests
         result.SelectedTransitions.Should().HaveCount(2);
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync selects the default transition when no conditional transitions match.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_DefaultTransitionWithoutConditionalMatch_UsesDefault()
     {
@@ -191,6 +202,7 @@ public class ConditionalBranchingServiceTests
         result.UsedDefaultTransition.Should().BeTrue();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync ignores the default transition when a conditional transition matches.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_DefaultTransitionWithConditionalMatch_IgnoresDefault()
     {
@@ -219,6 +231,7 @@ public class ConditionalBranchingServiceTests
         result.UsedDefaultTransition.Should().BeFalse();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync selects multiple transitions according to their priority, even if they have matching conditions.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_PriorityOrdering_SelectsHighestPriority()
     {
@@ -247,6 +260,7 @@ public class ConditionalBranchingServiceTests
         result.SelectedTransitions.Should().HaveCount(2);
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync evaluates conditional expressions containing variables correctly.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_VariableInCondition_EvaluatesCorrectly()
     {
@@ -267,6 +281,7 @@ public class ConditionalBranchingServiceTests
         result.SkippedTransitions.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync records an error when a conditional expression is invalid.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_InvalidExpression_RecordsError()
     {
@@ -287,6 +302,7 @@ public class ConditionalBranchingServiceTests
         result.EvaluationErrors[0].TransitionId.Should().Be("t1");
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync throws an ArgumentNullException when the workflow is null.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_NullWorkflow_ThrowsArgumentNullException()
     {
@@ -297,6 +313,7 @@ public class ConditionalBranchingServiceTests
             service.ResolveBranchesAsync(null!, "activity1", context));
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync throws an ArgumentNullException when the context is null.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_NullContext_ThrowsArgumentNullException()
     {
@@ -307,6 +324,7 @@ public class ConditionalBranchingServiceTests
             service.ResolveBranchesAsync(workflow, "activity1", null!));
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync throws an ArgumentException when the activity ID is null.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_NullActivityId_ThrowsArgumentException()
     {
@@ -318,6 +336,7 @@ public class ConditionalBranchingServiceTests
             service.ResolveBranchesAsync(workflow, null!, context));
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync throws an ArgumentException when the activity ID is empty.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_EmptyActivityId_ThrowsArgumentException()
     {
@@ -329,6 +348,7 @@ public class ConditionalBranchingServiceTests
             service.ResolveBranchesAsync(workflow, "", context));
     }
 
+    /// <summary>Verifies that GetNextActivitiesAsync returns the expected target activities for an activity with multiple matching transitions.</summary>
     [Fact]
     public async Task GetNextActivitiesAsync_ReturnsTargetActivities()
     {
@@ -357,6 +377,7 @@ public class ConditionalBranchingServiceTests
         nextActivities.Should().Contain(a => a.Id == "activity3");
     }
 
+    /// <summary>Verifies that GetNextActivitiesAsync returns an empty collection when no transitions match.</summary>
     [Fact]
     public async Task GetNextActivitiesAsync_NoMatchingTransitions_ReturnsEmpty()
     {
@@ -376,6 +397,7 @@ public class ConditionalBranchingServiceTests
         nextActivities.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ValidateTransitionExpressions returns no errors when there are no transition expressions.</summary>
     [Fact]
     public void ValidateTransitionExpressions_NoExpressions_ReturnsEmpty()
     {
@@ -393,6 +415,7 @@ public class ConditionalBranchingServiceTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ValidateTransitionExpressions returns no errors when transition expressions are valid.</summary>
     [Fact]
     public void ValidateTransitionExpressions_ValidExpressions_ReturnsEmpty()
     {
@@ -411,6 +434,7 @@ public class ConditionalBranchingServiceTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>Verifies that ValidateTransitionExpressions returns errors for invalid transition expressions.</summary>
     [Fact]
     public void ValidateTransitionExpressions_InvalidExpression_ReturnsErrors()
     {
@@ -430,6 +454,7 @@ public class ConditionalBranchingServiceTests
         errors[0].TransitionId.Should().Be("t1");
     }
 
+    /// <summary>Verifies that ValidateTransitionExpressions throws an ArgumentNullException when the workflow is null.</summary>
     [Fact]
     public void ValidateTransitionExpressions_NullWorkflow_ThrowsArgumentNullException()
     {
@@ -439,6 +464,7 @@ public class ConditionalBranchingServiceTests
             service.ValidateTransitionExpressions(null!));
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync throws an OperationCanceledException when cancellation is requested.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_CancellationRequested_ThrowsOperationCanceledException()
     {
@@ -452,6 +478,7 @@ public class ConditionalBranchingServiceTests
             service.ResolveBranchesAsync(workflow, "activity1", context, cts.Token));
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync correctly evaluates complex conditional expressions with multiple variables.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_ComplexExpression_EvaluatesCorrectly()
     {
@@ -483,6 +510,7 @@ public class ConditionalBranchingServiceTests
         result.SelectedTransitions[0].Id.Should().Be("t1");
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync sets the AnyConditionMatched property correctly when a condition is matched.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_AnyConditionMatched_SetCorrectly()
     {
@@ -502,6 +530,7 @@ public class ConditionalBranchingServiceTests
         result.AnyConditionMatched.Should().BeTrue();
     }
 
+    /// <summary>Verifies that ResolveBranchesAsync sets the AnyConditionMatched property correctly when no condition is matched.</summary>
     [Fact]
     public async Task ResolveBranchesAsync_NoConditionMatched_SetCorrectly()
     {
