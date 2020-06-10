@@ -1,8 +1,3 @@
-// =============================================================================
-// Author: Vladyslav Zaiets | https://sarmkadan.com
-// CTO & Software Architect
-// =============================================================================
-
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
 using FluentAssertions;
@@ -10,8 +5,15 @@ using Xunit;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Tests for the <see cref="RetryPolicyConfig"/> class, verifying retry logic and delay calculations.
+/// </summary>
 public class RetryPolicyConfigTests
 {
+    /// <summary>
+    /// Verifies that <see cref="RetryPolicyConfig.ShouldRetry(int)"/> returns <c>false</c> when no retry policy is configured.
+    /// </summary>
+    /// <param name="currentAttempt">The current attempt number.</param>
     [Fact]
     public void ShouldRetry_WithNoRetryPolicy_ReturnsFalse()
     {
@@ -25,6 +27,10 @@ public class RetryPolicyConfigTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="RetryPolicyConfig.ShouldRetry(int)"/> returns <c>false</c> when the maximum number of attempts has been reached.
+    /// </summary>
+    /// <param name="currentAttempt">The current attempt number.</param>
     [Fact]
     public void ShouldRetry_WhenMaxAttemptsExhausted_ReturnsFalse()
     {
@@ -38,6 +44,11 @@ public class RetryPolicyConfigTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="RetryPolicyConfig.ShouldRetry(int, string)"/> returns <c>false</c> when the exception type is not in the retryable list.
+    /// </summary>
+    /// <param name="currentAttempt">The current attempt number.</param>
+    /// <param name="exceptionTypeName">The name of the exception type that caused the failure.</param>
     [Fact]
     public void ShouldRetry_WithNonRetryableExceptionType_ReturnsFalse()
     {
@@ -52,6 +63,10 @@ public class RetryPolicyConfigTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="RetryPolicyConfig.CalculateDelayMs(int)"/> calculates exponential backoff delays correctly when jitter is disabled.
+    /// </summary>
+    /// <param name="attempt">The retry attempt number.</param>
     [Fact]
     public void CalculateDelayMs_ExponentialBackoff_GrowsExponentiallyWithNoJitter()
     {
