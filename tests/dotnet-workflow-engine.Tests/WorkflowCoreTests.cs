@@ -6,8 +6,8 @@
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Events;
 using DotNetWorkflowEngine.Models;
-using DotNetWorkflowEngine.Services; // Add this using directive
-using DotNetWorkflowEngine.Data.Repositories; // Add this using directive
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Data.Repositories;
 using DotNetWorkflowEngine.Utilities;
 using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 using FluentAssertions;
@@ -15,10 +15,16 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+/// <summary>
+/// Tests for the WorkflowCore class.
+/// </summary>
 namespace DotNetWorkflowEngine.Tests;
 
 public class WorkflowCoreTests
 {
+    /// <summary>
+    /// Verifies that a workflow instance transitions to an active status when started.
+    /// </summary>
     [Fact]
     public void WorkflowInstance_Start_TransitionsToActiveStatus()
     {
@@ -35,6 +41,9 @@ public class WorkflowCoreTests
         instance.IsActive().Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that recording an activity execution does not duplicate entries.
+    /// </summary>
     [Fact]
     public void WorkflowInstance_RecordActivityExecution_DoesNotDuplicateEntries()
     {
@@ -51,6 +60,9 @@ public class WorkflowCoreTests
         instance.HasActivityBeenExecuted(activityId).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that setting an activity result to success marks it as completed and exposes the output.
+    /// </summary>
     [Fact]
     public void ActivityResult_SetSuccess_MarksCompletedAndExposesOutput()
     {
@@ -69,6 +81,9 @@ public class WorkflowCoreTests
         result.EndTime.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Verifies that the workflow validator reports an error when a workflow is missing an ID.
+    /// </summary>
     [Fact]
     public void WorkflowValidator_ValidateWorkflow_MissingId_ReportsError()
     {
@@ -91,6 +106,9 @@ public class WorkflowCoreTests
         validationResult.Errors.Should().Contain(e => e.Contains("Workflow ID is required"));
     }
 
+    /// <summary>
+    /// Verifies that publishing an event to the event bus invokes the subscribed handler.
+    /// </summary>
     [Fact]
     public async Task EventBus_Publish_InvokesSubscribedHandler()
     {
@@ -118,6 +136,9 @@ public class WorkflowCoreTests
         handlerInvoked.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that the workflow execution service cleans up active activities when an activity throws an exception.
+    /// </summary>
     [Fact]
     public async Task WorkflowExecutionService_ActivityThrowsException_ActiveActivitiesCleanedUp()
     {
@@ -127,8 +148,8 @@ public class WorkflowCoreTests
 
         // Mock dependencies
         var mockWorkflowDefinitionService = new Mock<WorkflowDefinitionService>();
-        var mockAuditRepository = new Mock<IAuditRepository>(); // Add this mock
-        var mockAuditService = new Mock<AuditService>(mockAuditRepository.Object); // Pass the mock repository
+        var mockAuditRepository = new Mock<IAuditRepository>();
+        var mockAuditService = new Mock<AuditService>(mockAuditRepository.Object);
         var mockActivityService = new Mock<ActivityService>();
 
         // Setup mock WorkflowDefinitionService
@@ -140,7 +161,7 @@ public class WorkflowCoreTests
             Activities = { new Activity { Id = activityId, Name = "Failing Activity" } },
             Transitions = new List<Transition>()
         };
-        workflow.Publish(); 
+        workflow.Publish();
         mockWorkflowDefinitionService.Setup(s => s.GetWorkflow(workflowId)).Returns(workflow);
 
         // Setup mock ActivityService to throw an exception
