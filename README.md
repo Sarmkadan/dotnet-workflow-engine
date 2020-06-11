@@ -326,6 +326,69 @@ Content-Type: application/json
 Authorization: Bearer <token>
 ```
 
+## WorkflowAuthorizationHandlerExtensions
+
+Extension methods for `WorkflowAuthorizationHandler` that provide convenient utilities for common authorization scenarios in workflow applications. These methods simplify checking user claims, roles, and retrieving user information from the authorization context.
+
+### Usage Example
+
+```csharp
+using DotNetWorkflowEngine.Security;
+using Microsoft.AspNetCore.Authorization;
+
+// In your authorization handler
+public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequirement>
+{
+    private readonly IUserService _userService;
+
+    public WorkflowAuthorizationHandler(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        WorkflowRequirement requirement)
+    {
+        // Check if user has required claim
+        if (this.HasRequiredClaim(context, "workflow:execute"))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        // Check if user has specific role
+        if (this.HasRequiredRole(context, "WorkflowAdmin"))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        // Get user information for logging/auditing
+        var userId = this.GetUserId(context);
+        var userEmail = this.GetUserEmail(context);
+        var userName = this.GetUserName(context);
+
+        // Check for specific claim value
+        if (this.HasRequiredClaimValue(context, "department", "engineering"))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        context.Fail();
+    }
+}
+```
+
+The extension methods include:
+- `HasRequiredClaim()` - Check if user has a specific claim type
+- `HasRequiredClaimValue()` - Check if user has a claim with specific type and value
+- `HasRequiredRole()` - Check if user has a specific role
+- `GetUserId()` - Retrieve the authenticated user's ID
+- `GetUserEmail()` - Retrieve the authenticated user's email
+- `GetUserName()` - Retrieve the authenticated user's name
+
 ### Workflow Instances
 
 #### Execute Workflow
