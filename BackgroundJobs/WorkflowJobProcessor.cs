@@ -7,7 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using DotNetWorkflowEngine.Services;
 
 namespace DotNetWorkflowEngine.BackgroundJobs;
 
@@ -181,9 +183,13 @@ public class WorkflowJobProcessor : BackgroundService, IWorkflowJobProcessor
             var startTime = DateTime.UtcNow;
             _logger.LogInformation("Processing job: {JobId}", job.Id);
 
-            // TODO: Implement actual workflow execution
-            // var executionService = _serviceProvider.GetRequiredService<WorkflowExecutionService>();
-            // await executionService.ExecuteAsync(job.WorkflowId, job.InputData);
+            if (string.IsNullOrWhiteSpace(job.WorkflowId))
+                throw new InvalidOperationException($"Job '{job.Id}' has no workflow ID to execute");
+
+            var executionService = _serviceProvider.GetRequiredService<WorkflowExecutionService>();
+            var instance = executionService.CreateInstance(job.WorkflowId, initiatedBy: "WorkflowJobProcessor");
+            job.InstanceId = instance.Id;
+            await executionService.StartAsync(instance.Id);
 
             var processingTime = DateTime.UtcNow - startTime;
             _stats.TotalProcessed++;

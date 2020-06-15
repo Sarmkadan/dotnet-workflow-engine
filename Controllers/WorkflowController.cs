@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Linq;
+using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Utilities;
@@ -56,10 +58,14 @@ public class WorkflowController : ControllerBase
         {
             _logger.LogInformation("Retrieving workflows: skip={Skip}, take={Take}, status={Status}", skip, take, status);
 
-            // TODO: Implement actual retrieval with filtering and pagination
-            var workflows = new List<Workflow>();
+            IEnumerable<Workflow> workflows = _workflowService.GetAllWorkflows();
 
-            return Ok(workflows);
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<WorkflowStatus>(status, ignoreCase: true, out var parsedStatus))
+                workflows = workflows.Where(w => w.Status == parsedStatus);
+
+            var result = workflows.Skip(skip).Take(take).ToList();
+
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -85,8 +91,7 @@ public class WorkflowController : ControllerBase
 
             _logger.LogInformation("Retrieving workflow: {WorkflowId}", id);
 
-            // TODO: Implement workflow retrieval
-            var workflow = await Task.FromResult<Workflow?>(null);
+            var workflow = await Task.FromResult(_workflowService.GetWorkflow(id));
 
             if (workflow == null)
                 return NotFound(new { error = $"Workflow '{id}' not found" });
@@ -108,6 +113,7 @@ public class WorkflowController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(Workflow), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateWorkflow([FromBody] Workflow workflow)
     {
@@ -116,14 +122,20 @@ public class WorkflowController : ControllerBase
             if (workflow == null)
                 return BadRequest(new { error = "Workflow definition is required" });
 
+            if (string.IsNullOrWhiteSpace(workflow.Id))
+                workflow.Id = Guid.NewGuid().ToString();
+
             // Validate the workflow before creation
             var validationResult = _validator.Validate(workflow);
             if (!validationResult.IsValid)
                 return BadRequest(new { error = "Workflow validation failed", details = validationResult.Errors });
 
+            if (_workflowService.GetWorkflow(workflow.Id) != null)
+                return Conflict(new { error = $"Workflow '{workflow.Id}' already exists" });
+
             _logger.LogInformation("Creating workflow: {WorkflowName}", workflow.Name);
 
-            // TODO: Implement workflow creation
+            _workflowService.AddWorkflow(workflow);
             var createdWorkflow = await Task.FromResult(workflow);
 
             return CreatedAtAction(nameof(GetWorkflow), new { id = createdWorkflow.Id }, createdWorkflow);
@@ -158,13 +170,16 @@ public class WorkflowController : ControllerBase
 
             workflow.Id = id;
 
+            if (_workflowService.GetWorkflow(id) == null)
+                return NotFound(new { error = $"Workflow '{id}' not found" });
+
             var validationResult = _validator.Validate(workflow);
             if (!validationResult.IsValid)
                 return BadRequest(new { error = "Workflow validation failed", details = validationResult.Errors });
 
             _logger.LogInformation("Updating workflow: {WorkflowId}", id);
 
-            // TODO: Implement workflow update
+            _workflowService.AddWorkflow(workflow);
             var updatedWorkflow = await Task.FromResult(workflow);
 
             return Ok(updatedWorkflow);
@@ -195,7 +210,10 @@ public class WorkflowController : ControllerBase
 
             _logger.LogInformation("Deleting workflow: {WorkflowId}", id);
 
-            // TODO: Implement workflow deletion with active instance check
+            if (_workflowService.GetWorkflow(id) == null)
+                return NotFound(new { error = $"Workflow '{id}' not found" });
+
+            _workflowService.DeleteWorkflow(id);
             return NoContent();
         }
         catch (Exception ex)
