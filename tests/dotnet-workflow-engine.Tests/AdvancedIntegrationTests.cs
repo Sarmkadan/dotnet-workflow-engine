@@ -15,6 +15,9 @@ using Xunit;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Contains integration tests for verifying advanced workflow engine scenarios and complex workflows.
+/// </summary>
 public class AdvancedIntegrationTests
 {
     private (WorkflowExecutionService, ActivityService, WorkflowDefinitionService, AuditService) CreateServices()
@@ -31,6 +34,9 @@ public class AdvancedIntegrationTests
         return (executionService, activityService, definitionService, auditService);
     }
 
+    /// <summary>
+    /// Verifies that a workflow with parallel activities splits and merges correctly.
+    /// </summary>
     [Fact]
     public async Task ComplexWorkflow_WithParallelPaths_ExecutesSuccessfully()
     {
@@ -72,6 +78,9 @@ public class AdvancedIntegrationTests
         mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()), Times.AtLeast(4));
     }
 
+    /// <summary>
+    /// Verifies that a workflow with a flaky activity can recover from transient errors using retry policies.
+    /// </summary>
     [Fact]
     public async Task WorkflowWithErrorHandling_RecoverableError_CompletesSuccessfully()
     {
@@ -133,6 +142,9 @@ public class AdvancedIntegrationTests
         callCount.Should().BeGreaterThanOrEqualTo(2);
     }
 
+    /// <summary>
+    /// Verifies that workflow execution state is preserved across multiple activities in a sequential workflow.
+    /// </summary>
     [Fact]
     public async Task LongRunningWorkflow_PreservesStateAcrossActivities()
     {
@@ -183,6 +195,9 @@ public class AdvancedIntegrationTests
         executedSteps.Should().Equal(new[] { "step1", "step2", "step3", "step4", "step5" });
     }
 
+    /// <summary>
+    /// Verifies that multiple concurrent workflow instances maintain their own independent execution state and traces.
+    /// </summary>
     [Fact]
     public async Task WorkflowWithMultipleInstances_EachMaintainsOwnState()
     {
@@ -237,6 +252,9 @@ public class AdvancedIntegrationTests
         }
     }
 
+    /// <summary>
+    /// Verifies that a workflow correctly routes execution based on conditional expressions evaluated against the workflow context.
+    /// </summary>
     [Fact]
     public async Task WorkflowWithConditionalRouting_SelectsCorrectPathBasedOnContext()
     {
@@ -289,6 +307,9 @@ public class AdvancedIntegrationTests
         executedPaths.Should().NotContain("standard-path");
     }
 
+    /// <summary>
+    /// Verifies the full lifecycle of a workflow definition, including creation, configuration, validation, publishing, execution, and deletion.
+    /// </summary>
     [Fact]
     public void WorkflowLifecycle_FullCycle_StateTransitionsCorrectly()
     {
@@ -325,6 +346,9 @@ public class AdvancedIntegrationTests
         definitionService.GetWorkflow("full-cycle").Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies that an activity with a defined timeout completes within that limit.
+    /// </summary>
     [Fact]
     public async Task ActivityWithTimeout_CompletesWithinTimeLimit()
     {
@@ -358,6 +382,9 @@ public class AdvancedIntegrationTests
         duration.Should().BeLessThan(TimeSpan.FromSeconds(30));
     }
 
+    /// <summary>
+    /// Verifies that the workflow builder correctly creates a valid serial workflow definition.
+    /// </summary>
     [Fact]
     public void WorkflowBuilder_CreateSerialWorkflow_BuildsValidWorkflow()
     {
@@ -371,6 +398,9 @@ public class AdvancedIntegrationTests
         workflow.Activities.Select(a => a.Id).Should().Equal(new[] { "init", "process", "finalize" });
     }
 
+    /// <summary>
+    /// Verifies that a workflow definition can be serialized to JSON and deserialized back while preserving its structure.
+    /// </summary>
     [Fact]
     public void WorkflowSerialization_RoundTrip_PreservesStructure()
     {
