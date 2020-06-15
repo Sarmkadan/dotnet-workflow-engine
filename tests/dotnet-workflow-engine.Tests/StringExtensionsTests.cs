@@ -1,16 +1,17 @@
-// =============================================================================
-// Author: Vladyslav Zaiets | https://sarmkadan.com
-// CTO & Software Architect
-// =============================================================================
-
 using DotNetWorkflowEngine.Utilities;
 using FluentAssertions;
 using Xunit;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Tests for string extension methods in DotNetWorkflowEngine.Utilities.
+/// </summary>
 public class StringExtensionsTests
 {
+    /// <summary>
+    /// Verifies that <c>ToPascalCase</c> correctly converts a kebab-case string to PascalCase.
+    /// </summary>
     [Fact]
     public void ToPascalCase_KebabInput_ConvertsCorrectly()
     {
@@ -24,6 +25,9 @@ public class StringExtensionsTests
         result.Should().Be("HelloWorld");
     }
 
+    /// <summary>
+    /// Verifies that <c>ToSnakeCase</c> correctly inserts underscores and lowercases a camelCase string.
+    /// </summary>
     [Fact]
     public void ToSnakeCase_CamelCaseInput_InsertsUnderscoresAndLowers()
     {
@@ -37,6 +41,9 @@ public class StringExtensionsTests
         result.Should().Be("hello_world");
     }
 
+    /// <summary>
+    /// Verifies that <c>Truncate</c> truncates a long string and appends the specified suffix.
+    /// </summary>
     [Fact]
     public void Truncate_LongStringWithSuffix_TruncatesAndAppendsSuffix()
     {
@@ -50,6 +57,9 @@ public class StringExtensionsTests
         result.Should().Be("Hell...");
     }
 
+    /// <summary>
+    /// Verifies that <c>SmartSplit</c> does not split delimiters that appear inside quoted sections.
+    /// </summary>
     [Fact]
     public void SmartSplit_QuotedSection_DoesNotSplitDelimiterInsideQuotes()
     {
