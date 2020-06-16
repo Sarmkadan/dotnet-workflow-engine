@@ -10,8 +10,18 @@ using Xunit;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Provides unit tests for the <see cref="SerializationHelper"/> class.
+/// Tests various serialization and deserialization methods including JSON conversion,
+/// deep cloning, merging, and validation for workflow engine activities and other objects.
+/// </summary>
 public class SerializationHelperTests
 {
+    /// <summary>
+    /// Creates a test activity for use in serialization tests.
+    /// </summary>
+    /// <param name="id">The activity identifier. Defaults to "activity-1".</param>
+    /// <returns>A configured <see cref="Activity"/> instance for testing.</returns>
     private Activity CreateTestActivity(string id = "activity-1")
     {
         return new Activity
@@ -23,6 +33,9 @@ public class SerializationHelperTests
         };
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.ToJson"/> correctly serializes an object to JSON string.
+    /// </summary>
     [Fact]
     public void ToJson_SerializesObjectToJson()
     {
@@ -35,6 +48,9 @@ public class SerializationHelperTests
         json.Should().Contain("Test Activity");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.ToJson"/> returns the string "null" when serializing a null object.
+    /// </summary>
     [Fact]
     public void ToJson_WithNull_ReturnsNullJson()
     {
@@ -43,6 +59,9 @@ public class SerializationHelperTests
         json.Should().Be("null");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.ToJsonPretty"/> serializes an object with formatting and indentation.
+    /// </summary>
     [Fact]
     public void ToJsonPretty_SerializesWithFormatting()
     {
@@ -54,6 +73,9 @@ public class SerializationHelperTests
         json.Should().Contain("\n"); // Should have line breaks for pretty printing
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJson"/> correctly deserializes a JSON string back to an object.
+    /// </summary>
     [Fact]
     public void FromJson_DeserializesJsonToObject()
     {
@@ -67,14 +89,20 @@ public class SerializationHelperTests
         deserialized.Name.Should().Be("Test Activity");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJson"/> returns null when deserializing null, empty, or whitespace strings.
+    /// </summary>
     [Fact]
     public void FromJson_WithNullOrEmpty_ReturnsNull()
     {
         SerializationHelper.FromJson<Activity>(null).Should().BeNull();
         SerializationHelper.FromJson<Activity>("").Should().BeNull();
-        SerializationHelper.FromJson<Activity>("   ").Should().BeNull();
+        SerializationHelper.FromJson<Activity>(" ").Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJson"/> throws a SerializationException when given invalid JSON.
+    /// </summary>
     [Fact]
     public void FromJson_WithInvalidJson_ThrowsSerializationException()
     {
@@ -83,6 +111,9 @@ public class SerializationHelperTests
         act.Should().Throw<SerializationException>();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJsonToDict"/> correctly deserializes JSON to a dictionary.
+    /// </summary>
     [Fact]
     public void FromJsonToDict_DeserializesToDictionary()
     {
@@ -95,6 +126,9 @@ public class SerializationHelperTests
         dict["key2"].Should().Be("value2");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJsonToDict"/> returns null when deserializing null, empty, or whitespace strings.
+    /// </summary>
     [Fact]
     public void FromJsonToDict_WithNullOrEmpty_ReturnsNull()
     {
@@ -102,6 +136,9 @@ public class SerializationHelperTests
         SerializationHelper.FromJsonToDict("").Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJsonToDict"/> throws a SerializationException when given invalid JSON.
+    /// </summary>
     [Fact]
     public void FromJsonToDict_WithInvalidJson_ThrowsSerializationException()
     {
@@ -110,6 +147,9 @@ public class SerializationHelperTests
         act.Should().Throw<SerializationException>();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.TryFromJson"/> successfully deserializes valid JSON to an object.
+    /// </summary>
     [Fact]
     public void TryFromJson_WithValidJson_ReturnsObject()
     {
@@ -122,6 +162,9 @@ public class SerializationHelperTests
         result!.Id.Should().Be("activity-1");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.TryFromJson"/> returns null when given invalid JSON.
+    /// </summary>
     [Fact]
     public void TryFromJson_WithInvalidJson_ReturnsNull()
     {
@@ -130,6 +173,9 @@ public class SerializationHelperTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.TryFromJson"/> returns null when given null or empty strings.
+    /// </summary>
     [Fact]
     public void TryFromJson_WithNullOrEmpty_ReturnsNull()
     {
@@ -137,6 +183,9 @@ public class SerializationHelperTests
         SerializationHelper.TryFromJson<Activity>("").Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.DeepClone"/> creates a complete independent clone of an object.
+    /// </summary>
     [Fact]
     public void DeepClone_CreatesCompleteClone()
     {
@@ -153,6 +202,9 @@ public class SerializationHelperTests
         clone.Should().NotBeSameAs(activity);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.DeepClone"/> returns null when given a null object.
+    /// </summary>
     [Fact]
     public void DeepClone_WithNull_ReturnsNull()
     {
@@ -161,6 +213,9 @@ public class SerializationHelperTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that modifying a clone does not affect the original object.
+    /// </summary>
     [Fact]
     public void DeepClone_ModifyingClone_DoesNotAffectOriginal()
     {
@@ -174,6 +229,9 @@ public class SerializationHelperTests
         activity.TimeoutSeconds.Should().Be(30);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.Merge"/> combines two objects with the second object's values taking precedence.
+    /// </summary>
     [Fact]
     public void Merge_CombinesTwoObjects()
     {
@@ -187,6 +245,9 @@ public class SerializationHelperTests
         merged.MaxRetries.Should().Be(5);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.Merge"/> returns the second object when the first is null.
+    /// </summary>
     [Fact]
     public void Merge_WithFirstNull_ReturnsSecond()
     {
@@ -198,6 +259,9 @@ public class SerializationHelperTests
         result!.Id.Should().Be("act-2");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.Merge"/> returns the first object when the second is null.
+    /// </summary>
     [Fact]
     public void Merge_WithSecondNull_ReturnsFirst()
     {
@@ -209,6 +273,9 @@ public class SerializationHelperTests
         result!.Id.Should().Be("act-1");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.Merge"/> returns null when both objects are null.
+    /// </summary>
     [Fact]
     public void Merge_WithBothNull_ReturnsNull()
     {
@@ -217,6 +284,9 @@ public class SerializationHelperTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.FromJsonElement"/> correctly deserializes a JsonElement to an object.
+    /// </summary>
     [Fact]
     public void FromJsonElement_DeserializesJsonElement()
     {
@@ -233,6 +303,9 @@ public class SerializationHelperTests
         }
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.ToJsonElement"/> converts an object to a JsonElement.
+    /// </summary>
     [Fact]
     public void ToJsonElement_ConvertsObjectToJsonElement()
     {
@@ -244,6 +317,9 @@ public class SerializationHelperTests
         element.GetProperty("id").GetString().Should().Be("activity-1");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.IsValidJson"/> returns true for valid JSON strings.
+    /// </summary>
     [Fact]
     public void IsValidJson_WithValidJson_ReturnsTrue()
     {
@@ -254,6 +330,9 @@ public class SerializationHelperTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.IsValidJson"/> returns false for invalid JSON strings.
+    /// </summary>
     [Fact]
     public void IsValidJson_WithInvalidJson_ReturnsFalse()
     {
@@ -262,14 +341,20 @@ public class SerializationHelperTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.IsValidJson"/> returns false for null, empty, or whitespace strings.
+    /// </summary>
     [Fact]
     public void IsValidJson_WithNullOrEmpty_ReturnsFalse()
     {
         SerializationHelper.IsValidJson(null).Should().BeFalse();
         SerializationHelper.IsValidJson("").Should().BeFalse();
-        SerializationHelper.IsValidJson("   ").Should().BeFalse();
+        SerializationHelper.IsValidJson(" ").Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.PrettyPrintJson"/> formats JSON with proper indentation.
+    /// </summary>
     [Fact]
     public void PrettyPrintJson_FormatsJsonWithIndentation()
     {
@@ -282,6 +367,9 @@ public class SerializationHelperTests
         prettyLineCount.Should().BeGreaterThan(originalLineCount);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.PrettyPrintJson"/> returns the original string when given invalid JSON.
+    /// </summary>
     [Fact]
     public void PrettyPrintJson_WithInvalidJson_ReturnsOriginal()
     {
@@ -292,6 +380,9 @@ public class SerializationHelperTests
         result.Should().Be(invalidJson);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.PrettyPrintJson"/> returns the input for null or empty strings.
+    /// </summary>
     [Fact]
     public void PrettyPrintJson_WithNullOrEmpty_ReturnsInput()
     {
@@ -299,6 +390,9 @@ public class SerializationHelperTests
         SerializationHelper.PrettyPrintJson("").Should().Be("");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.MinifyJson"/> removes all whitespace from JSON.
+    /// </summary>
     [Fact]
     public void MinifyJson_RemovesWhitespace()
     {
@@ -307,9 +401,12 @@ public class SerializationHelperTests
         var minified = SerializationHelper.MinifyJson(prettyJson);
 
         minified.Should().NotContain("\n");
-        minified.Should().NotContain("  ");
+        minified.Should().NotContain(" ");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.MinifyJson"/> returns the original string when given invalid JSON.
+    /// </summary>
     [Fact]
     public void MinifyJson_WithInvalidJson_ReturnsOriginal()
     {
@@ -320,6 +417,9 @@ public class SerializationHelperTests
         result.Should().Be(invalidJson);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.MinifyJson"/> returns the input for null or empty strings.
+    /// </summary>
     [Fact]
     public void MinifyJson_WithNullOrEmpty_ReturnsInput()
     {
@@ -327,6 +427,9 @@ public class SerializationHelperTests
         SerializationHelper.MinifyJson("").Should().Be("");
     }
 
+    /// <summary>
+    /// Tests that serialization and deserialization preserves all data through a round trip.
+    /// </summary>
     [Fact]
     public void SerializationRoundTrip_PreservesData()
     {
@@ -347,6 +450,9 @@ public class SerializationHelperTests
         deserialized.Should().BeEquivalentTo(original);
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.ToJson"/> uses camelCase naming for property names.
+    /// </summary>
     [Fact]
     public void CamelCaseNaming_PropertyNameConversion()
     {
@@ -359,6 +465,9 @@ public class SerializationHelperTests
         json.Should().NotContain("TimeoutSeconds");
     }
 
+    /// <summary>
+    /// Tests that <see cref="SerializationHelper.ToJson"/> ignores null property values during serialization.
+    /// </summary>
     [Fact]
     public void NullPropertyHandling_IgnoresNullValues()
     {
