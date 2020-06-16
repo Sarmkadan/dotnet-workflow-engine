@@ -19,8 +19,12 @@ public class MessageEventServiceTests
     private (MessageEventService, Mock<IEventBus>, Mock<WorkflowExecutionService>, Mock<AuditService>) CreateServices()
     {
         var eventBusMock = new Mock<IEventBus>();
-        var workflowExecutionMock = new Mock<WorkflowExecutionService>();
-        var auditMock = new Mock<AuditService>();
+        var auditRepoMock = new Mock<DotNetWorkflowEngine.Data.Repositories.IAuditRepository>();
+        auditRepoMock.Setup(r => r.AddAsync(It.IsAny<AuditLogEntry>())).Returns(Task.CompletedTask);
+        var definitionService = new WorkflowDefinitionService();
+        var activityService = new ActivityService(new RetryPolicyService());
+        var workflowExecutionMock = new Mock<WorkflowExecutionService>(definitionService, new AuditService(auditRepoMock.Object), activityService);
+        var auditMock = new Mock<AuditService>(auditRepoMock.Object);
 
         eventBusMock.Setup(eb => eb.PublishAsync(It.IsAny<IWorkflowEvent>()))
             .Returns(Task.CompletedTask);
@@ -50,7 +54,9 @@ public class MessageEventServiceTests
     [Fact]
     public async Task PublishMessageAsync_WithValidMessage_PublishesEvent()
     {
-        var (service, eventBusMock, _, _) = CreateServices();
+        var (service, eventBusMock, executionMock, _) = CreateServices();
+        executionMock.Setup(e => e.GetInstancesByCorrelation(It.IsAny<string>()))
+            .Returns(new List<WorkflowInstance>());
         var message = CreateMessage();
 
         await service.PublishMessageAsync(message);

@@ -211,7 +211,7 @@ public class AuditService : IAuditTrailQuery
     /// Logs a custom event.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
-    public async Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
+    public virtual async Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));

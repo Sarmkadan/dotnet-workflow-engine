@@ -28,7 +28,7 @@ public static class SerializationHelper
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false,
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new ObjectToInferredTypesConverter() }
     };
 
     /// <summary>
@@ -42,7 +42,7 @@ public static class SerializationHelper
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = true,
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new ObjectToInferredTypesConverter() }
     };
 
     /// <summary>
@@ -67,7 +67,7 @@ public static class SerializationHelper
     /// </summary>
     public static T? FromJson<T>(string? json) where T : class
     {
-        if (string.IsNullOrEmpty(json))
+        if (string.IsNullOrWhiteSpace(json))
             return null;
 
         try
@@ -243,4 +243,62 @@ public class SerializationException : Exception
 {
     public SerializationException(string message) : base(message) { }
     public SerializationException(string message, Exception innerException) : base(message, innerException) { }
+}
+
+/// <summary>
+/// Converts untyped (<c>object</c>/<c>object?</c>) JSON members to their natural CLR types
+/// (string, bool, long/double, List&lt;object?&gt;, Dictionary&lt;string, object?&gt;) instead of
+/// leaving them as raw <see cref="JsonElement"/> instances. Without this converter, dictionaries
+/// and properties typed as <c>object</c> come back as <see cref="JsonElement"/> after a round trip,
+/// which breaks equality comparisons and any code expecting native values.
+/// </summary>
+public class ObjectToInferredTypesConverter : JsonConverter<object?>
+{
+    public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return ReadValue(ref reader, options);
+    }
+
+    private static object? ReadValue(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.True:
+                return true;
+            case JsonTokenType.False:
+                return false;
+            case JsonTokenType.Number:
+                if (reader.TryGetInt64(out var l))
+                    return l;
+                return reader.GetDouble();
+            case JsonTokenType.String:
+                return reader.GetString();
+            case JsonTokenType.Null:
+                return null;
+            case JsonTokenType.StartArray:
+                {
+                    var list = new List<object?>();
+                    while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                    {
+                        list.Add(ReadValue(ref reader, options));
+                    }
+                    return list;
+                }
+            case JsonTokenType.StartObject:
+                {
+                    using var doc = JsonDocument.ParseValue(ref reader);
+                    return JsonSerializer.Deserialize<Dictionary<string, object?>>(doc.RootElement.GetRawText(), options);
+                }
+            default:
+                using (var doc = JsonDocument.ParseValue(ref reader))
+                {
+                    return doc.RootElement.Clone();
+                }
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+    {
+        JsonSerializer.Serialize(writer, value, value?.GetType() ?? typeof(object), options);
+    }
 }

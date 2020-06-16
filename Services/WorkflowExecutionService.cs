@@ -177,12 +177,22 @@ public class WorkflowExecutionService
                 CorrelationId = instance.CorrelationId ?? instance.Id
             };
 
+            // Seed the activity's execution context with the instance's current variables so
+            // handlers and condition expressions see state produced by previously executed activities.
+            foreach (var kvp in instance.Context)
+                context.SetVariable(kvp.Key, kvp.Value);
+
             foreach (var param in activity.InputParameters)
             {
                 context.SetActivityInput(param.Key, param.Value);
             }
 
             var result = await _activityService.ExecuteAsync(activity, context);
+
+            // Persist any variables the handler set on the execution context back onto the
+            // instance so subsequent activities and transition conditions can see them.
+            foreach (var kvp in context.Variables)
+                instance.SetContextVariable(kvp.Key, kvp.Value);
 
             foreach (var mapping in activity.OutputMapping)
             {
@@ -195,7 +205,7 @@ public class WorkflowExecutionService
             instance.RecordActivityExecution(activityId);
             await _auditService.LogActivityCompleted(instance.Id, activityId, result);
 
-            var nextActivities = workflow.GetNextActivities(activityId);
+            var nextActivities = ResolveNextActivities(workflow, activityId, instance);
 
             // For a Fork (parallel split) gateway, execute all branches concurrently.
             // Every branch exception is captured so that a composite fault is surfaced
@@ -272,7 +282,7 @@ public class WorkflowExecutionService
     /// Fails a workflow instance with error message.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
-    public void FailInstance(string instanceId, string errorMessage)
+    public virtual void FailInstance(string instanceId, string errorMessage)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
@@ -314,7 +324,7 @@ public class WorkflowExecutionService
     /// <summary>
     /// Gets instances by correlation ID.
     /// </summary>
-    public List<WorkflowInstance> GetInstancesByCorrelation(string correlationId)
+    public virtual List<WorkflowInstance> GetInstancesByCorrelation(string correlationId)
     {
         if (string.IsNullOrWhiteSpace(correlationId))
             throw new ArgumentException("Correlation ID cannot be null or empty", nameof(correlationId));
@@ -368,7 +378,7 @@ public class WorkflowExecutionService
     /// <param name="messagePayload">The payload of the message.</param>
     /// <exception cref="WorkflowException">Thrown if the instance is not found, not waiting for a message, or the message details don't match.</exception>
     /// <exception cref="StateException">Thrown if the instance is in an unexpected state.</exception>
-    public async Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)
+    public virtual async Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
@@ -447,5 +457,41 @@ public class WorkflowExecutionService
         var failed = _instances.Values.Count(i => i.ErrorMessage != null);
 
         return (total, active, completed, failed);
+    }
+
+    /// <summary>
+    /// Determines which activities to execute next after <paramref name="activityId"/> completes,
+    /// honouring each outgoing transition's <c>ConditionExpression</c> against the instance's
+    /// context variables. Conditional transitions are only followed when their expression
+    /// evaluates to true; unconditional transitions are always followed; a default transition
+    /// (<see cref="Transition.IsDefault"/>) is only used when nothing else matched.
+    /// </summary>
+    private static List<Activity> ResolveNextActivities(Workflow workflow, string activityId, WorkflowInstance instance)
+    {
+        var outgoing = workflow.Transitions.Where(t => t.FromActivityId == activityId).ToList();
+        if (outgoing.Count == 0)
+            return new List<Activity>();
+
+        var evalContext = new ExecutionContext { WorkflowInstanceId = instance.Id };
+        foreach (var kvp in instance.Context)
+            evalContext.SetVariable(kvp.Key, kvp.Value);
+
+        var conditionals = outgoing.Where(t => !t.IsDefault && t.ConditionExpression != null).ToList();
+        var unconditionals = outgoing.Where(t => !t.IsDefault && t.ConditionExpression == null).ToList();
+        var defaults = outgoing.Where(t => t.IsDefault).ToList();
+
+        var selected = conditionals
+            .Where(t => Utilities.ExpressionEvaluator.Evaluate(t.ConditionExpression!, evalContext))
+            .ToList();
+
+        selected.AddRange(unconditionals);
+
+        if (selected.Count == 0 && defaults.Count > 0)
+        {
+            selected.Add(defaults.OrderByDescending(t => t.Priority).First());
+        }
+
+        var targetIds = selected.Select(t => t.ToActivityId).ToHashSet(StringComparer.Ordinal);
+        return workflow.Activities.Where(a => targetIds.Contains(a.Id)).ToList();
     }
 }

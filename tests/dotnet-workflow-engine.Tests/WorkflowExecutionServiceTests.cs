@@ -47,7 +47,7 @@ public class WorkflowExecutionServiceTests
     {
         // Arrange
         var workflowId = "workflow1";
-        var workflow = new Workflow { Id = workflowId, Status = WorkflowStatus.Active };
+        var workflow = new Workflow { Id = workflowId, Name = "Workflow", Status = WorkflowStatus.Active };
         _definitionService.AddWorkflow(workflow);
 
         // Act
@@ -86,7 +86,7 @@ public class WorkflowExecutionServiceTests
     {
         // Arrange
         var workflowId = "inactiveWorkflow";
-        var workflow = new Workflow { Id = workflowId, Status = WorkflowStatus.Archived };
+        var workflow = new Workflow { Id = workflowId, Name = "Workflow", Status = WorkflowStatus.Archived };
         _definitionService.AddWorkflow(workflow);
 
         // Act
@@ -121,7 +121,7 @@ public class WorkflowExecutionServiceTests
     {
         // Arrange
         var workflowId = "workflow1";
-        var workflow = new Workflow { Id = workflowId, Status = WorkflowStatus.Active };
+        var workflow = new Workflow { Id = workflowId, Name = "Workflow", Status = WorkflowStatus.Active };
         _definitionService.AddWorkflow(workflow);
         var instance = _executionService.CreateInstance(workflowId);
 

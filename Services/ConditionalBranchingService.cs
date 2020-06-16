@@ -98,6 +98,14 @@ public class ConditionalBranchingService
             bool matched;
             try
             {
+                if (!ExpressionEvaluator.ValidateExpression(transition.ConditionExpression!, out var syntaxErrors))
+                {
+                    throw new ValidationException(
+                        $"Invalid condition expression: {string.Join("; ", syntaxErrors)}",
+                        syntaxErrors,
+                        transition.Id);
+                }
+
                 matched = EvaluateExpression(transition.ConditionExpression!, context);
             }
             catch (Exception ex)

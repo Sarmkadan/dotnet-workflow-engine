@@ -32,11 +32,32 @@ public class ExpressionEvaluator
             return false;
 
         // Variable reference: ${variable_name}
-        if (expression.StartsWith("${") && expression.EndsWith("}"))
+        // Must match the whole expression exactly (no other operators/braces present),
+        // otherwise a compound expression like "${a} && ${b}" would be misread as a
+        // single variable reference because it also starts with "${" and ends with "}".
+        if (IsSingleVariableReference(expression))
         {
             var varName = expression.Substring(2, expression.Length - 3);
             var value = context.GetVariable(varName);
             return ConvertToBoolean(value);
+        }
+
+        // Logical AND / OR must be evaluated before individual comparisons: a compound
+        // expression like "${amount} > \"500\" && ${approved}" also contains ">" and would
+        // otherwise be misparsed as a single numeric comparison across the whole string.
+
+        // Logical AND: expression1 && expression2
+        if (expression.Contains("&&"))
+        {
+            var parts = expression.Split("&&");
+            return parts.All(p => Evaluate(p.Trim(), context));
+        }
+
+        // Logical OR: expression1 || expression2
+        if (expression.Contains("||"))
+        {
+            var parts = expression.Split("||");
+            return parts.Any(p => Evaluate(p.Trim(), context));
         }
 
         // Comparison expressions: ${variable} == value
@@ -68,20 +89,6 @@ public class ExpressionEvaluator
         if (expression.Contains("<"))
         {
             return EvaluateNumericComparison(expression, context, "<", (a, b) => a < b);
-        }
-
-        // Logical AND: expression1 && expression2
-        if (expression.Contains("&&"))
-        {
-            var parts = expression.Split("&&");
-            return parts.All(p => Evaluate(p.Trim(), context));
-        }
-
-        // Logical OR: expression1 || expression2
-        if (expression.Contains("||"))
-        {
-            var parts = expression.Split("||");
-            return parts.Any(p => Evaluate(p.Trim(), context));
         }
 
         // Logical NOT: !expression
@@ -165,6 +172,19 @@ public class ExpressionEvaluator
 
         // Literal value
         return expression.Trim('"', '\'');
+    }
+
+    /// <summary>
+    /// Determines whether the expression is exactly one variable reference (e.g. "${name}")
+    /// with no additional braces or operators outside of it.
+    /// </summary>
+    private static bool IsSingleVariableReference(string expression)
+    {
+        if (!expression.StartsWith("${") || !expression.EndsWith("}"))
+            return false;
+
+        var inner = expression.Substring(2, expression.Length - 3);
+        return !inner.Contains('{') && !inner.Contains('}');
     }
 
     /// <summary>

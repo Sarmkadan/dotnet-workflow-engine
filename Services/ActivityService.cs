@@ -69,7 +69,7 @@ public class ActivityService
         if (string.IsNullOrWhiteSpace(activity.Id))
             throw new ValidationException("Activity ID cannot be empty", "INVALID_ACTIVITY_ID", "Activity");
 
-        if (activity.Validate(out var errors))
+        if (!activity.Validate(out var errors))
         {
             throw new ValidationException("Invalid activity configuration", errors, activity.Name);
         }
@@ -124,8 +124,12 @@ public class ActivityService
                 // Check if we should retry
                 if (!retryConfig.ShouldRetry(attemptNumber, ex.GetType().Name))
                 {
+                    var message = attemptNumber >= retryConfig.MaxAttempts
+                        ? $"Activity '{activity.Id}' failed after {attemptNumber} attempt(s), retry attempts exhausted: {ex.Message}"
+                        : $"Activity '{activity.Id}' failed after {attemptNumber} attempt(s): {ex.Message}";
+
                     throw new ActivityException(
-                        $"Activity '{activity.Id}' failed after {attemptNumber} attempt(s): {ex.Message}",
+                        message,
                         activity.Id,
                         attemptNumber,
                         context.CorrelationId,

@@ -42,7 +42,7 @@ public class Activity
     public RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
 
     /// <summary>Gets or sets maximum number of retries allowed.</summary>
-    public int MaxRetries { get; set; } = 1;
+    public int MaxRetries { get; set; } = 0;
 
     /// <summary>Gets or sets the timeout in seconds for activity execution.</summary>
     public int TimeoutSeconds { get; set; } = 300;

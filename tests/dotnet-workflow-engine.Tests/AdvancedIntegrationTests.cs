@@ -40,7 +40,7 @@ public class AdvancedIntegrationTests
     [Fact]
     public async Task ComplexWorkflow_WithParallelPaths_ExecutesSuccessfully()
     {
-        var (executionService, activityService, _, _) = CreateServices();
+        var (executionService, activityService, definitionService, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
         mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
@@ -68,6 +68,7 @@ public class AdvancedIntegrationTests
             }
         };
         workflow.Publish();
+        definitionService.AddWorkflow(workflow);
 
         var instance = executionService.CreateInstance(workflow.Id);
         instance.Start();
@@ -84,7 +85,7 @@ public class AdvancedIntegrationTests
     [Fact]
     public async Task WorkflowWithErrorHandling_RecoverableError_CompletesSuccessfully()
     {
-        var (executionService, activityService, _, _) = CreateServices();
+        var (executionService, activityService, definitionService, _) = CreateServices();
         var callCount = 0;
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
@@ -132,6 +133,7 @@ public class AdvancedIntegrationTests
             }
         };
         workflow.Publish();
+        definitionService.AddWorkflow(workflow);
 
         var instance = executionService.CreateInstance(workflow.Id);
         instance.Start();
@@ -148,7 +150,7 @@ public class AdvancedIntegrationTests
     [Fact]
     public async Task LongRunningWorkflow_PreservesStateAcrossActivities()
     {
-        var (executionService, activityService, _, _) = CreateServices();
+        var (executionService, activityService, definitionService, _) = CreateServices();
         var executedSteps = new List<string>();
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
@@ -185,6 +187,7 @@ public class AdvancedIntegrationTests
             }
         };
         workflow.Publish();
+        definitionService.AddWorkflow(workflow);
 
         var instance = executionService.CreateInstance(workflow.Id);
         instance.Start();
@@ -201,7 +204,7 @@ public class AdvancedIntegrationTests
     [Fact]
     public async Task WorkflowWithMultipleInstances_EachMaintainsOwnState()
     {
-        var (executionService, activityService, _, _) = CreateServices();
+        var (executionService, activityService, definitionService, _) = CreateServices();
         var executionTraces = new Dictionary<string, List<string>>();
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
@@ -234,6 +237,7 @@ public class AdvancedIntegrationTests
             }
         };
         workflow.Publish();
+        definitionService.AddWorkflow(workflow);
 
         var instances = new List<WorkflowInstance>();
         for (int i = 0; i < 3; i++)
@@ -258,7 +262,7 @@ public class AdvancedIntegrationTests
     [Fact]
     public async Task WorkflowWithConditionalRouting_SelectsCorrectPathBasedOnContext()
     {
-        var (executionService, activityService, _, _) = CreateServices();
+        var (executionService, activityService, definitionService, _) = CreateServices();
         var executedPaths = new List<string>();
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
@@ -297,6 +301,7 @@ public class AdvancedIntegrationTests
             }
         };
         workflow.Publish();
+        definitionService.AddWorkflow(workflow);
 
         var instance = executionService.CreateInstance(workflow.Id);
         instance.Start();
@@ -352,7 +357,7 @@ public class AdvancedIntegrationTests
     [Fact]
     public async Task ActivityWithTimeout_CompletesWithinTimeLimit()
     {
-        var (executionService, activityService, _, _) = CreateServices();
+        var (executionService, activityService, definitionService, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
         mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
@@ -371,6 +376,7 @@ public class AdvancedIntegrationTests
             }
         };
         workflow.Publish();
+        definitionService.AddWorkflow(workflow);
 
         var instance = executionService.CreateInstance(workflow.Id);
         instance.Start();

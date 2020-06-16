@@ -26,7 +26,7 @@ public class IntegrationTests
 	/// Creates and returns the core service instances needed for testing workflow execution.
 	/// </summary>
 	/// <returns>A tuple containing the workflow execution service, activity service, audit service, and audit repository mock.</returns>
-	private (WorkflowExecutionService, ActivityService, AuditService, Mock<IAuditRepository>) CreateServices()
+	private (WorkflowExecutionService, ActivityService, AuditService, Mock<IAuditRepository>, WorkflowDefinitionService) CreateServices()
 	{
 		var auditRepoMock = new Mock<IAuditRepository>();
 		auditRepoMock.Setup(r => r.AddAsync(It.IsAny<AuditLogEntry>())).Returns(Task.CompletedTask);
@@ -37,7 +37,7 @@ public class IntegrationTests
 		var activityService = new ActivityService(retryPolicyService);
 		var executionService = new WorkflowExecutionService(definitionService, auditService, activityService);
 
-		return (executionService, activityService, auditService, auditRepoMock);
+		return (executionService, activityService, auditService, auditRepoMock, definitionService);
 	}
 
 	/// <summary>
@@ -74,13 +74,14 @@ public class IntegrationTests
 	[Fact]
 	public async Task EndToEnd_SimpleWorkflow_ExecutesSuccessfully()
 	{
-		var (executionService, activityService, auditService, _) = CreateServices();
+		var (executionService, activityService, auditService, _, definitionService) = CreateServices();
 		var mockHandler = new Mock<ActivityService.IActivityHandler>();
 		mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
 			.ReturnsAsync(new Dictionary<string, object?> { { "status", "completed" } });
 		activityService.RegisterHandler("default", mockHandler.Object);
 
 		var workflow = CreateSimpleWorkflow();
+		definitionService.AddWorkflow(workflow);
 		var instance = executionService.CreateInstance(workflow.Id, "corr-123", "user1");
 
 		instance.Status.Should().Be(WorkflowStatus.Draft);
@@ -100,7 +101,7 @@ public class IntegrationTests
 	[Fact]
 	public async Task EndToEnd_ConditionalRouting_SelectsCorrectPath()
 	{
-		var (executionService, activityService, auditService, _) = CreateServices();
+		var (executionService, activityService, auditService, _, definitionService) = CreateServices();
 		var mockHandler = new Mock<ActivityService.IActivityHandler>();
 		mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
 			.ReturnsAsync((Activity activity, WorkflowExecutionContext ctx) =>
@@ -134,6 +135,7 @@ public class IntegrationTests
 			}
 		};
 		workflow.Publish();
+		definitionService.AddWorkflow(workflow);
 
 		var instance = executionService.CreateInstance(workflow.Id);
 		instance.Start();
@@ -149,8 +151,9 @@ public class IntegrationTests
 	[Fact]
 	public void CreateInstance_NewWorkflowInstance_InitializesCorrectly()
 	{
-		var (executionService, _, _, _) = CreateServices();
+		var (executionService, _, _, _, definitionService) = CreateServices();
 		var workflow = CreateSimpleWorkflow();
+		definitionService.AddWorkflow(workflow);
 
 		var instance = executionService.CreateInstance(workflow.Id, "corr-456", "admin");
 
@@ -167,7 +170,7 @@ public class IntegrationTests
 	[Fact]
 	public void CreateInstance_NonExistentWorkflow_ThrowsWorkflowException()
 	{
-		var (executionService, _, _, _) = CreateServices();
+		var (executionService, _, _, _, _) = CreateServices();
 
 		Assert.Throws<WorkflowException>(() => executionService.CreateInstance("nonexistent-workflow"));
 	}
@@ -178,13 +181,14 @@ public class IntegrationTests
 	[Fact]
 	public async Task ExecuteWorkflow_WithAuditTrail_LogsAllEvents()
 	{
-		var (executionService, activityService, auditService, auditRepoMock) = CreateServices();
+		var (executionService, activityService, auditService, auditRepoMock, definitionService) = CreateServices();
 		var mockHandler = new Mock<ActivityService.IActivityHandler>();
 		mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
 			.ReturnsAsync(new Dictionary<string, object?>());
 		activityService.RegisterHandler("default", mockHandler.Object);
 
 		var workflow = CreateSimpleWorkflow();
+		definitionService.AddWorkflow(workflow);
 		var instance = executionService.CreateInstance(workflow.Id, "corr-789", "user2");
 		instance.Start();
 
@@ -199,7 +203,7 @@ public class IntegrationTests
 	[Fact]
 	public async Task WorkflowExecution_MultipleInstances_MaintainsIndependentState()
 	{
-		var (executionService, activityService, _, _) = CreateServices();
+		var (executionService, activityService, _, _, definitionService) = CreateServices();
 		var mockHandler = new Mock<ActivityService.IActivityHandler>();
 		var executedActivities = new List<string>();
 		mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
@@ -208,6 +212,7 @@ public class IntegrationTests
 		activityService.RegisterHandler("default", mockHandler.Object);
 
 		var workflow = CreateSimpleWorkflow();
+		definitionService.AddWorkflow(workflow);
 
 		var instance1 = executionService.CreateInstance(workflow.Id, "corr-1");
 		var instance2 = executionService.CreateInstance(workflow.Id, "corr-2");
@@ -229,7 +234,7 @@ public class IntegrationTests
 	[Fact]
 	public async Task WorkflowExecution_RetryOnFailure_EventuallySucceeds()
 	{
-		var (executionService, activityService, _, _) = CreateServices();
+		var (executionService, activityService, _, _, definitionService) = CreateServices();
 		var callCount = 0;
 		var mockHandler = new Mock<ActivityService.IActivityHandler>();
 		mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
@@ -251,6 +256,7 @@ public class IntegrationTests
 		workflow.Activities[0].RetryPolicy = RetryPolicy.FixedDelay;
 		workflow.Activities[0].MaxRetries = 3;
 		workflow.Publish();
+		definitionService.AddWorkflow(workflow);
 
 		var instance = executionService.CreateInstance(workflow.Id);
 		instance.Start();
@@ -267,8 +273,9 @@ public class IntegrationTests
 	[Fact]
 	public void Instance_StateTransitions_AreCorrect()
 	{
-		var (executionService, _, _, _) = CreateServices();
+		var (executionService, _, _, _, definitionService) = CreateServices();
 		var workflow = CreateSimpleWorkflow();
+		definitionService.AddWorkflow(workflow);
 
 		var instance = executionService.CreateInstance(workflow.Id);
 
@@ -361,6 +368,7 @@ public class IntegrationTests
 		context.GetVariable<bool>("flag").Should().BeTrue();
 		context.GetVariable("missing").Should().BeNull();
 
+		await Task.Delay(5);
 		context.Complete();
 
 		context.IsActive.Should().BeFalse();
@@ -393,13 +401,14 @@ public class IntegrationTests
 	[Fact]
 	public async Task ConcurrentWorkflowExecution_HandlesConcurrency()
 	{
-		var (executionService, activityService, _, _) = CreateServices();
+		var (executionService, activityService, _, _, definitionService) = CreateServices();
 		var mockHandler = new Mock<ActivityService.IActivityHandler>();
 		mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
 			.ReturnsAsync(new Dictionary<string, object?>());
 		activityService.RegisterHandler("default", mockHandler.Object);
 
 		var workflow = CreateSimpleWorkflow();
+		definitionService.AddWorkflow(workflow);
 
 		var tasks = Enumerable.Range(0, 10)
 			.Select(i =>
