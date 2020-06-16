@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
@@ -11,8 +11,16 @@ using Xunit;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Contains unit tests for validating workflows, activities, transitions, and validation results.
+/// </summary>
 public class WorkflowValidatorTests
 {
+    /// <summary>
+    /// Creates a valid workflow for testing purposes.
+    /// </summary>
+    /// <param name="id">Optional workflow ID. If not provided, defaults to "workflow-1".</param>
+    /// <returns>A valid workflow instance with start, middle, and end activities connected by transitions.</returns>
     private Workflow CreateValidWorkflow(string? id = null)
     {
         return new Workflow
@@ -35,6 +43,9 @@ public class WorkflowValidatorTests
         };
     }
 
+    /// <summary>
+    /// Tests that a valid workflow passes validation successfully.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_ValidWorkflow_ReturnsValid()
     {
@@ -46,6 +57,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow ID is missing or empty.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_MissingId_ReturnsError()
     {
@@ -58,6 +72,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("ID is required"));
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow name is missing or null.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_MissingName_ReturnsError()
     {
@@ -70,6 +87,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("name is required"));
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow has no activities.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_NoActivities_ReturnsError()
     {
@@ -82,6 +102,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("at least one activity"));
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow contains an invalid activity (missing ID).
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_InvalidActivity_ReturnsError()
     {
@@ -94,6 +117,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("Invalid activity"));
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow start activity ID references a non-existent activity.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_StartActivityNotFound_ReturnsError()
     {
@@ -106,6 +132,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("Start activity") && e.Contains("not found"));
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow end activity ID references a non-existent activity.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_EndActivityNotFound_ReturnsError()
     {
@@ -118,6 +147,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("End activity") && e.Contains("not found"));
     }
 
+    /// <summary>
+    /// Tests that a warning is returned when workflow has no start activity configured.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_NoStartActivity_ReturnsWarning()
     {
@@ -129,6 +161,9 @@ public class WorkflowValidatorTests
         result.Warnings.Should().Contain(e => e.Contains("No start activity"));
     }
 
+    /// <summary>
+    /// Tests validation fails when workflow contains an invalid transition (missing from activity ID).
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_InvalidTransition_ReturnsError()
     {
@@ -141,6 +176,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("Invalid transition"));
     }
 
+    /// <summary>
+    /// Tests that a valid activity passes validation successfully.
+    /// </summary>
     [Fact]
     public void ValidateActivity_ValidActivity_ReturnsValid()
     {
@@ -152,6 +190,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Tests validation fails when activity ID is missing or empty.
+    /// </summary>
     [Fact]
     public void ValidateActivity_MissingId_ReturnsError()
     {
@@ -163,6 +204,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("ID is required"));
     }
 
+    /// <summary>
+    /// Tests validation fails when activity name is missing or empty.
+    /// </summary>
     [Fact]
     public void ValidateActivity_MissingName_ReturnsError()
     {
@@ -174,6 +218,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("name is required"));
     }
 
+    /// <summary>
+    /// Tests validation fails when activity timeout is zero or negative.
+    /// </summary>
     [Fact]
     public void ValidateActivity_InvalidTimeout_ReturnsError()
     {
@@ -185,6 +232,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("Timeout must be greater than zero"));
     }
 
+    /// <summary>
+    /// Tests validation fails when activity max retries is negative.
+    /// </summary>
     [Fact]
     public void ValidateActivity_NegativeRetries_ReturnsError()
     {
@@ -196,6 +246,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("cannot be negative"));
     }
 
+    /// <summary>
+    /// Tests that a warning is returned when activity has MaxRetries set but RetryPolicy is NoRetry.
+    /// </summary>
     [Fact]
     public void ValidateActivity_RetriesWithoutPolicy_ReturnsWarning()
     {
@@ -213,6 +266,9 @@ public class WorkflowValidatorTests
         result.Warnings.Should().Contain(e => e.Contains("MaxRetries is set but RetryPolicy is NoRetry"));
     }
 
+    /// <summary>
+    /// Tests that a valid transition passes validation successfully.
+    /// </summary>
     [Fact]
     public void ValidateTransition_ValidTransition_ReturnsValid()
     {
@@ -224,6 +280,9 @@ public class WorkflowValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests validation fails when transition is missing a from activity ID.
+    /// </summary>
     [Fact]
     public void ValidateTransition_MissingFromActivity_ReturnsError()
     {
@@ -236,6 +295,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("From activity is required"));
     }
 
+    /// <summary>
+    /// Tests validation fails when transition is missing a to activity ID.
+    /// </summary>
     [Fact]
     public void ValidateTransition_MissingToActivity_ReturnsError()
     {
@@ -248,6 +310,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("To activity is required"));
     }
 
+    /// <summary>
+    /// Tests validation fails when transition references a non-existent from activity.
+    /// </summary>
     [Fact]
     public void ValidateTransition_FromActivityNotFound_ReturnsError()
     {
@@ -260,6 +325,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("From activity") && e.Contains("not found"));
     }
 
+    /// <summary>
+    /// Tests validation fails when transition references a non-existent to activity.
+    /// </summary>
     [Fact]
     public void ValidateTransition_ToActivityNotFound_ReturnsError()
     {
@@ -272,6 +340,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().Contain(e => e.Contains("To activity") && e.Contains("not found"));
     }
 
+    /// <summary>
+    /// Tests that a warning is returned when transition creates a self-loop (activity to itself).
+    /// </summary>
     [Fact]
     public void ValidateTransition_SelfLoop_ReturnsWarning()
     {
@@ -283,6 +354,9 @@ public class WorkflowValidatorTests
         result.Warnings.Should().Contain(e => e.Contains("self-loop"));
     }
 
+    /// <summary>
+    /// Tests that a warning is returned when workflow contains unreachable activities.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_UnreachableActivity_ReturnsWarning()
     {
@@ -294,6 +368,9 @@ public class WorkflowValidatorTests
         result.Warnings.Should().Contain(e => e.Contains("Unreachable activities"));
     }
 
+    /// <summary>
+    /// Tests that multiple validation errors are all reported when present.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_MultipleErrors_ReturnsAll()
     {
@@ -310,6 +387,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().HaveCountGreaterThanOrEqualTo(3);
     }
 
+    /// <summary>
+    /// Tests that validation result report formats errors and warnings correctly.
+    /// </summary>
     [Fact]
     public void ValidationResult_GetReport_FormatsCorrectly()
     {
@@ -324,6 +404,9 @@ public class WorkflowValidatorTests
         report.Should().Contain("WARNING: Test warning");
     }
 
+    /// <summary>
+    /// Tests that validation result report shows success message when no errors are present.
+    /// </summary>
     [Fact]
     public void ValidationResult_GetReport_SuccessMessage()
     {
@@ -334,6 +417,9 @@ public class WorkflowValidatorTests
         report.Should().Contain("✓ Validation passed");
     }
 
+    /// <summary>
+    /// Tests that a complex valid workflow with multiple activities and transitions passes validation.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_ComplexValidPath_ReturnsValid()
     {
@@ -366,6 +452,9 @@ public class WorkflowValidatorTests
         result.Errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Tests that a warning is returned when workflow graph contains disconnected components.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_DisconnectedGraph_ReturnsWarning()
     {
@@ -392,6 +481,9 @@ public class WorkflowValidatorTests
         result.Warnings.Should().Contain(e => e.Contains("Unreachable activities"));
     }
 
+    /// <summary>
+    /// Tests that a warning is returned when an activity cannot reach the end activity.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_ActivityCannotReachEnd_ReturnsWarning()
     {
@@ -419,6 +511,9 @@ public class WorkflowValidatorTests
         result.Warnings.Should().Contain(e => e.Contains("cannot reach the end activity"));
     }
 
+    /// <summary>
+    /// Tests that no warning is returned when an optional activity cannot reach the end activity.
+    /// </summary>
     [Fact]
     public void ValidateWorkflow_OptionalActivityCannotReachEnd_ReturnsNoWarning()
     {
