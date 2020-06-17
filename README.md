@@ -53,7 +53,8 @@ try
 }
 catch (StateException ex)
 {
-    Console.WriteLine(ex.GetTransitionDetails()); // Output: Cannot transition from CurrentState to InvalidState (Entity: EntityId)
+    var currentState = ex.CurrentState;
+    var entityId = ex.EntityId ?? "Unknown";
+    Console.WriteLine(ex.GetTransitionDetails()); // Output: Cannot transition from InvalidState to InvalidState (Entity: Unknown)
 }
-```
 ```
