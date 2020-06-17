@@ -37,4 +37,23 @@ var user = new ClaimsPrincipal();
 var userId = ClaimsHelper.GetUserId(user);
 var userEmail = ClaimsHelper.GetUserEmail(user);
 var hasClaim = ClaimsHelper.HasClaim(user, "claim:type", "claim:value");
-``` 
+```
+
+## StateException
+
+The `StateException` class represents an exception thrown when an invalid state transition is attempted. It provides information about the current state, requested state, and entity ID (if applicable). You can use this exception to handle and log state transition errors.
+
+Here's an example of using `StateException`:
+
+```csharp
+try
+{
+    // Attempt a state transition
+    workflow.TransitionToState("InvalidState");
+}
+catch (StateException ex)
+{
+    Console.WriteLine(ex.GetTransitionDetails()); // Output: Cannot transition from CurrentState to InvalidState (Entity: EntityId)
+}
+```
+```
