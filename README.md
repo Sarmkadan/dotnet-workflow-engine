@@ -68,4 +68,27 @@ catch (ConfigurationException ex)
   // Value: -1
 }
 ```
+
+## WorkflowException
+
+The `WorkflowException` class is the base exception for all workflow engine related errors. It provides error codes for categorizing exceptions and correlation IDs for tracking related exceptions across distributed workflow executions. Use it as a base class for custom workflow-specific exceptions.
+
+Example usage:
+```csharp
+try
+{
+  throw new WorkflowException("Workflow execution failed due to timeout", "WF_TIMEOUT", "corr-12345");
+}
+catch (WorkflowException ex)
+{
+  Console.WriteLine($"Workflow error: {ex.Message}");
+  Console.WriteLine($"Error code: {ex.ErrorCode}");
+  Console.WriteLine($"Correlation ID: {ex.CorrelationId}");
+  
+  // Output:
+  // Workflow error: Workflow execution failed due to timeout
+  // Error code: WF_TIMEOUT
+  // Correlation ID: corr-12345
+}
+```
 ```
