@@ -142,6 +142,53 @@ var workflowStarted = new WorkflowStartedEvent {
 await eventBus.PublishAsync(workflowStarted);
 ```
 
+## ExpressionEvaluatorTests
+
+The `ExpressionEvaluatorTests` class contains comprehensive unit tests for the `ExpressionEvaluator` class, verifying expression evaluation logic used throughout the workflow engine. These tests cover null/empty expressions, literal values, variable references, comparison operations, logical operators, and complex expression combinations. The test suite validates both the `Evaluate` method (which returns boolean results) and the `ValidateExpression` method (which validates expression syntax).
+
+
+Example usage:
+```csharp
+// Create execution context with variables
+var context = new WorkflowExecutionContext
+{
+    WorkflowInstanceId = "test-instance",
+    Variables = new Dictionary<string, object?> 
+    {
+        { "isApproved", true },
+        { "amount", 150 },
+        { "status", "active" },
+        { "description", "This is an important task" }
+    }
+};
+
+// Test null/empty expressions
+bool result1 = ExpressionEvaluator.Evaluate(null, context); // Returns true
+bool result2 = ExpressionEvaluator.Evaluate("", context); // Returns true
+
+// Test literal values
+bool result3 = ExpressionEvaluator.Evaluate("true", context); // Returns true
+bool result4 = ExpressionEvaluator.Evaluate("false", context); // Returns false
+
+// Test variable references
+bool result5 = ExpressionEvaluator.Evaluate("${isApproved}", context); // Returns true
+bool result6 = ExpressionEvaluator.Evaluate("${status}", context); // Returns true
+
+// Test comparison operations
+bool result7 = ExpressionEvaluator.Evaluate("${amount} > \"100\"", context); // Returns true
+bool result8 = ExpressionEvaluator.Evaluate("${status} == \"active\"", context); // Returns true
+bool result9 = ExpressionEvaluator.Evaluate("${description} contains \"important\"", context); // Returns true
+
+// Test logical operators
+bool result10 = ExpressionEvaluator.Evaluate("${isApproved} && ${amount} > \"100\"", context); // Returns true
+bool result11 = ExpressionEvaluator.Evaluate("${isApproved} || ${status} == \"inactive\"", context); // Returns true
+bool result12 = ExpressionEvaluator.Evaluate("!${isApproved}", context); // Returns false
+
+// Validate expressions
+bool isValid1 = ExpressionEvaluator.ValidateExpression("${status} == \"active\"", out var errors1);
+bool isValid2 = ExpressionEvaluator.ValidateExpression("${amount} > \"100\" && ${isApproved}", out var errors2);
+```
+
 ## IWorkflowMessage
 
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
