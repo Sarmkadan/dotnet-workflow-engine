@@ -141,3 +141,41 @@ var workflowStarted = new WorkflowStartedEvent {
 
 await eventBus.PublishAsync(workflowStarted);
 ```
+
+## IWorkflowMessage
+
+The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
+
+Example usage:
+```csharp
+// Create a payment confirmation message
+var paymentMessage = new WorkflowMessage
+{
+    CorrelationKey = "order-12345",
+    MessageName = "PaymentConfirmed",
+    Payload = new Dictionary<string, object?>
+    {
+        { "orderId", "order-12345" },
+        { "amount", 99.99m },
+        { "paymentMethod", "credit_card" },
+        { "transactionId", "txn-abc-789" }
+    }
+};
+
+// Dispatch the message to the workflow engine
+var messageDispatcher = new MessageDispatcher(eventBus);
+await messageDispatcher.DispatchAsync(paymentMessage);
+
+// Alternatively, use the concrete WorkflowMessage class directly
+var approvalMessage = new WorkflowMessage
+{
+    CorrelationKey = "approval-9876",
+    MessageName = "ApprovalGranted",
+    Payload = new Dictionary<string, object?>
+    {
+        { "approverId", "user-42" },
+        { "approvalLevel", "manager" },
+        { "comments", "Looks good to proceed" }
+    }
+};
+```
