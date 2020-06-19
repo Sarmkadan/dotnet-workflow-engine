@@ -189,6 +189,70 @@ bool isValid1 = ExpressionEvaluator.ValidateExpression("${status} == \"active\""
 bool isValid2 = ExpressionEvaluator.ValidateExpression("${amount} > \"100\" && ${isApproved}", out var errors2);
 ```
 
+## ActivityServiceTests
+
+The `ActivityServiceTests` class contains comprehensive unit tests for the `ActivityService` class, which is responsible for executing workflow activities with support for conditional execution, retry policies, error handling, and context management. The test suite covers handler registration, various execution scenarios (gateway activities, invalid activities, missing handlers), conditional branching, retry policies (fixed delay, exponential backoff), error handling, and context preservation.
+
+
+
+Example usage:
+
+```csharp
+// Create ActivityService with retry policy service
+var retryPolicyService = new RetryPolicyService();
+var activityService = new ActivityService(retryPolicyService);
+
+// Register a custom activity handler
+var mockHandler = new Mock<ActivityService.IActivityHandler>();
+mockHandler.Setup(h => h.ExecuteAsync(
+    It.IsAny<Activity>(),
+    It.IsAny<WorkflowExecutionContext>()))
+    .ReturnsAsync(new Dictionary<string, object?> { { "result", "success" } });
+
+activityService.RegisterHandler("custom-handler", mockHandler.Object);
+
+// Create an activity
+var activity = new Activity
+{
+    Id = "process-order",
+    Name = "Process Order Activity",
+    HandlerType = "custom-handler",
+    ConditionExpression = "${orderTotal} > 100",
+    RetryPolicy = RetryPolicy.FixedDelay,
+    MaxRetries = 3,
+    TimeoutSeconds = 30
+};
+
+// Create execution context
+var context = new WorkflowExecutionContext
+{
+    WorkflowInstanceId = "order-processing-workflow",
+    CorrelationId = "order-12345",
+    Variables = new Dictionary<string, object?>
+    {
+        { "orderTotal", 150 },
+        { "customerId", 42 }
+    }
+};
+
+// Execute the activity
+var result = await activityService.ExecuteAsync(activity, context);
+
+if (result.IsSuccess())
+{
+    Console.WriteLine($"Activity completed successfully: {result.Status}");
+    Console.WriteLine($"Output: {string.Join(", ", result.Output.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+}
+else if (result.Status == ActivityStatus.Skipped)
+{
+    Console.WriteLine("Activity was skipped due to condition evaluation");
+}
+else
+{
+    Console.WriteLine($"Activity failed: {result.ErrorMessage}");
+}
+```
+
 ## IWorkflowMessage
 
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
