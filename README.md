@@ -1,5 +1,4 @@
 // ... (rest of the README content remains unchanged)
-
 ## ActivityException
 
 The `ActivityException` class represents exceptions that occur during activity execution. It provides information about the activity that caused the exception, including its ID and the attempt number when the exception occurred. Use it to handle and log activity execution errors.
@@ -45,27 +44,27 @@ Example usage:
 ```csharp
 try
 {
-  var config = new WorkflowConfig
-  {
-    MaxConcurrentWorkflows = -1,
-    ConnectionString = "invalid-connection-string"
-  };
-  WorkflowEngine.Initialize(config);
+    var config = new WorkflowConfig
+    {
+        MaxConcurrentWorkflows = -1,
+        ConnectionString = "invalid-connection-string"
+    };
+    WorkflowEngine.Initialize(config);
 }
 catch (ConfigurationException ex)
 {
-  Console.WriteLine($"Configuration error: {ex.Message}");
-  if (ex.ConfigurationKey != null)
-  {
-    Console.WriteLine($"Key: {ex.ConfigurationKey}");
-  }
-  if (ex.ConfigurationValue != null)
-  {
-    Console.WriteLine($"Value: {ex.ConfigurationValue}");
-  }
-  // Output: Configuration error: MaxConcurrentWorkflows must be positive
-  // Key: MaxConcurrentWorkflows
-  // Value: -1
+    Console.WriteLine($"Configuration error: {ex.Message}");
+    if (ex.ConfigurationKey != null)
+    {
+        Console.WriteLine($"Key: {ex.ConfigurationKey}");
+    }
+    if (ex.ConfigurationValue != null)
+    {
+        Console.WriteLine($"Value: {ex.ConfigurationValue}");
+    }
+    // Output: Configuration error: MaxConcurrentWorkflows must be positive
+    // Key: MaxConcurrentWorkflows
+    // Value: -1
 }
 ```
 
@@ -77,18 +76,68 @@ Example usage:
 ```csharp
 try
 {
-  throw new WorkflowException("Workflow execution failed due to timeout", "WF_TIMEOUT", "corr-12345");
+    throw new WorkflowException("Workflow execution failed due to timeout", "WF_TIMEOUT", "corr-12345");
 }
 catch (WorkflowException ex)
 {
-  Console.WriteLine($"Workflow error: {ex.Message}");
-  Console.WriteLine($"Error code: {ex.ErrorCode}");
-  Console.WriteLine($"Correlation ID: {ex.CorrelationId}");
-  
-  // Output:
-  // Workflow error: Workflow execution failed due to timeout
-  // Error code: WF_TIMEOUT
-  // Correlation ID: corr-12345
+    Console.WriteLine($"Workflow error: {ex.Message}");
+    Console.WriteLine($"Error code: {ex.ErrorCode}");
+    Console.WriteLine($"Correlation ID: {ex.CorrelationId}");
+
+    // Output:
+    // Workflow error: Workflow execution failed due to timeout
+    // Error code: WF_TIMEOUT
+    // Correlation ID: corr-12345
 }
 ```
+
+## IEventBus
+
+The `IEventBus` interface provides a centralized event bus for publishing and subscribing to workflow events using the pub-sub pattern. It enables components to listen for workflow lifecycle events (started, completed, failed) and activity-level events (started, completed, failed) without tight coupling. The event bus supports asynchronous event handling with error isolation, ensuring that exceptions in one subscriber don't prevent other subscribers from receiving events.
+
+Example usage:
+```csharp
+// Subscribe to workflow started events
+var eventBus = new EventBus(logger);
+
+eventBus.Subscribe<WorkflowStartedEvent>(async (workflowEvent) => {
+    Console.WriteLine($"Workflow started: {workflowEvent.WorkflowId} at {workflowEvent.Timestamp}");
+    Console.WriteLine($"Instance: {workflowEvent.InstanceId}");
+    if (workflowEvent.InputData != null)
+    {
+        foreach (var kvp in workflowEvent.InputData)
+        {
+            Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
+        }
+    }
+});
+
+// Subscribe to workflow completed events
+eventBus.Subscribe<WorkflowCompletedEvent>(async (workflowEvent) => {
+    Console.WriteLine($"Workflow completed: {workflowEvent.WorkflowId} in {workflowEvent.DurationMs}ms");
+    Console.WriteLine($"Instance: {workflowEvent.InstanceId}");
+    if (workflowEvent.OutputData != null)
+    {
+        foreach (var kvp in workflowEvent.OutputData)
+        {
+            Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
+        }
+    }
+});
+
+// Subscribe to activity failed events
+eventBus.Subscribe<ActivityFailedEvent>(async (activityEvent) => {
+    Console.WriteLine($"Activity failed: {activityEvent.ActivityId} in workflow {activityEvent.InstanceId}");
+    Console.WriteLine($"Error: {activityEvent.ErrorMessage}");
+    Console.WriteLine($"Retry attempt: {activityEvent.RetryAttempt}");
+});
+
+// Publish events
+var workflowStarted = new WorkflowStartedEvent {
+    WorkflowId = "wf-123",
+    InstanceId = "inst-456",
+    InputData = new Dictionary<string, object> { { "userId", 42 }, { "action", "process_order" } }
+};
+
+await eventBus.PublishAsync(workflowStarted);
 ```
