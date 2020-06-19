@@ -1,5 +1,23 @@
 // ... (rest of the README content remains unchanged)
 
+## ActivityException
+
+The `ActivityException` class represents exceptions that occur during activity execution. It provides information about the activity that caused the exception, including its ID and the attempt number when the exception occurred. Use it to handle and log activity execution errors.
+
+Example usage:
+```csharp
+try
+{
+    var activity = new Activity { Name = "", Duration = -1 };
+    WorkflowValidator.ValidateActivity(activity);
+}
+catch (ActivityException ex)
+{
+    Console.WriteLine($"Activity execution failed for {ex.ActivityId} (attempt {ex.AttemptNumber}): {ex.Message}");
+    // Output: Activity execution failed for activity-123 (attempt 1): Name cannot be empty
+}
+```
+
 ## ValidationException
 
 The `ValidationException` class represents validation failures in workflows or activities. It contains a list of validation errors, the name of the entity that failed validation, and provides a detailed error message. Use it to handle and log validation issues during workflow execution.
@@ -49,4 +67,5 @@ catch (ConfigurationException ex)
   // Key: MaxConcurrentWorkflows
   // Value: -1
 }
+```
 ```
