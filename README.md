@@ -189,6 +189,71 @@ bool isValid1 = ExpressionEvaluator.ValidateExpression("${status} == \"active\""
 bool isValid2 = ExpressionEvaluator.ValidateExpression("${amount} > \"100\" && ${isApproved}", out var errors2);
 ```
 
+
+## WorkflowCoreTests
+
+The `WorkflowCoreTests` class contains unit tests for the core workflow engine functionality, including workflow instance lifecycle management, activity execution tracking, activity result handling, workflow validation, event bus integration, and error handling during workflow execution. These tests verify the fundamental behaviors that ensure workflow instances properly transition between states, activities are executed without duplication, results are correctly processed, and workflows are validated for required fields.
+
+Example usage:
+
+```csharp
+// Create and start a workflow instance
+var instance = new WorkflowInstance("order-processing-workflow");
+instance.Status.Should().Be(WorkflowStatus.Draft);
+
+// Start the workflow - transitions to Active status
+instance.Start();
+instance.Status.Should().Be(WorkflowStatus.Active);
+instance.IsActive().Should().BeTrue();
+
+// Record activity execution (won't duplicate)
+instance.RecordActivityExecution("validate-order");
+instance.RecordActivityExecution("validate-order"); // duplicate call
+instance.ExecutedActivities.Should().HaveCount(1);
+
+// Set activity result to success with output
+var result = new ActivityResult("payment-activity");
+result.SetSuccess(new Dictionary<string, object?> { ["transactionId"] = "TX-9001" });
+result.IsSuccess().Should().BeTrue();
+result.GetOutput<string>("transactionId").Should().Be("TX-9001");
+
+// Validate workflow (missing ID should report error)
+var workflow = new Workflow
+{
+    Name = "Order Processing",
+    StartActivityId = "step-one",
+    Activities = { new Activity { Id = "step-one", Name = "First Step" } }
+};
+var validationResult = WorkflowValidator.ValidateWorkflow(workflow);
+validationResult.IsValid.Should().BeFalse();
+validationResult.Errors.Should().Contain(e => e.Contains("Workflow ID is required"));
+
+// Use event bus to publish workflow events
+var eventBus = new EventBus(logger);
+bool handlerInvoked = false;
+eventBus.Subscribe<WorkflowStartedEvent>(async (e) => {
+    handlerInvoked = true;
+    return Task.CompletedTask;
+});
+
+await eventBus.PublishAsync(new WorkflowStartedEvent
+{
+    WorkflowId = "wf-123",
+    InstanceId = "inst-456"
+});
+handlerInvoked.Should().BeTrue();
+
+// Handle exceptions during workflow execution
+var workflowExecutionService = new WorkflowExecutionService(
+    mockWorkflowDefinitionService.Object,
+    mockAuditService.Object,
+    mockActivityService.Object
+);
+var executionInstance = workflowExecutionService.CreateInstance(workflowId);
+executionInstance.Start();
+```
+
+
 ## ActivityServiceTests
 
 The `ActivityServiceTests` class contains comprehensive unit tests for the `ActivityService` class, which is responsible for executing workflow activities with support for conditional execution, retry policies, error handling, and context management. The test suite covers handler registration, various execution scenarios (gateway activities, invalid activities, missing handlers), conditional branching, retry policies (fixed delay, exponential backoff), error handling, and context preservation.
