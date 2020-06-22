@@ -530,6 +530,33 @@ if (validationErrors.Any())
 }
 ```
 
+## WorkflowDefinitionServiceTests
+
+The `WorkflowDefinitionServiceTests` class contains unit tests for the `WorkflowDefinitionService` class, verifying workflow creation, retrieval, modification, and validation operations. These tests cover workflow lifecycle management including adding activities, transitions, setting start/end activities, and handling various edge cases like null inputs, duplicates, and non-existent entities.
+
+```csharp
+public void CreateWorkflow_WithValidData_CreatesWorkflow
+public void CreateWorkflow_WithNullOrEmptyId_ThrowsValidationException
+public void CreateWorkflow_WithDuplicateId_ThrowsWorkflowException
+public void GetWorkflow_WithExistingId_ReturnsWorkflow
+public void GetWorkflow_WithNonExistentId_ReturnsNull
+public void GetAllWorkflows_ReturnsAllCreatedWorkflows
+public void GetAllWorkflows_WhenEmpty_ReturnsEmptyList
+public void AddActivity_ToExistingWorkflow_AddsActivitySuccessfully
+public void AddActivity_ToNonExistentWorkflow_ThrowsWorkflowException
+public void AddActivity_WithDuplicateId_ThrowsWorkflowException
+public void AddActivity_WithInvalidActivity_ThrowsValidationException
+public void AddActivity_UpdatesWorkflowModifiedAt
+public void AddTransition_BetweenExistingActivities_AddsTransitionSuccessfully
+public void AddTransition_WithNonExistentFromActivity_ThrowsWorkflowException
+public void AddTransition_WithNonExistentToActivity_ThrowsWorkflowException
+public void AddTransition_WithDuplicateId_ThrowsWorkflowException
+public void SetStartActivity_WithExistingActivity_SetsStartActivity
+public void SetStartActivity_WithNonExistentWorkflow_ThrowsWorkflowException
+public void SetStartActivity_WithNonExistentActivity_ThrowsWorkflowException
+public void SetEndActivity_WithExistingActivity_SetsEndActivity
+```
+
 ## IWorkflowMessage
 
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
@@ -592,6 +619,33 @@ else
 {
     Console.WriteLine($"Workflow failed: {result.ErrorMessage}");
 }
+```
+
+## WorkflowDefinitionServiceTests
+
+The `WorkflowDefinitionServiceTests` class contains unit tests for the `WorkflowDefinitionService` class, verifying workflow creation, retrieval, modification, and validation operations. These tests cover workflow lifecycle management including adding activities, transitions, setting start/end activities, and handling various edge cases like null inputs, duplicates, and non-existent entities.
+
+```csharp
+public void CreateWorkflow_WithValidData_CreatesWorkflow
+public void CreateWorkflow_WithNullOrEmptyId_ThrowsValidationException
+public void CreateWorkflow_WithDuplicateId_ThrowsWorkflowException
+public void GetWorkflow_WithExistingId_ReturnsWorkflow
+public void GetWorkflow_WithNonExistentId_ReturnsNull
+public void GetAllWorkflows_ReturnsAllCreatedWorkflows
+public void GetAllWorkflows_WhenEmpty_ReturnsEmptyList
+public void AddActivity_ToExistingWorkflow_AddsActivitySuccessfully
+public void AddActivity_ToNonExistentWorkflow_ThrowsWorkflowException
+public void AddActivity_WithDuplicateId_ThrowsWorkflowException
+public void AddActivity_WithInvalidActivity_ThrowsValidationException
+public void AddActivity_UpdatesWorkflowModifiedAt
+public void AddTransition_BetweenExistingActivities_AddsTransitionSuccessfully
+public void AddTransition_WithNonExistentFromActivity_ThrowsWorkflowException
+public void AddTransition_WithNonExistentToActivity_ThrowsWorkflowException
+public void AddTransition_WithDuplicateId_ThrowsWorkflowException
+public void SetStartActivity_WithExistingActivity_SetsStartActivity
+public void SetStartActivity_WithNonExistentWorkflow_ThrowsWorkflowException
+public void SetStartActivity_WithNonExistentActivity_ThrowsWorkflowException
+public void SetEndActivity_WithExistingActivity_SetsEndActivity
 ```
 
 ## IWorkflowMessage
