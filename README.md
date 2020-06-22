@@ -253,6 +253,218 @@ else
 }
 ```
 
+## ActivityServiceTests
+
+The `ActivityServiceTests` class contains comprehensive unit tests for the `ActivityService` class, which is responsible for executing workflow activities with support for conditional execution, retry policies, error handling, and context management. The test suite covers handler registration, various execution scenarios (gateway activities, invalid activities, missing handlers), conditional branching, retry policies (fixed delay, exponential backoff), error handling, and context preservation.
+
+
+
+
+
+Example usage:
+
+
+```csharp
+// Create ActivityService with retry policy service
+var retryPolicyService = new RetryPolicyService();
+var activityService = new ActivityService(retryPolicyService);
+
+// Register a custom activity handler
+var mockHandler = new Mock<ActivityService.IActivityHandler>();
+mockHandler.Setup(h => h.ExecuteAsync(
+  It.IsAny<Activity>(),
+  It.IsAny<WorkflowExecutionContext>()))
+  .ReturnsAsync(new Dictionary<string, object?> { { "result", "success" } });
+
+activityService.RegisterHandler("custom-handler", mockHandler.Object);
+
+// Create an activity
+var activity = new Activity
+{
+  Id = "process-order",
+  Name = "Process Order Activity",
+  HandlerType = "custom-handler",
+  ConditionExpression = "${orderTotal} > 100",
+  RetryPolicy = RetryPolicy.FixedDelay,
+  MaxRetries = 3,
+  TimeoutSeconds = 30
+};
+
+// Create execution context
+var context = new WorkflowExecutionContext
+{
+  WorkflowInstanceId = "order-processing-workflow",
+  CorrelationId = "order-12345",
+  Variables = new Dictionary<string, object?>
+  {
+    { "orderTotal", 150 },
+    { "customerId", 42 }
+  }
+};
+
+// Execute the activity
+var result = await activityService.ExecuteAsync(activity, context);
+
+if (result.IsSuccess())
+{
+  Console.WriteLine($"Activity completed successfully: {result.Status}");
+  Console.WriteLine($"Output: {string.Join(", ", result.Output.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+}
+else if (result.Status == ActivityStatus.Skipped)
+{
+  Console.WriteLine("Activity was skipped due to condition evaluation");
+}
+else
+{
+  Console.WriteLine($"Activity failed: {result.ErrorMessage}");
+}
+```
+
+## ConditionalBranchingServiceTests
+
+The `ConditionalBranchingServiceTests` class contains comprehensive unit tests for the `ConditionalBranchingService` class, which handles conditional branching logic in workflows. These tests verify branch resolution, activity navigation, transition expression evaluation, default transition behavior, priority ordering, error handling, and validation of conditional expressions. The test suite covers scenarios like unconditional transitions, conditional transitions with matching/not-matching conditions, multiple conditional transitions, mixed conditional and unconditional transitions, default transitions, priority-based selection, variable evaluation in expressions, and error conditions.
+
+
+
+
+
+Example usage:
+
+
+```csharp
+// Create ConditionalBranchingService
+var loggerMock = new Mock<ILogger<ConditionalBranchingService>>();
+var branchingService = new ConditionalBranchingService(loggerMock.Object);
+
+// Create a workflow with activities
+var workflow = new Workflow
+{
+  Id = "order-processing-workflow",
+  Name = "Order Processing Workflow",
+  Activities = new List<Activity>
+  {
+    new Activity { Id = "validate-order", Name = "Validate Order", TimeoutSeconds = 30 },
+    new Activity { Id = "check-inventory", Name = "Check Inventory", TimeoutSeconds = 30 },
+    new Activity { Id = "approve-order", Name = "Approve Order", TimeoutSeconds = 30 },
+    new Activity { Id = "reject-order", Name = "Reject Order", TimeoutSeconds = 30 },
+    new Activity { Id = "process-payment", Name = "Process Payment", TimeoutSeconds = 30 }
+  },
+  Transitions = new List<Transition>
+  {
+    // Unconditional transition
+    new Transition { Id = "t1", FromActivityId = "validate-order", ToActivityId = "check-inventory" },
+    
+    // Conditional transitions
+    new Transition
+    {
+      Id = "t2",
+      FromActivityId = "check-inventory",
+      ToActivityId = "approve-order",
+      ConditionExpression = "${inventoryAvailable} == true"
+    },
+    new Transition
+    {
+      Id = "t3",
+      FromActivityId = "check-inventory",
+      ToActivityId = "reject-order",
+      ConditionExpression = "${inventoryAvailable} == false"
+    },
+    
+    // Default transition (used when no conditional matches)
+    new Transition
+    {
+      Id = "t4",
+      FromActivityId = "check-inventory",
+      ToActivityId = "process-payment",
+      IsDefault = true
+    },
+    
+    // Priority-based conditional transitions
+    new Transition
+    {
+      Id = "t5",
+      FromActivityId = "approve-order",
+      ToActivityId = "process-payment",
+      ConditionExpression = "${amount} > 1000",
+      Priority = 10
+    },
+    new Transition
+    {
+      Id = "t6",
+      FromActivityId = "approve-order",
+      ToActivityId = "manual-review",
+      ConditionExpression = "${amount} <= 1000",
+      Priority = 5
+    }
+  }
+};
+
+// Create execution context with workflow variables
+var context = new WorkflowExecutionContext
+{
+  WorkflowInstanceId = "inst-12345",
+  Variables = new Dictionary<string, object?>
+  {
+    { "inventoryAvailable", true },
+    { "amount", 1500 },
+    { "customerId", 42 }
+  }
+};
+
+// Resolve branches from an activity
+var result = await branchingService.ResolveBranchesAsync(
+  workflow, 
+  "check-inventory", 
+  context
+);
+
+// Analyze results
+Console.WriteLine($"Activity: {result.ActivityId}");
+Console.WriteLine($"Any condition matched: {result.AnyConditionMatched}");
+Console.WriteLine($"Used default transition: {result.UsedDefaultTransition}");
+
+if (result.EvaluationErrors.Any())
+{
+  Console.WriteLine("Evaluation errors:");
+  foreach (var error in result.EvaluationErrors)
+  {
+    Console.WriteLine($"  - Transition {error.TransitionId}: {error.ErrorMessage}");
+  }
+}
+
+Console.WriteLine($"Selected transitions ({result.SelectedTransitions.Count}):");
+foreach (var transition in result.SelectedTransitions)
+{
+  Console.WriteLine($"  - {transition.Id}: {transition.FromActivityId} → {transition.ToActivityId}");
+}
+
+Console.WriteLine($"Skipped transitions ({result.SkippedTransitions.Count}):");
+foreach (var transition in result.SkippedTransitions)
+{
+  Console.WriteLine($"  - {transition.Id}: {transition.FromActivityId} → {transition.ToActivityId}");
+}
+
+// Get next activities (alternative method)
+var nextActivities = await branchingService.GetNextActivitiesAsync(
+  workflow, 
+  "check-inventory", 
+  context
+);
+
+Console.WriteLine($"Next activities: {string.Join(", ", nextActivities.Select(a => a.Id))}");
+
+// Validate transition expressions in workflow
+var validationErrors = branchingService.ValidateTransitionExpressions(workflow);
+if (validationErrors.Any())
+{
+  Console.WriteLine("Validation errors found:");
+  foreach (var error in validationErrors)
+  {
+    Console.WriteLine($"  - Transition {error.TransitionId}: {error.ErrorMessage}");
+  }
+}
+```
+
 ## IWorkflowMessage
 
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
