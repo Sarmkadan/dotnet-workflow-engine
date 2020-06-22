@@ -557,6 +557,49 @@ public void SetStartActivity_WithNonExistentActivity_ThrowsWorkflowException
 public void SetEndActivity_WithExistingActivity_SetsEndActivity
 ```
 
+## WorkflowExecutionServiceTests
+
+The `WorkflowExecutionServiceTests` class contains comprehensive unit tests for the `WorkflowExecutionService` class, which is responsible for executing workflow instances and managing their lifecycle. These tests verify workflow instance creation, retrieval, and execution operations, including error handling for non-existent workflows, inactive workflows, and missing instances.
+
+Example usage:
+
+```csharp
+// Create services for workflow execution
+var definitionService = new WorkflowDefinitionService();
+var auditRepoMock = new Mock<IAuditRepository>();
+auditRepoMock.Setup(r => r.AddAsync(It.IsAny<AuditLogEntry>())).Returns(Task.CompletedTask);
+var auditService = new AuditService(auditRepoMock.Object);
+var retryPolicyService = new RetryPolicyService();
+var activityService = new ActivityService(retryPolicyService);
+var executionService = new WorkflowExecutionService(definitionService, auditService, activityService);
+
+// Create an active workflow
+var workflow = new Workflow
+{
+    Id = "order-processing-workflow",
+    Name = "Order Processing Workflow",
+    Status = WorkflowStatus.Active,
+    StartActivityId = "validate-order",
+    EndActivityId = "confirm-order"
+};
+workflow.Publish();
+
+definitionService.AddWorkflow(workflow);
+
+// Create a workflow instance
+var instance = executionService.CreateInstance("order-processing-workflow");
+instance.Status.Should().Be(WorkflowStatus.Draft);
+
+// Verify instance can be retrieved
+var retrievedInstance = executionService.GetInstance(instance.Id);
+retrievedInstance.Should().NotBeNull();
+retrievedInstance.Id.Should().Be(instance.Id);
+
+// Start the workflow instance
+var result = await executionService.StartAsync(instance.Id);
+result.IsSuccess().Should().BeTrue();
+```
+
 ## IWorkflowMessage
 
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
@@ -646,6 +689,49 @@ public void SetStartActivity_WithExistingActivity_SetsStartActivity
 public void SetStartActivity_WithNonExistentWorkflow_ThrowsWorkflowException
 public void SetStartActivity_WithNonExistentActivity_ThrowsWorkflowException
 public void SetEndActivity_WithExistingActivity_SetsEndActivity
+```
+
+## WorkflowExecutionServiceTests
+
+The `WorkflowExecutionServiceTests` class contains comprehensive unit tests for the `WorkflowExecutionService` class, which is responsible for executing workflow instances and managing their lifecycle. These tests verify workflow instance creation, retrieval, and execution operations, including error handling for non-existent workflows, inactive workflows, and missing instances.
+
+Example usage:
+
+```csharp
+// Create services for workflow execution
+var definitionService = new WorkflowDefinitionService();
+var auditRepoMock = new Mock<IAuditRepository>();
+auditRepoMock.Setup(r => r.AddAsync(It.IsAny<AuditLogEntry>())).Returns(Task.CompletedTask);
+var auditService = new AuditService(auditRepoMock.Object);
+var retryPolicyService = new RetryPolicyService();
+var activityService = new ActivityService(retryPolicyService);
+var executionService = new WorkflowExecutionService(definitionService, auditService, activityService);
+
+// Create an active workflow
+var workflow = new Workflow
+{
+    Id = "order-processing-workflow",
+    Name = "Order Processing Workflow",
+    Status = WorkflowStatus.Active,
+    StartActivityId = "validate-order",
+    EndActivityId = "confirm-order"
+};
+workflow.Publish();
+
+definitionService.AddWorkflow(workflow);
+
+// Create a workflow instance
+var instance = executionService.CreateInstance("order-processing-workflow");
+instance.Status.Should().Be(WorkflowStatus.Draft);
+
+// Verify instance can be retrieved
+var retrievedInstance = executionService.GetInstance(instance.Id);
+retrievedInstance.Should().NotBeNull();
+retrievedInstance.Id.Should().Be(instance.Id);
+
+// Start the workflow instance
+var result = await executionService.StartAsync(instance.Id);
+result.IsSuccess().Should().BeTrue();
 ```
 
 ## IWorkflowMessage
