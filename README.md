@@ -258,6 +258,66 @@ else
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
 
 Example usage:
+
+## IntegrationTests
+
+The `IntegrationTests` class contains comprehensive integration tests that verify the end-to-end functionality of the workflow engine. These tests validate workflow execution, activity handling, state transitions, error recovery, conditional routing, audit trail logging, and concurrent execution scenarios. The test suite exercises the complete workflow lifecycle from instance creation through execution to completion.
+
+Example usage:
+
+```csharp
+// Create services for testing workflow execution
+var auditRepoMock = new Mock<IAuditRepository>();
+auditRepoMock.Setup(r => r.AddAsync(It.IsAny<AuditLogEntry>())).Returns(Task.CompletedTask);
+
+var auditService = new AuditService(auditRepoMock.Object);
+var definitionService = new WorkflowDefinitionService();
+var retryPolicyService = new RetryPolicyService();
+var activityService = new ActivityService(retryPolicyService);
+var executionService = new WorkflowExecutionService(definitionService, auditService, activityService);
+
+// Create a simple workflow with three activities
+var workflow = new Workflow
+{
+    Id = "order-processing-workflow",
+    Name = "Order Processing Workflow",
+    StartActivityId = "validate-order",
+    EndActivityId = "confirm-order",
+    Activities = new List<Activity>
+    {
+        new Activity { Id = "validate-order", Name = "Validate Order", TimeoutSeconds = 30, MaxRetries = 3, HandlerType = "default" },
+        new Activity { Id = "check-inventory", Name = "Check Inventory", TimeoutSeconds = 30, MaxRetries = 2, HandlerType = "default" },
+        new Activity { Id = "confirm-order", Name = "Confirm Order", TimeoutSeconds = 30, MaxRetries = 1, HandlerType = "default" }
+    },
+    Transitions = new List<Transition>
+    {
+        new Transition { Id = "t1", FromActivityId = "validate-order", ToActivityId = "check-inventory" },
+        new Transition { Id = "t2", FromActivityId = "check-inventory", ToActivityId = "confirm-order" }
+    }
+};
+workflow.Publish();
+
+definitionService.AddWorkflow(workflow);
+
+// Create and start a workflow instance
+var instance = executionService.CreateInstance(workflow.Id, "order-12345", "system");
+instance.Start();
+
+// Execute the workflow
+var result = await executionService.StartAsync(instance.Id);
+
+if (result.IsSuccess())
+{
+    Console.WriteLine($"Workflow completed successfully: {result.Status}");
+    Console.WriteLine($"Total duration: {result.DurationMs}ms");
+}
+else
+{
+    Console.WriteLine($"Workflow failed: {result.ErrorMessage}");
+}
+```
+
+## IWorkflowMessage
 ```csharp
 // Create a payment confirmation message
 var paymentMessage = new WorkflowMessage
