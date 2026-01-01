@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>Zaiets.dotnet.workflow.engine</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Vladyslav Zaiets</Authors>
+    <Description>Visual workflow engine for .NET - BPMN-like DSL, parallel execution, retry policies, audit trail</Description>
+    <PackageTags>workflow engine bpmn dotnet csharp parallel retry</PackageTags>
+    <PackageProjectUrl>https://github.com/sarmkadan/dotnet-workflow-engine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sarmkadan/dotnet-workflow-engine</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="examples/**" />
+    <Compile Remove="tests/**" />
+    <Compile Remove="Controllers/**" />
+    <Compile Remove="Configuration/DependencyInjection.cs" />
+    <Compile Remove="Integration/HttpClientFactory.cs" />
+    <Compile Remove="Middleware/ErrorHandlingMiddleware.cs" />
+    <Compile Remove="Middleware/RateLimitingMiddleware.cs" />
+    <Compile Remove="Cli/WorkflowCommand.cs" />
+  </ItemGroup>
+
+</Project>
