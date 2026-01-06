@@ -1,199 +1,422 @@
-# DotNet Workflow Engine
+# dotnet-workflow-engine
 
-A powerful, production-ready visual workflow engine for .NET with BPMN-like DSL, parallel execution support, retry policies, and comprehensive audit trails.
+A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL, parallel execution, retry policies, comprehensive audit trails, and extensible architecture. Designed for complex business process automation, microservice orchestration, and event-driven workflows.
 
-## Features
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![.NET](https://img.shields.io/badge/.NET-10.0-purple)
 
-- **BPMN-like DSL** - Define workflows using familiar BPMN concepts (activities, transitions, gateways)
-- **Parallel Execution** - Support for parallel activity execution and fork/join patterns
-- **Retry Policies** - Built-in retry mechanisms with exponential backoff, fixed delay, and linear backoff strategies
-- **Audit Trail** - Comprehensive audit logging of all workflow events and state changes
-- **Type-Safe** - Full type safety with C# and .NET 10
-- **Fluent API** - Build workflows using a fluent builder pattern
-- **Extensible** - Register custom activity handlers for domain-specific logic
-- **Async/Await** - Full async support throughout the engine
+## 📋 Table of Contents
 
-## Quick Start
+- [Project Overview](#project-overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage Examples](#usage-examples)
+- [API Reference](#api-reference)
+- [Configuration](#configuration)
+- [CLI Reference](#cli-reference)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
-### Installation
+## 🎯 Project Overview
+
+**dotnet-workflow-engine** is a modern, high-performance workflow orchestration framework built on .NET 10. It enables developers to define, execute, and monitor complex business processes using a declarative, code-first approach or a visual DSL.
+
+### Why dotnet-workflow-engine?
+
+- **Enterprise-Ready**: Built with production concerns in mind - error handling, retry policies, audit trails, monitoring
+- **Flexible Execution**: Support for sequential, parallel, and conditional workflow execution
+- **Extensible**: Plugin architecture for custom activities and validators
+- **Observable**: Comprehensive metrics, logging, and audit trail for regulatory compliance
+- **Resilient**: Built-in retry policies, circuit breakers, and error recovery mechanisms
+- **Scalable**: Async-first design with background job processing via Hangfire integration
+- **Developer-Friendly**: Fluent builder API, comprehensive CLI, rich REST API
+
+### Use Cases
+
+- **Order Processing**: Multi-step order fulfillment with parallel payment and shipping
+- **Approval Workflows**: Document approval chains with conditional routing
+- **Data Pipeline Orchestration**: ETL processes with retry and error handling
+- **Business Process Automation**: Complex multi-actor workflows with audit trails
+- **Microservice Orchestration**: Coordinate operations across multiple services
+- **Compliance Automation**: Automated compliance checks with full audit trail
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    REST API Layer                            │
+│  (WorkflowController, InstanceController, AuditController)   │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────┴────────────────────────────────────────┐
+│                  Service Layer                               │
+│  ├─ WorkflowExecutionService (Orchestration)               │
+│  ├─ WorkflowDefinitionService (Workflow Management)        │
+│  ├─ ActivityService (Activity Execution)                   │
+│  ├─ AuditService (Audit Trail Management)                 │
+│  └─ RetryPolicyService (Resilience)                        │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────┴────────────────────────────────────────┐
+│            Domain Models & Event System                      │
+│  ├─ Workflow, Activity, Transition Models                   │
+│  ├─ ExecutionContext (Runtime State)                        │
+│  ├─ EventBus (Pub/Sub for Workflow Events)                 │
+│  └─ Enums (Status, ExecutionMode, RetryPolicy)             │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────┴────────────────────────────────────────┐
+│              Data Access Layer                               │
+│  ├─ DatabaseContext (Entity Framework Core)                │
+│  ├─ Repository Pattern (Workflow, Instance, Audit)         │
+│  └─ Database (SQL Server, PostgreSQL, SQLite)              │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────┴────────────────────────────────────────┐
+│          Cross-Cutting Concerns                             │
+│  ├─ Caching (Redis, In-Memory)                             │
+│  ├─ Background Jobs (Hangfire)                             │
+│  ├─ Monitoring (Prometheus Metrics)                         │
+│  ├─ Middleware (Error Handling, Rate Limiting, Logging)    │
+│  └─ Security (Authorization, Encryption)                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Component Details
+
+| Component | Responsibility |
+|-----------|-----------------|
+| **REST API** | Expose workflows, instances, and audit trails via HTTP endpoints |
+| **Execution Service** | Orchestrate workflow execution, manage state transitions |
+| **Activity Service** | Execute individual workflow activities, validate inputs |
+| **Event Bus** | Publish/subscribe pattern for workflow events |
+| **Audit Service** | Maintain immutable audit trail for compliance |
+| **Retry Service** | Implement exponential backoff and retry policies |
+| **Database Layer** | Persist workflows, instances, and audit logs |
+| **Caching Layer** | Cache frequently accessed workflows and definitions |
+| **Background Jobs** | Async processing via Hangfire integration |
+| **Monitoring** | Prometheus metrics for performance tracking |
+
+## ✨ Features
+
+- **BPMN-like DSL**: Define workflows with activities, transitions, and gateways
+- **Parallel Execution**: Execute multiple activities concurrently with synchronization
+- **Sequential & Conditional Routing**: Support for complex decision logic
+- **Retry Policies**: Exponential backoff, max retries, custom retry logic
+- **Audit Trail**: Immutable log of all workflow actions for compliance
+- **REST API**: Full REST API for workflow management and execution
+- **CLI Support**: Command-line interface for workflow operations
+- **Event-Driven**: Pub/sub system for workflow lifecycle events
+- **Background Jobs**: Integration with Hangfire for async processing
+- **Caching**: Redis and in-memory caching for performance
+- **Monitoring**: Prometheus metrics and health checks
+- **Error Handling**: Comprehensive error handling with custom exceptions
+- **Authorization**: Role-based access control for workflows
+- **Expression Evaluation**: Evaluate conditions and variable assignments
+- **Webhook Support**: Call external systems during workflow execution
+- **Type-Safe**: Strongly typed with full C# generics support
+
+## 📦 Installation
+
+### Prerequisites
+
+- .NET 10 SDK or later
+- SQL Server, PostgreSQL, or SQLite
+- Optional: Redis (for caching)
+- Optional: Hangfire Dashboard (for background jobs)
+
+### Method 1: NuGet Package
 
 ```bash
 dotnet add package DotNetWorkflowEngine
 ```
 
-### Basic Usage
+### Method 2: Clone from Source
+
+```bash
+git clone https://github.com/Sarmkadan/dotnet-workflow-engine.git
+cd dotnet-workflow-engine
+dotnet restore
+dotnet build
+```
+
+### Method 3: Docker
+
+```bash
+docker pull sarmkadan/dotnet-workflow-engine:latest
+docker run -p 5000:80 sarmkadan/dotnet-workflow-engine:latest
+```
+
+### Method 4: Docker Compose
+
+```bash
+git clone https://github.com/Sarmkadan/dotnet-workflow-engine.git
+cd dotnet-workflow-engine
+docker-compose up -d
+```
+
+## 🚀 Quick Start
+
+### 1. Create a Workflow Definition
 
 ```csharp
-using DotNetWorkflowEngine.Configuration;
-using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Utilities;
-using Microsoft.Extensions.DependencyInjection;
 
-// Configure services
-var services = new ServiceCollection();
-services.AddWorkflowEngine(options =>
+var workflow = new Workflow
 {
-    options.EnableAuditLogging = true;
-    options.DefaultActivityTimeoutSeconds = 300;
-});
-
-var provider = services.BuildServiceProvider();
-
-// Get services
-var workflowService = provider.GetRequiredService<WorkflowDefinitionService>();
-var executionService = provider.GetRequiredService<WorkflowExecutionService>();
-
-// Build a workflow
-var builder = WorkflowBuilder.CreateSerial(
-    "order-processing",
-    "Order Processing Workflow",
-    workflowService,
-    "Validate Order",
-    "Process Payment",
-    "Ship Order"
-);
-
-var workflow = builder.BuildAndRegister();
-
-// Publish and execute
-workflowService.PublishWorkflow(workflow.Id);
-var instance = executionService.CreateInstance(workflow.Id);
-await executionService.StartAsync(instance.Id);
-```
-
-## Architecture
-
-### Core Components
-
-- **Workflow** - Represents a workflow definition with activities and transitions
-- **WorkflowInstance** - Runtime instance of an executing workflow
-- **Activity** - Individual task/step in a workflow
-- **Transition** - Connection between activities with optional conditions
-- **ExecutionContext** - Runtime context containing variables and state
-- **AuditLogEntry** - Immutable record of workflow events
-
-### Services
-
-- **WorkflowDefinitionService** - Manages workflow definitions
-- **WorkflowExecutionService** - Executes workflows and manages instances
-- **ActivityService** - Executes activities with retry logic
-- **RetryPolicyService** - Manages retry configurations
-- **AuditService** - Tracks and retrieves workflow events
-
-### Data Layer
-
-- **WorkflowRepository** - Persists workflow definitions
-- **WorkflowInstanceRepository** - Persists workflow instances
-- **AuditRepository** - Persists audit logs
-- **DatabaseContext** - Manages connections and transactions
-
-## Key Features
-
-### Retry Policies
-
-```csharp
-var retryService = provider.GetRequiredService<RetryPolicyService>();
-
-// Exponential backoff
-var config = RetryPolicyConfig.CreateExponentialBackoff(
-    maxAttempts: 5,
-    initialDelayMs: 1000,
-    maxDelayMs: 300000
-);
-
-// Fixed delay
-var config = RetryPolicyConfig.CreateFixedDelay(
-    maxAttempts: 3,
-    delayMs: 2000
-);
-```
-
-### Audit Logging
-
-```csharp
-var auditService = provider.GetRequiredService<AuditService>();
-var auditLog = auditService.GetAuditLog(instanceId);
-var recentEntries = auditService.GetRecentAuditLog(instanceId, count: 10);
-var csvExport = auditService.ExportAuditLogAsCsv(instanceId);
-```
-
-### Custom Activity Handlers
-
-```csharp
-class EmailActivityHandler : ActivityService.IActivityHandler
-{
-    public async Task<Dictionary<string, object?>> ExecuteAsync(
-        Activity activity, 
-        ExecutionContext context)
+    Id = Guid.NewGuid(),
+    Name = "OrderProcessing",
+    Version = 1,
+    Status = WorkflowStatus.Active,
+    Activities = new List<Activity>
     {
-        var email = context.GetActivityInput("email");
-        // Send email logic
-        return new Dictionary<string, object?> 
+        new Activity 
         { 
-            ["sent"] = true,
-            ["timestamp"] = DateTime.UtcNow
+            Id = "validate_order",
+            Name = "Validate Order",
+            ActivityType = "ValidationActivity",
+            Timeout = TimeSpan.FromSeconds(30)
+        },
+        new Activity 
+        { 
+            Id = "process_payment",
+            Name = "Process Payment",
+            ActivityType = "PaymentActivity",
+            RetryPolicy = RetryPolicy.Exponential,
+            MaxRetries = 3
+        },
+        new Activity 
+        { 
+            Id = "ship_order",
+            Name = "Ship Order",
+            ActivityType = "ShippingActivity"
+        }
+    },
+    Transitions = new List<Transition>
+    {
+        new Transition 
+        { 
+            Id = "t1",
+            SourceActivityId = "validate_order",
+            TargetActivityId = "process_payment"
+        },
+        new Transition 
+        { 
+            Id = "t2",
+            SourceActivityId = "process_payment",
+            TargetActivityId = "ship_order"
+        }
+    }
+};
+```
+
+### 2. Register Services
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddWorkflowEngine(builder.Configuration)
+    .AddDbContext<DatabaseContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")))
+    .AddHangfire(config => config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")))
+    .AddCaching(builder.Configuration);
+
+var app = builder.Build();
+app.UseWorkflowEngine();
+```
+
+### 3. Execute a Workflow
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class OrderController : ControllerBase
+{
+    private readonly IWorkflowExecutionService _executionService;
+
+    public OrderController(IWorkflowExecutionService executionService)
+    {
+        _executionService = executionService;
+    }
+
+    [HttpPost("process")]
+    public async Task<ActionResult> ProcessOrder(OrderRequest request)
+    {
+        var context = new ExecutionContext
+        {
+            WorkflowId = Guid.Parse("workflow-id"),
+            InstanceId = Guid.NewGuid(),
+            Variables = new Dictionary<string, object>
+            {
+                { "OrderId", request.OrderId },
+                { "Amount", request.Amount },
+                { "CustomerId", request.CustomerId }
+            }
         };
+
+        var result = await _executionService.ExecuteAsync(context);
+        
+        return Ok(new 
+        { 
+            InstanceId = result.InstanceId,
+            Status = result.Status 
+        });
     }
 }
-
-activityService.RegisterHandler("SendEmail", new EmailActivityHandler());
 ```
 
-### Workflow Builder
+## 📚 Usage Examples
 
-```csharp
-var workflow = new WorkflowBuilder("my-workflow", "My Workflow", workflowService)
-    .WithDescription("A complex workflow")
-    .AddTaskActivity("task1", "First Task", "Handler1")
-    .AddTaskActivity("task2", "Second Task", "Handler2")
-    .AddTaskActivity("task3", "Third Task", "Handler3")
-    .AddTransition("task1", "task2")
-    .AddTransition("task2", "task3", condition: "${approved}")
-    .WithStartActivity("task1")
-    .WithEndActivity("task3")
-    .BuildAndRegister();
+Complete examples for all major workflows are available in the `examples/` directory:
+
+- **OrderProcessingExample.cs** - Multi-step order workflow with validation, payment, and shipping
+- **ApprovalChainExample.cs** - Document approval process with multiple reviewers
+- **ParallelExecutionExample.cs** - Parallel task execution and synchronization
+- **ErrorHandlingExample.cs** - Custom retry policies and error recovery
+- **WebhookIntegrationExample.cs** - Calling external systems during execution
+- **CustomActivityExample.cs** - Extending with custom activities
+- **EventDrivenExample.cs** - Event-driven workflow patterns
+- **MonitoringExample.cs** - Metrics collection and health checks
+
+## 🔌 API Reference
+
+### Workflow Management
+
+#### List Workflows
+```http
+GET /api/workflows
+Authorization: Bearer <token>
 ```
 
-## Configuration
+#### Get Workflow Details
+```http
+GET /api/workflows/{id}
+Authorization: Bearer <token>
+```
 
-```csharp
-services.AddWorkflowEngine(options =>
+#### Create Workflow
+```http
+POST /api/workflows
+Content-Type: application/json
+Authorization: Bearer <token>
+```
+
+### Workflow Instances
+
+#### Execute Workflow
+```http
+POST /api/workflows/{id}/execute
+Content-Type: application/json
+Authorization: Bearer <token>
+```
+
+#### Get Instance Status
+```http
+GET /api/instances/{instanceId}
+Authorization: Bearer <token>
+```
+
+#### List Instance Activities
+```http
+GET /api/instances/{instanceId}/activities
+Authorization: Bearer <token>
+```
+
+### Audit Trail
+
+#### Get Audit Logs
+```http
+GET /api/audit?workflowId={id}&startDate={date}&pageSize=50
+Authorization: Bearer <token>
+```
+
+See `docs/api-reference.md` for complete API documentation.
+
+## ⚙️ Configuration
+
+Configure the workflow engine in `appsettings.json`:
+
+```json
 {
-    options.ConnectionString = "Data Source=workflow.db";
-    options.EnableAuditLogging = true;
-    options.MaxConcurrentWorkflows = 100;
-    options.DefaultActivityTimeoutSeconds = 300;
-    options.ValidateWorkflowsOnLoad = true;
-    options.DefaultRetryPolicy = RetryPolicyConfig.CreateExponentialBackoff(3);
-});
+  "WorkflowEngine": {
+    "DefaultExecutionMode": "Sequential",
+    "MaxConcurrentActivities": 10,
+    "DefaultTimeout": "00:05:00",
+    "EnableAuditTrail": true,
+    "EnableMetrics": true,
+    "CachingEnabled": true,
+    "CacheProvider": "Redis"
+  },
+  "Database": {
+    "ConnectionString": "Server=localhost;Database=WorkflowEngine;",
+    "Provider": "SqlServer"
+  }
+}
 ```
 
-## File Structure
+See `docs/configuration.md` for all configuration options.
 
+## 🖥️ CLI Reference
+
+```bash
+# Workflow operations
+dotnet run -- workflow list
+dotnet run -- workflow get <id>
+dotnet run -- workflow create ./definitions/workflow.json
+dotnet run -- workflow validate ./definitions/workflow.json
+
+# Instance operations
+dotnet run -- instance execute <workflow-id> --variables '{"key":"value"}'
+dotnet run -- instance get <instance-id>
+dotnet run -- instance cancel <instance-id>
+
+# Audit operations
+dotnet run -- audit list --limit 100
+dotnet run -- audit export --output ./audit.csv
+
+# Health & Monitoring
+dotnet run -- health check
+dotnet run -- metrics show
 ```
-DotNetWorkflowEngine/
-├── Models/                 # Domain models
-├── Services/              # Business logic services
-├── Data/
-│   ├── Repositories/      # Data access layer
-│   └── Context/           # Database context
-├── Configuration/         # DI and configuration
-├── Enums/                 # Enumerations
-├── Constants/             # Shared constants
-├── Exceptions/            # Custom exceptions
-├── Utilities/             # Helper utilities
-└── Program.cs             # Entry point
-```
 
-## License
+See `docs/cli-reference.md` for complete CLI documentation.
 
-MIT License - See LICENSE file for details
+## 🔧 Troubleshooting
 
-## Author
+Common issues and solutions are documented in `docs/troubleshooting.md`:
 
-Vladyslav Zaiets
-https://sarmkadan.com
+- Workflow execution timeouts
+- Database connection failures
+- Redis cache issues
+- Out of memory with large workflows
+- Activities not executing in parallel
+- Performance optimization tips
 
-## Contributing
+## 🤝 Contributing
 
-Contributions are welcome! Please ensure all code follows the project style and includes proper documentation.
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes and add tests
+4. Ensure all tests pass: `dotnet test`
+5. Commit with meaningful message
+6. Push to branch and open a Pull Request
+
+See `docs/contributing.md` for detailed guidelines.
+
+## 📄 License
+
+MIT License © 2026 Vladyslav Zaiets
+
+---
+
+**Built by [Vladyslav Zaiets](https://sarmkadan.com) - CTO & Software Architect**
+
+[Portfolio](https://sarmkadan.com) | [GitHub](https://github.com/Sarmkadan) | [Telegram](https://t.me/sarmkadan)
