@@ -1,0 +1,61 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
+
+# NuGet
+.nuget/
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+packages/
+
+# ReSharper is a .NET coding add-in
+.idea/
+*.sln.iml
+_ReSharper*/
+*.DotSettings.user
+
+# Local Environment
+.env
+.env.local
+appsettings.Development.json
+
+# Rider
+.idea/
+*.sln.iml
+*.jb2312
+
+# macOS
+.DS_Store
+
+# Package manager lock files (optional)
+packages.lock.json
