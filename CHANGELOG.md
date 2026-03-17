@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-04
+
+### Added
+- Multi-stage Dockerfile with non-root user (UID 1001) for improved security
+- HEALTHCHECK directive targeting port 8080
+- `restart: unless-stopped` policy for all docker-compose services
+- Migration guide (`docs/MIGRATION_v2.md`)
+
+### Changed
+- **BREAKING:** Default container port changed from 80 to 8080
+- Removed deprecated `version` key from docker-compose.yml (Compose Specification)
+- Bumped package version to 2.0.0
+
+### Removed
+- Hangfire dashboard placeholder service from docker-compose.yml
+
 ## [1.0.0] - 2025-06-16
 
 ### Added
@@ -159,6 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Focus |
 |---------|------|-------|
+| 2.0.0 | 2026-03-04 | Docker security hardening, port 8080, migration guide |
 | 1.0.0 | 2025-06-16 | Production release with full docs, API, monitoring |
 | 0.9.0 | 2025-05-26 | CLI, webhooks, expression evaluation |
 | 0.8.0 | 2025-05-12 | Caching, background jobs, event bus, metrics |
@@ -171,6 +188,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.1.0 | 2025-02-03 | Project skeleton and test framework |
 
 ## Upgrade Guide
+
+### 1.0.0 → 2.0.0
+**Breaking:** Container port changed from 80 to 8080. Update all port mappings, health checks, and reverse proxy configs.
+See [docs/MIGRATION_v2.md](docs/MIGRATION_v2.md) for full details.
 
 ### 0.9.0 → 1.0.0
 No breaking changes. New monitoring and CLI features are additive only.
