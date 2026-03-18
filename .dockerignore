@@ -1,0 +1,58 @@
+# Build results
+**/bin/**
+**/obj/**
+**/Dockerfile
+**/Dockerfile.*
+
+# IDE
+**/.vs
+**/.vscode
+**/Rider.DotSettings.user
+**/*.user
+**/*.sln
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+
+# Git
+.git
+**/.git
+
+# Logs and temp files
+**/logs/**
+**/temp/**
+**/tmp/**
+*.log
+
+# Test results
+**/TestResults
+**/*.TestResults
+**/TestResult
+
+# Visual Studio Code
+**/out/**
+**/dist/**
+**/node_modules/**
+**/packages/**
+**/artifacts/**
+**/coverage/**
+**/packages.lock.json
+
+# User-specific
+**/README.md
+**/LICENSE
+**/CONTRIBUTING.md
+**/SECURITY.md
+**/CHANGELOG.md
+
+# Documentation
+docs/**
+**/*.md
+**/docs
+
+# Tests
+tests/**
+**/tests
+
+# Examples
+examples/**
