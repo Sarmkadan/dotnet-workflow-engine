@@ -112,7 +112,12 @@ public class WorkflowExecutionService
                 context.SetActivityInput(param.Key, param.Value);
             }
 
-            var result = await _activityService.ExecuteAsync(activity, context);
+            var result = var result = await _activityService.ExecuteAsync(activity, context);
+                    if (result.Output.TryGetValue("ExecutionMode", out var executionModeValue) && executionModeValue.ToString() == "Parallel")
+                    {
+                        // Add proper synchronization
+                        await Task.WhenAll(instance.ActiveActivities.Select(a => ExecuteActivityAsync(instance, a)));
+                    }
 
             // Map outputs back to workflow context
             foreach (var mapping in activity.OutputMapping)
