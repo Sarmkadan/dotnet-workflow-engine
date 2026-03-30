@@ -28,13 +28,45 @@ git checkout -b feature/your-feature-name
 - **IMPORTANT**: Keep all author headers intact. Do not remove or modify existing author headers.
 
 ### 5. Running Tests
-Make sure to run the tests before submitting your pull request to ensure everything works as expected.
+
+```bash
+dotnet test
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
+```
+
+All new public methods must have corresponding unit tests. Target 80%+ code coverage on changed files.
 
 ### 6. Submitting a Pull Request
-Once you're ready, submit a Pull Request to the main repository. Provide a clear description of the changes you've made.
+Once you're ready, submit a Pull Request to the main repository. Your PR should include:
+- A clear description of what changed and why.
+- Links to related issues (use `Fixes #N` syntax).
+- Evidence that tests pass locally.
+
+### 7. Commit Message Format
+
+Follow the conventional commit format:
+```
+<type>(<scope>): <subject>
+
+<body>
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+Scopes: `models`, `services`, `controllers`, `middleware`, `events`
 
 ## Reporting Issues
-If you find a bug or have a feature request, please use GitHub Issues. Include clear reproduction steps if reporting a bug.
+If you find a bug or have a feature request, please use GitHub Issues.
+
+**Bug reports** should include:
+- Clear reproduction steps
+- Expected vs actual behavior
+- .NET SDK version and OS
+- Relevant logs or error messages
+
+**Feature requests** should include:
+- The problem you are solving
+- Proposed API design (if applicable)
+- Alternatives considered
 
 ## License
 By contributing, you agree that your contributions will be licensed under its MIT License.
