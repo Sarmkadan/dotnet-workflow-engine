@@ -40,7 +40,7 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Gets a workflow definition by ID.
     /// </summary>
-    public Workflow? GetWorkflow(string id)
+    public virtual Workflow? GetWorkflow(string id)
     {
         _workflows.TryGetValue(id, out var workflow);
         return workflow;
