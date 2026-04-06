@@ -1,0 +1,63 @@
+# =============================================================================
+# Author: Vladyslav Zaiets | https://sarmkadan.com
+# CTO & Software Architect
+# Development Dockerfile with hot reload support
+# =============================================================================
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS base
+WORKDIR /app
+
+# Install dotnet watch and other dev tools
+RUN apk add --no-cache \
+    curl \
+    bash \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Install dotnet watch global tool
+RUN dotnet tool install --global dotnet-watch --version 10.0.0
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Create non-root user for development
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup appuser
+
+# Create app directories
+RUN mkdir -p /app && chown appuser:appgroup /app
+
+FROM base AS development
+
+# Copy project files for layer caching
+COPY ["DotNetWorkflowEngine.csproj", "./"]
+COPY ["Configuration/DependencyInjection.cs", "./Configuration/"]
+COPY ["Configuration/ServiceCollection.cs", "./Configuration/"]
+COPY ["Configuration/ConditionalBranchingExtensions.cs", "./Configuration/"]
+COPY ["Utilities/*.cs", "./Utilities/"]
+COPY ["Models/*.cs", "./Models/"]
+COPY ["Enums/*.cs", "./Enums/"]
+COPY ["Exceptions/*.cs", "./Exceptions/"]
+COPY ["Events/*.cs", "./Events/"]
+
+# Restore dependencies
+RUN dotnet restore "DotNetWorkflowEngine.csproj"
+
+# Copy remaining source code
+COPY . .
+
+# Build the application
+RUN dotnet build "DotNetWorkflowEngine.csproj" -c Debug -o /app/build
+
+# Set up entrypoint for hot reload
+USER appuser
+WORKDIR /app
+
+# Use dotnet watch for hot reload
+ENTRYPOINT ["dotnet", "watch", "run", "--no-launch-profile", "--urls", "http://+:8080"]
+
+# Expose ports for development
+EXPOSE 8080
+EXPOSE 5000
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
