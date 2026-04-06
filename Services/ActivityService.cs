@@ -45,7 +45,7 @@ public class ActivityService
     /// <summary>
     /// Executes an activity with retry logic.
     /// </summary>
-    public async Task<ActivityResult> ExecuteAsync(Activity activity, ExecutionContext context)
+    public virtual async Task<ActivityResult> ExecuteAsync(Activity activity, ExecutionContext context)
     {
         if (activity.Validate(out var errors))
         {
