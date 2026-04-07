@@ -7,6 +7,7 @@ using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Events;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services; // Add this using directive
+using DotNetWorkflowEngine.Data.Repositories; // Add this using directive
 using DotNetWorkflowEngine.Utilities;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -125,7 +126,8 @@ public class WorkflowCoreTests
 
         // Mock dependencies
         var mockWorkflowDefinitionService = new Mock<WorkflowDefinitionService>();
-        var mockAuditService = new Mock<AuditService>();
+        var mockAuditRepository = new Mock<IAuditRepository>(); // Add this mock
+        var mockAuditService = new Mock<AuditService>(mockAuditRepository.Object); // Pass the mock repository
         var mockActivityService = new Mock<ActivityService>();
 
         // Setup mock WorkflowDefinitionService
