@@ -5,6 +5,7 @@
 
 using DotNetWorkflowEngine.Constants;
 using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Data.Repositories; // Add this using directive
 
 namespace DotNetWorkflowEngine.Services;
 
@@ -13,12 +14,17 @@ namespace DotNetWorkflowEngine.Services;
 /// </summary>
 public class AuditService
 {
-    private readonly Dictionary<string, List<AuditLogEntry>> _auditLogs = new();
+    private readonly IAuditRepository _auditRepository;
+
+    public AuditService(IAuditRepository auditRepository)
+    {
+        _auditRepository = auditRepository;
+    }
 
     /// <summary>
     /// Logs when a workflow instance is created.
     /// </summary>
-    public void LogInstanceCreated(string instanceId, string createdBy)
+    public async Task LogInstanceCreated(string instanceId, string createdBy)
     {
         var entry = new AuditLogEntry(instanceId, "InstanceCreated", "Workflow instance created")
         {
@@ -26,65 +32,65 @@ public class AuditService
             Actor = createdBy
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when a workflow instance starts executing.
     /// </summary>
-    public void LogInstanceStarted(string instanceId)
+    public async Task LogInstanceStarted(string instanceId)
     {
         var entry = new AuditLogEntry(instanceId, "InstanceStarted", "Workflow instance started execution")
         {
             Severity = "Info"
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when a workflow instance completes.
     /// </summary>
-    public void LogInstanceCompleted(string instanceId)
+    public async Task LogInstanceCompleted(string instanceId)
     {
         var entry = new AuditLogEntry(instanceId, "InstanceCompleted", "Workflow instance completed successfully")
         {
             Severity = "Info"
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when a workflow instance fails.
     /// </summary>
-    public void LogInstanceFailed(string instanceId, string errorMessage)
+    public async Task LogInstanceFailed(string instanceId, string errorMessage)
     {
         var entry = new AuditLogEntry(instanceId, "InstanceFailed", $"Workflow instance failed: {errorMessage}")
         {
             Severity = "Error"
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when a workflow instance is resumed.
     /// </summary>
-    public void LogInstanceResumed(string instanceId)
+    public async Task LogInstanceResumed(string instanceId)
     {
         var entry = new AuditLogEntry(instanceId, "InstanceResumed", "Workflow instance resumed from suspension")
         {
             Severity = "Warning"
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when an activity completes.
     /// </summary>
-    public void LogActivityCompleted(string instanceId, string activityId, ActivityResult result)
+    public async Task LogActivityCompleted(string instanceId, string activityId, ActivityResult result)
     {
         var entry = new AuditLogEntry(instanceId, "ActivityCompleted", $"Activity '{activityId}' completed successfully")
         {
@@ -98,13 +104,13 @@ public class AuditService
             }
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when an activity fails.
     /// </summary>
-    public void LogActivityFailed(string instanceId, string activityId, string errorMessage)
+    public async Task LogActivityFailed(string instanceId, string activityId, string errorMessage)
     {
         var entry = new AuditLogEntry(instanceId, "ActivityFailed", $"Activity '{activityId}' failed: {errorMessage}")
         {
@@ -117,13 +123,13 @@ public class AuditService
             }
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs when an activity is retried.
     /// </summary>
-    public void LogActivityRetry(string instanceId, string activityId, int attemptNumber, string? reason = null)
+    public async Task LogActivityRetry(string instanceId, string activityId, int attemptNumber, string? reason = null)
     {
         var entry = new AuditLogEntry(instanceId, "ActivityRetry", $"Activity '{activityId}' being retried (attempt {attemptNumber})")
         {
@@ -136,13 +142,13 @@ public class AuditService
             }
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
     /// Logs a custom event.
     /// </summary>
-    public void LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
+    public async Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
     {
         var entry = new AuditLogEntry(instanceId, eventType, description)
         {
@@ -150,85 +156,100 @@ public class AuditService
             Severity = severity
         };
 
-        AddEntry(instanceId, entry);
+        await AddEntry(entry);
     }
 
     /// <summary>
-    /// Gets audit log entries for an instance.
+    /// Gets audit log entries for a specific workflow instance.
     /// </summary>
-    public List<AuditLogEntry> GetAuditLog(string instanceId)
+    public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId)
     {
-        _auditLogs.TryGetValue(instanceId, out var entries);
-        return entries ?? new List<AuditLogEntry>();
+        return await _auditRepository.GetByInstanceIdAsync(instanceId);
     }
 
     /// <summary>
     /// Gets audit log entries with filtering.
     /// </summary>
-    public List<AuditLogEntry> GetAuditLog(string instanceId, DateTime? since = null, string? eventType = null)
+    public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId, DateTime? since = null, string? eventType = null)
     {
-        var log = GetAuditLog(instanceId);
-
-        if (since.HasValue)
-            log = log.Where(e => e.Timestamp >= since.Value).ToList();
-
-        if (!string.IsNullOrEmpty(eventType))
-            log = log.Where(e => e.EventType == eventType).ToList();
-
-        return log;
+        var (logs, total) = await _auditRepository.GetFilteredAndPagedAsync(
+            instanceId: instanceId,
+            eventType: eventType,
+            fromDate: since
+        );
+        return logs;
     }
 
     /// <summary>
     /// Gets the most recent audit entries.
     /// </summary>
-    public List<AuditLogEntry> GetRecentAuditLog(string instanceId, int count = 10)
+    public async Task<List<AuditLogEntry>> GetRecentAuditLog(string instanceId, int count = 10)
     {
-        var log = GetAuditLog(instanceId);
-        return log.OrderByDescending(e => e.Timestamp).Take(count).ToList();
+        return await _auditRepository.GetRecentForInstanceAsync(instanceId, count);
     }
 
     /// <summary>
     /// Clears audit log for an instance.
     /// </summary>
-    public void ClearAuditLog(string instanceId)
+    public async Task ClearAuditLog(string instanceId)
     {
-        _auditLogs.Remove(instanceId);
+        await _auditRepository.ClearInstanceAsync(instanceId);
     }
 
     /// <summary>
     /// Exports audit log as CSV string.
     /// </summary>
-    public string ExportAuditLogAsCsv(string instanceId)
+    public async Task<string> ExportAuditLogAsCsv(string instanceId)
     {
-        var log = GetAuditLog(instanceId);
+        var log = await GetAuditLog(instanceId);
         if (log.Count == 0)
             return "No audit entries";
 
         var csv = new System.Text.StringBuilder();
-        csv.AppendLine("Timestamp,EventType,ActivityId,Severity,Description");
+        csv.AppendLine("Timestamp,EventType,WorkflowInstanceId,ActivityId,Severity,Description,Actor,CorrelationId");
 
         foreach (var entry in log.OrderBy(e => e.Timestamp))
         {
-            csv.AppendLine($"\"{entry.GetFormattedTimestamp()}\",\"{entry.EventType}\",\"{entry.ActivityId}\",\"{entry.Severity}\",\"{entry.Description}\"");
+            csv.AppendLine($"\"{entry.GetFormattedTimestamp()}\",\"{entry.EventType}\",\"{entry.WorkflowInstanceId}\",\"{entry.ActivityId}\",\"{entry.Severity}\",\"{entry.Description.Replace("\"", "\"\"")}\",\"{entry.Actor}\",\"{entry.CorrelationId}\"");
         }
 
         return csv.ToString();
     }
 
     /// <summary>
+    /// Gets filtered and paginated audit entries across all workflows/instances.
+    /// </summary>
+    public async Task<(List<AuditLogEntry> Items, int Total)> GetFilteredAuditLogsAsync(
+        string? workflowId = null,
+        string? instanceId = null,
+        string? activityId = null,
+        string? eventType = null,
+        string? severity = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? actor = null,
+        int skip = 0,
+        int take = 100)
+    {
+        return await _auditRepository.GetFilteredAndPagedAsync(
+            workflowId,
+            instanceId,
+            activityId,
+            eventType,
+            severity,
+            fromDate,
+            toDate,
+            actor,
+            skip,
+            take
+        );
+    }
+
+    /// <summary>
     /// Adds an audit entry to the log.
     /// </summary>
-    private void AddEntry(string instanceId, AuditLogEntry entry)
+    private async Task AddEntry(AuditLogEntry entry)
     {
-        if (!_auditLogs.ContainsKey(instanceId))
-            _auditLogs[instanceId] = new List<AuditLogEntry>();
-
-        var log = _auditLogs[instanceId];
-
-        // Maintain maximum entries per instance
-        if (log.Count >= WorkflowConstants.MaxAuditEntriesPerInstance)
-            log.RemoveRange(0, log.Count - WorkflowConstants.MaxAuditEntriesPerInstance + 1);
-
-        log.Add(entry);
+        await _auditRepository.AddAsync(entry);
     }
 }
