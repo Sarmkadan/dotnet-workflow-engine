@@ -123,7 +123,32 @@ public class WorkflowExecutionService
             throw new WorkflowException($"Activity '{activityId}' not found", "ACTIVITY_NOT_FOUND");
 
         instance.CurrentActivityId = activityId;
-        instance.ActiveActivities.Add(activityId);
+        lock (instance.ActiveActivities)
+            instance.ActiveActivities.Add(activityId);
+
+        // Handle MessageCatchEvent: suspend the workflow and wait for an external message.
+        // The correlation key is read from the instance context (set by a prior activity).
+        if (activity.Type == "MessageCatchEvent")
+        {
+            if (string.IsNullOrWhiteSpace(activity.MessageName))
+                throw new ValidationException($"MessageCatchEvent '{activityId}' must specify a MessageName.", "MESSAGE_NAME_REQUIRED");
+            if (string.IsNullOrWhiteSpace(activity.CorrelationProperty))
+                throw new ValidationException($"MessageCatchEvent '{activityId}' must specify a CorrelationProperty.", "CORRELATION_PROPERTY_REQUIRED");
+
+            var correlationKey = instance.GetContextVariable(activity.CorrelationProperty)?.ToString();
+            if (string.IsNullOrWhiteSpace(correlationKey))
+                throw new WorkflowException($"Correlation property '{activity.CorrelationProperty}' evaluated to null or empty for MessageCatchEvent '{activityId}'.", "CORRELATION_KEY_MISSING");
+
+            instance.SetContextVariable("WaitingForMessageName", activity.MessageName);
+            instance.SetContextVariable("WaitingForCorrelationKey", correlationKey);
+            instance.SetContextVariable("WaitingActivityId", activityId);
+            instance.Status = WorkflowStatus.WaitingForMessage;
+
+            await _auditService.LogCustomEvent(instance.Id, "WorkflowSuspended", $"Workflow suspended at MessageCatchEvent '{activityId}', waiting for message '{activity.MessageName}' with correlation key '{correlationKey}'", "Info", activityId);
+            lock (instance.ActiveActivities)
+                instance.ActiveActivities.Remove(activityId);
+            return;
+        }
 
         try
         {
@@ -134,20 +159,13 @@ public class WorkflowExecutionService
                 CorrelationId = instance.CorrelationId ?? instance.Id
             };
 
-            // Set input parameters from workflow context
             foreach (var param in activity.InputParameters)
             {
                 context.SetActivityInput(param.Key, param.Value);
             }
 
             var result = await _activityService.ExecuteAsync(activity, context);
-                    if (result.Output.TryGetValue("ExecutionMode", out var executionModeValue) && executionModeValue.ToString() == "Parallel")
-                    {
-                        // Add proper synchronization
-                        await Task.WhenAll(instance.ActiveActivities.Select(a => ExecuteActivityAsync(instance, a)));
-                    }
 
-            // Map outputs back to workflow context
             foreach (var mapping in activity.OutputMapping)
             {
                 if (result.Output.TryGetValue(mapping.Key, out var value))
@@ -157,24 +175,61 @@ public class WorkflowExecutionService
             }
 
             instance.RecordActivityExecution(activityId);
-            _auditService.LogActivityCompleted(instance.Id, activityId, result);
+            await _auditService.LogActivityCompleted(instance.Id, activityId, result);
 
-            // Get next activities
             var nextActivities = workflow.GetNextActivities(activityId);
-            foreach (var next in nextActivities)
+
+            // For a Fork (parallel split) gateway, execute all branches concurrently.
+            // Every branch exception is captured so that a composite fault is surfaced
+            // instead of letting the join barrier wait indefinitely.
+            if (activity.ExecutionMode == ExecutionMode.Fork)
             {
-                await ExecuteActivityAsync(instance, next.Id);
+                var branchExceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+                await Task.WhenAll(nextActivities.Select(async next =>
+                {
+                    try
+                    {
+                        await ExecuteActivityAsync(instance, next.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        branchExceptions.Add(ex);
+                    }
+                }));
+
+                if (branchExceptions.Count > 0)
+                {
+                    var composite = new AggregateException(
+                        $"Parallel gateway '{activityId}': {branchExceptions.Count} branch(es) failed.",
+                        branchExceptions);
+                    await _auditService.LogActivityFailed(instance.Id, activityId, composite.Message);
+                    instance.Fail(composite.Message);
+                    throw composite;
+                }
             }
+            else
+            {
+                foreach (var next in nextActivities)
+                {
+                    await ExecuteActivityAsync(instance, next.Id);
+                }
+            }
+        }
+        catch (AggregateException)
+        {
+            // Already logged and failed inside the Fork branch above; just propagate.
+            throw;
         }
         catch (Exception ex)
         {
-            _auditService.LogActivityFailed(instance.Id, activityId, ex.Message);
+            await _auditService.LogActivityFailed(instance.Id, activityId, ex.Message);
             instance.Fail(ex.Message);
             throw;
         }
         finally
         {
-            instance.ActiveActivities.Remove(activityId);
+            lock (instance.ActiveActivities)
+                instance.ActiveActivities.Remove(activityId);
         }
     }
 
@@ -251,7 +306,7 @@ public class WorkflowExecutionService
 
         _auditService.LogInstanceResumed(instanceId);
         var workflow = _definitionService.GetWorkflow(instance.WorkflowId);
-        if (workflow?.StartActivityId == null)
+        if (workflow?.StartActivityId == null) // This check is probably not accurate for resuming
             throw new WorkflowException("Workflow has no start activity", "NO_START_ACTIVITY");
 
         // Continue with next activities
@@ -260,6 +315,67 @@ public class WorkflowExecutionService
         {
             await ExecuteActivityAsync(instance, activity.Id);
         }
+    }
+
+    /// <summary>
+    /// Resumes a workflow instance that was suspended waiting for a message.
+    /// </summary>
+    /// <param name="instanceId">The ID of the instance to resume.</param>
+    /// <param name="messageName">The name of the message that arrived.</param>
+    /// <param name="correlationKey">The correlation key of the message.</param>
+    /// <param name="messagePayload">The payload of the message.</param>
+    /// <exception cref="WorkflowException">Thrown if the instance is not found, not waiting for a message, or the message details don't match.</exception>
+    /// <exception cref="StateException">Thrown if the instance is in an unexpected state.</exception>
+    public async Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)
+    {
+        var instance = GetInstance(instanceId);
+        if (instance == null)
+            throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
+
+        if (instance.Status != WorkflowStatus.WaitingForMessage)
+            throw new StateException($"Instance '{instanceId}' is not waiting for a message.", instance.Status.ToString(), WorkflowStatus.WaitingForMessage.ToString());
+
+        var expectedMessageName = instance.GetContextVariable("WaitingForMessageName")?.ToString();
+        var expectedCorrelationKey = instance.GetContextVariable("WaitingForCorrelationKey")?.ToString();
+        var waitingActivityId = instance.GetContextVariable("WaitingActivityId")?.ToString();
+
+        if (expectedMessageName != messageName || expectedCorrelationKey != correlationKey || string.IsNullOrWhiteSpace(waitingActivityId))
+        {
+            _auditService.LogCustomEvent(instance.Id, "MessageMismatch", $"Received message '{messageName}' with key '{correlationKey}' but instance was waiting for '{expectedMessageName}' with key '{expectedCorrelationKey}'.", "Error", waitingActivityId);
+            throw new WorkflowException("Message correlation mismatch or waiting activity not found in instance context.", "MESSAGE_CORRELATION_MISMATCH");
+        }
+
+        // Clear waiting message metadata
+        instance.Context.Remove("WaitingForMessageName");
+        instance.Context.Remove("WaitingForCorrelationKey");
+        instance.Context.Remove("WaitingActivityId");
+
+        instance.Status = WorkflowStatus.Active;
+        _auditService.LogCustomEvent(instance.Id, "MessageReceived", $"Workflow instance resumed by message '{messageName}' with key '{correlationKey}'.", "Info", waitingActivityId);
+
+        var workflow = _definitionService.GetWorkflow(instance.WorkflowId);
+        if (workflow == null)
+            throw new WorkflowException($"Workflow '{instance.WorkflowId}' not found", "WORKFLOW_NOT_FOUND");
+
+        var waitingActivity = workflow.Activities.FirstOrDefault(a => a.Id == waitingActivityId);
+        if (waitingActivity == null)
+            throw new WorkflowException($"Waiting activity '{waitingActivityId}' not found in workflow definition.", "ACTIVITY_NOT_FOUND");
+
+        // Inject message payload into the execution context for the resuming activity
+        var context = new ExecutionContext
+        {
+            WorkflowInstanceId = instance.Id,
+            ActivityId = waitingActivityId,
+            CorrelationId = instance.CorrelationId ?? instance.Id
+        };
+        foreach (var entry in messagePayload)
+        {
+            context.SetActivityInput($"MessagePayload.{entry.Key}", entry.Value);
+        }
+
+        // Re-execute the waiting activity to process the message and continue the workflow
+        // The MessageCatchEvent activity will now act as a no-op and transition to the next
+        await ExecuteActivityAsync(instance, waitingActivityId);
     }
 
     /// <summary>
