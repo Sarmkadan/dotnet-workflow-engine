@@ -52,12 +52,12 @@ public class RetryPolicyConfig
             _ => InitialDelayMs
         };
 
-        // Apply jitter
+        // Apply jitter: use a symmetric ±jitter spread to scatter retries
         if (JitterFactor > 0)
         {
-            var random = new Random();
-            var jitter = random.NextDouble() * JitterFactor;
-            delay = (int)(delay * (1 + jitter));
+            var jitterRange = delay * JitterFactor;
+            delay = (int)(delay + (Random.Shared.NextDouble() * 2 - 1) * jitterRange);
+            delay = Math.Max(1, delay);
         }
 
         // Cap at maximum delay
@@ -112,14 +112,15 @@ public class RetryPolicyConfig
     /// <summary>
     /// Creates an exponential backoff retry configuration.
     /// </summary>
-    public static RetryPolicyConfig CreateExponentialBackoff(int maxAttempts, int initialDelayMs, int maxDelayMs)
+    public static RetryPolicyConfig CreateExponentialBackoff(int maxAttempts, int initialDelayMs, int maxDelayMs, double jitterFactor = 0.1)
     {
         return new RetryPolicyConfig
         {
             PolicyType = RetryPolicy.ExponentialBackoff,
             MaxAttempts = maxAttempts,
             InitialDelayMs = initialDelayMs,
-            MaxDelayMs = maxDelayMs
+            MaxDelayMs = maxDelayMs,
+            JitterFactor = jitterFactor
         };
     }
 }
