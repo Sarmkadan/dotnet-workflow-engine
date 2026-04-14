@@ -45,6 +45,35 @@ public class WorkflowBuilder
     }
 
     /// <summary>
+    /// Adds a BPMN 2.0 intermediate message catch event that suspends execution until
+    /// an external message matching <paramref name="messageName"/> arrives with a
+    /// correlation key derived from <paramref name="correlationProperty"/> on the
+    /// workflow instance context.
+    /// </summary>
+    /// <param name="id">Unique activity identifier.</param>
+    /// <param name="name">Human-readable name for the event node.</param>
+    /// <param name="messageName">The message name to subscribe to (e.g. "PaymentConfirmed").</param>
+    /// <param name="correlationProperty">
+    /// The workflow context variable whose value is used as the correlation key when
+    /// matching the incoming message to this instance.
+    /// </param>
+    public WorkflowBuilder AddMessageCatchEvent(string id, string name, string messageName, string correlationProperty)
+    {
+        var activity = new Activity
+        {
+            Id = id,
+            Name = name,
+            Type = "MessageCatchEvent",
+            MessageName = messageName,
+            CorrelationProperty = correlationProperty,
+            ExecutionMode = ExecutionMode.Sequential
+        };
+
+        _workflow.Activities.Add(activity);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a simple task activity.
     /// </summary>
     public WorkflowBuilder AddTaskActivity(string id, string name, string? handlerType = null)
