@@ -48,6 +48,17 @@ public class WorkflowInstance
     /// <summary>Gets or sets the total execution time in milliseconds.</summary>
     public long ExecutionTimeMs { get; set; } = 0;
 
+    /// <summary>
+    /// Gets the elapsed duration of this instance.
+    /// Returns <c>CompletedAt - StartedAt</c> for terminal instances, or
+    /// <c>UtcNow - StartedAt</c> for instances that are still running.
+    /// Returns <c>null</c> when the instance has not been started yet.
+    /// </summary>
+    public TimeSpan? Duration =>
+        StartedAt.HasValue
+            ? (CompletedAt ?? DateTime.UtcNow) - StartedAt.Value
+            : null;
+
     /// <summary>Gets or sets the last error message if execution failed.</summary>
     public string? ErrorMessage { get; set; }
 
