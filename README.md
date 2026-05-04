@@ -600,6 +600,77 @@ var result = await executionService.StartAsync(instance.Id);
 result.IsSuccess().Should().BeTrue();
 ```
 
+## WorkflowBuilderTests
+
+The `WorkflowBuilderTests` class contains comprehensive unit tests for the `WorkflowBuilder` class, which provides a fluent API for constructing workflows with activities and transitions. These tests verify workflow construction scenarios including basic workflow building with activities and transitions, validation of invalid workflows, registration with workflow services, fluent chaining capabilities, custom activity support, and various edge cases like duplicate workflow IDs, multiple transitions from the same activity, and complex workflow structures.
+
+Example usage:
+
+```csharp
+// Create a workflow builder
+var builder = new WorkflowBuilder();
+
+// Build a basic workflow with activities and transitions
+var workflow1 = builder
+    .WithWorkflowId("order-processing-workflow")
+    .WithName("Order Processing Workflow")
+    .AddTaskActivity("validate-order", "Validate Order Activity")
+    .AddTaskActivity("check-inventory", "Check Inventory Activity")
+    .AddTaskActivity("process-payment", "Process Payment Activity")
+    .AddTransition("validate-order", "check-inventory")
+    .AddTransition("check-inventory", "process-payment")
+    .Build();
+
+// Build and register a workflow with the service
+var workflowService = new WorkflowDefinitionService();
+var builder2 = new WorkflowBuilder();
+var workflow2 = builder2
+    .WithWorkflowId("approval-workflow")
+    .WithName("Approval Workflow")
+    .AddTaskActivity("submit-request", "Submit Request Activity")
+    .AddTaskActivity("manager-approval", "Manager Approval Activity")
+    .AddTaskActivity("finance-approval", "Finance Approval Activity")
+    .AddConditionalTransition("submit-request", "manager-approval", "${needsManagerApproval}")
+    .AddConditionalTransition("manager-approval", "finance-approval", "${needsFinanceApproval}")
+    .BuildAndRegister(workflowService);
+
+// Create a serial workflow with multiple activities
+var serialWorkflow = builder
+    .WithWorkflowId("serial-workflow")
+    .WithName("Serial Workflow")
+    .CreateSerial(new[] { "activity1", "activity2", "activity3" })
+    .Build();
+
+// Add an event activity
+var eventWorkflow = builder
+    .WithWorkflowId("event-workflow")
+    .WithName("Event Workflow")
+    .AddEventActivity("wait-for-payment", "Wait for Payment Event")
+    .AddTaskActivity("process-order", "Process Order Activity")
+    .AddTransition("wait-for-payment", "process-order")
+    .Build();
+
+// Add a custom activity with a specific handler
+var customWorkflow = builder
+    .WithWorkflowId("custom-workflow")
+    .WithName("Custom Workflow")
+    .AddTaskActivity("custom-step", "Custom Step Activity", "custom-handler")
+    .Build();
+
+// Build a workflow with multiple transitions from the same activity
+var multiTransitionWorkflow = builder
+    .WithWorkflowId("multi-transition-workflow")
+    .WithName("Multi-Transition Workflow")
+    .AddTaskActivity("decision-point", "Decision Point Activity")
+    .AddTaskActivity("path-a", "Path A Activity")
+    .AddTaskActivity("path-b", "Path B Activity")
+    .AddTaskActivity("path-c", "Path C Activity")
+    .AddConditionalTransition("decision-point", "path-a", "${conditionA}")
+    .AddConditionalTransition("decision-point", "path-b", "${conditionB}")
+    .AddTransition("decision-point", "path-c") // default path
+    .Build();
+```
+
 ## IWorkflowMessage
 
 The `IWorkflowMessage` interface represents messages received from external systems that can be correlated to waiting workflow instances. It provides the essential correlation information (`CorrelationKey` and `MessageName`) along with a flexible payload container for message-specific data. Use it to construct and dispatch messages that trigger or resume workflow instances based on external events.
@@ -733,6 +804,7 @@ retrievedInstance.Id.Should().Be(instance.Id);
 var result = await executionService.StartAsync(instance.Id);
 result.IsSuccess().Should().BeTrue();
 ```
+
 
 ## IWorkflowMessage
 ```csharp
