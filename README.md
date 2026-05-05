@@ -6,7 +6,7 @@ A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL,
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![.NET](https://img.shields.io/badge/.NET-10.0-purple)
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Project Overview](#project-overview)
 - [Architecture](#architecture)
@@ -21,7 +21,7 @@ A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL,
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🎯 Project Overview
+## Project Overview
 
 **dotnet-workflow-engine** is a modern, high-performance workflow orchestration framework built on .NET 10. It enables developers to define, execute, and monitor complex business processes using a declarative, code-first approach or a visual DSL.
 
@@ -44,7 +44,7 @@ A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL,
 - **Microservice Orchestration**: Coordinate operations across multiple services
 - **Compliance Automation**: Automated compliance checks with full audit trail
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -101,7 +101,7 @@ A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL,
 | **Background Jobs** | Async processing via Hangfire integration |
 | **Monitoring** | Prometheus metrics for performance tracking |
 
-## ✨ Features
+## Features
 
 - **BPMN-like DSL**: Define workflows with activities, transitions, and gateways
 - **Parallel Execution**: Execute multiple activities concurrently with synchronization
@@ -120,7 +120,7 @@ A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL,
 - **Webhook Support**: Call external systems during workflow execution
 - **Type-Safe**: Strongly typed with full C# generics support
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -159,7 +159,7 @@ cd dotnet-workflow-engine
 docker-compose up -d
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Create a Workflow Definition
 
@@ -271,7 +271,7 @@ public class OrderController : ControllerBase
 }
 ```
 
-## 📚 Usage Examples
+## Usage Examples
 
 Complete examples for all major workflows are available in the `examples/` directory:
 
@@ -284,7 +284,7 @@ Complete examples for all major workflows are available in the `examples/` direc
 - **EventDrivenExample.cs** - Event-driven workflow patterns
 - **MonitoringExample.cs** - Metrics collection and health checks
 
-## 🔌 API Reference
+## API Reference
 
 ### Workflow Management
 
@@ -338,7 +338,7 @@ Authorization: Bearer <token>
 
 See `docs/api-reference.md` for complete API documentation.
 
-## ⚙️ Configuration
+## Configuration
 
 Configure the workflow engine in `appsettings.json`:
 
@@ -362,7 +362,7 @@ Configure the workflow engine in `appsettings.json`:
 
 See `docs/configuration.md` for all configuration options.
 
-## 🖥️ CLI Reference
+## CLI Reference
 
 ```bash
 # Workflow operations
@@ -387,7 +387,7 @@ dotnet run -- metrics show
 
 See `docs/cli-reference.md` for complete CLI documentation.
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 Common issues and solutions are documented in `docs/troubleshooting.md`:
 
@@ -398,7 +398,7 @@ Common issues and solutions are documented in `docs/troubleshooting.md`:
 - Activities not executing in parallel
 - Performance optimization tips
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these guidelines:
 
@@ -411,7 +411,7 @@ Contributions are welcome! Please follow these guidelines:
 
 See `docs/contributing.md` for detailed guidelines.
 
-## 📄 License
+## License
 
 MIT License © 2026 Vladyslav Zaiets
 
