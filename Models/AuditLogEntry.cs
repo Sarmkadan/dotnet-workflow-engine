@@ -3,8 +3,6 @@
 // CTO & Software Architect
 // =============================================================================
 
-using Newtonsoft.Json;
-
 namespace DotNetWorkflowEngine.Models;
 
 /// <summary>
@@ -37,15 +35,15 @@ public class AuditLogEntry
     public string? Actor { get; set; }
 
     /// <summary>Gets or sets the previous state before this event.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> PreviousState { get; set; } = new();
 
     /// <summary>Gets or sets the current state after this event.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> CurrentState { get; set; } = new();
 
     /// <summary>Gets or sets details specific to the event.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Details { get; set; } = new();
 
     /// <summary>Gets or sets the correlation ID for tracking related events.</summary>

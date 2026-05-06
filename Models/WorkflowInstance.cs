@@ -4,7 +4,6 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Enums;
-using Newtonsoft.Json;
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -26,15 +25,15 @@ public class WorkflowInstance
     public string? CurrentActivityId { get; set; }
 
     /// <summary>Gets or sets the list of activities that have been executed.</summary>
-    [JsonProperty]
+
     public List<string> ExecutedActivities { get; set; } = new();
 
     /// <summary>Gets or sets the list of activities currently executing (for parallel execution).</summary>
-    [JsonProperty]
+
     public List<string> ActiveActivities { get; set; } = new();
 
     /// <summary>Gets or sets execution context containing variables and state.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Context { get; set; } = new();
 
     /// <summary>Gets or sets when the instance was created.</summary>
@@ -56,7 +55,7 @@ public class WorkflowInstance
     public string? CorrelationId { get; set; }
 
     /// <summary>Gets or sets custom metadata associated with the instance.</summary>
-    [JsonProperty]
+
     public Dictionary<string, object?> Metadata { get; set; } = new();
 
     /// <summary>Gets or sets the ID of the user who initiated this instance.</summary>

@@ -4,7 +4,6 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Enums;
-using Newtonsoft.Json;
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -29,11 +28,11 @@ public class Workflow
     public WorkflowStatus Status { get; set; } = WorkflowStatus.Draft;
 
     /// <summary>Gets or sets the list of activities in this workflow.</summary>
-    [JsonProperty]
+
     public List<Activity> Activities { get; set; } = new();
 
     /// <summary>Gets or sets the list of transitions between activities.</summary>
-    [JsonProperty]
+
     public List<Transition> Transitions { get; set; } = new();
 
     /// <summary>Gets or sets the ID of the starting activity.</summary>

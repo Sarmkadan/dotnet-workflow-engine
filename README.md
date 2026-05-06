@@ -1,10 +1,10 @@
+[![Build](https://github.com/sarmkadan/dotnet-workflow-engine/actions/workflows/build.yml/badge.svg)](https://github.com/sarmkadan/dotnet-workflow-engine/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+
 # dotnet-workflow-engine
 
 A powerful, enterprise-grade visual workflow engine for .NET with BPMN-like DSL, parallel execution, retry policies, comprehensive audit trails, and extensible architecture. Designed for complex business process automation, microservice orchestration, and event-driven workflows.
-
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![.NET](https://img.shields.io/badge/.NET-10.0-purple)
 
 ## Table of Contents
 
