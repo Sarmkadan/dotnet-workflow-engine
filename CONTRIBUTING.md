@@ -20,29 +20,58 @@ git checkout -b feature/your-feature-name
 ```
 
 ### 3. Development Requirements
-- .NET 10.0 SDK
+- .NET 10.0 SDK or later — download from https://dotnet.microsoft.com/download
+- Optional: Docker (for container builds)
+- Optional: Redis (for caching integration tests)
 
-### 4. Code Style
-- Follow the existing coding conventions in the repository.
-- Include XML documentation comments for public APIs.
-- **IMPORTANT**: Keep all author headers intact. Do not remove or modify existing author headers.
+### 4. Build Locally
+
+```bash
+# Restore dependencies
+dotnet restore
+
+# Build in Debug mode
+dotnet build
+
+# Build in Release mode
+dotnet build --configuration Release
+```
 
 ### 5. Running Tests
 
 ```bash
+# Run all tests
 dotnet test
+
+# Run with verbosity
+dotnet test --verbosity normal
+
+# Run a specific test project
+dotnet test tests/dotnet-workflow-engine.Tests/
+
+# Run with code coverage
 dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
+
+# Generate coverage report (requires reportgenerator tool)
+dotnet test --collect:"XPlat Code Coverage"
+reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage"
 ```
 
 All new public methods must have corresponding unit tests. Target 80%+ code coverage on changed files.
 
-### 6. Submitting a Pull Request
+### 6. Code Style
+- Follow the existing coding conventions in the repository.
+- The `.editorconfig` at the root enforces formatting — most editors respect it automatically.
+- Include XML documentation comments for public APIs.
+- Use file-scoped namespaces and `var` where the type is apparent.
+
+### 7. Submitting a Pull Request
 Once you're ready, submit a Pull Request to the main repository. Your PR should include:
 - A clear description of what changed and why.
 - Links to related issues (use `Fixes #N` syntax).
 - Evidence that tests pass locally.
 
-### 7. Commit Message Format
+### 8. Commit Message Format
 
 Follow the conventional commit format:
 ```
