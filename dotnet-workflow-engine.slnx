@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="DotNetWorkflowEngine.csproj" />
+  <Project Path="tests/dotnet-workflow-engine.Tests/dotnet-workflow-engine.Tests.csproj" />
 </Solution>

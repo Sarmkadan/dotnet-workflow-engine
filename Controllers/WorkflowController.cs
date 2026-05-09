@@ -6,10 +6,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Utilities;
 using DotNetWorkflowEngine.Exceptions;
 
 namespace DotNetWorkflowEngine.Controllers;
@@ -208,7 +210,7 @@ public class WorkflowController : ControllerBase
     /// checks before creation. Returns validation result with detailed error messages.
     /// </summary>
     [HttpPost("validate")]
-    [ProducesResponseType(typeof(ValidationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WorkflowValidator.ValidationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ValidateWorkflow([FromBody] Workflow workflow)
     {
