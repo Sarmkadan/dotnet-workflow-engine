@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2026-01-15
+## [1.0.0] - 2025-06-16
 
 ### Added
 - Comprehensive REST API with pagination and filtering
@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSV export functionality for audit trails
 - CLI tool for workflow management
 - Docker and docker-compose support
-- Kubernetes manifests and deployment examples
 - GitHub Actions CI/CD workflow
 - Comprehensive documentation and examples
 
@@ -27,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved retry policy flexibility with configurable backoff strategies
 - Enhanced error messages with detailed context
 - Optimized database queries with indexes
-- Updated dependencies to latest versions
+- Updated all dependencies to stable releases
 
 ### Fixed
 - Memory leak in long-running workflow instances
@@ -35,75 +34,124 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audit trail inconsistency with failed activities
 - Connection pool exhaustion under high load
 
-### Deprecated
-- Old WorkflowBuilder constructor (use fluent API instead)
-- Direct database context access (use repositories)
-
-## [1.1.0] - 2025-11-20
+## [0.9.0] - 2025-05-26
 
 ### Added
-- Parallel activity execution support
-- Conditional transitions with expression evaluation
-- Hangfire background job integration
-- Redis caching provider
-- In-memory caching provider
-- Comprehensive audit trail logging
-- Retry policy configurations (exponential, fixed delay, linear backoff)
-- Activity timeout support
-- Expression evaluation utility
-- Collection and string extension methods
-- Workflow validation framework
+- CLI tool scaffolding (CommandParser, CommandContext, WorkflowCommand)
+- Webhook handler for calling external systems during execution
+- Expression evaluator for conditional transitions
+- HttpClientFactory integration wrapper
+- ConditionalBranchingService and BranchingResult model
+- Rate limiting and logging middleware
+- Validation filter for API controllers
+- ReflectionHelper and SerializationHelper utilities
 
 ### Changed
-- Improved WorkflowExecutionService architecture
-- Better separation of concerns with service layer
-- Enhanced repository pattern implementation
-- More intuitive API for activity execution
+- Unified error handling through ErrorHandlingMiddleware
+- WorkflowValidator now supports pluggable rule sets
+
+## [0.8.0] - 2025-05-12
+
+### Added
+- Redis caching provider via StackExchange.Redis
+- In-memory caching provider with configurable TTL
+- CacheService abstraction over both providers
+- Hangfire background job integration (WorkflowJobProcessor)
+- WorkflowMetrics with Prometheus counters and histograms
+- EventBus pub/sub system for workflow lifecycle events
+
+### Changed
+- ActivityService now publishes events on activity start/complete/fail
+- Background job processor handles deferred workflow steps
 
 ### Fixed
-- Database migration issues on first run
-- Entity mapping inconsistencies
-- Event bus subscription memory leaks
+- Event bus subscription memory leaks on long-lived instances
 
-## [1.0.0] - 2025-09-10
+## [0.7.0] - 2025-04-28
 
 ### Added
-- Initial release
-- Core workflow engine with sequential execution
-- Activity and transition definitions
-- Workflow instance management
-- Basic audit logging
-- Database persistence (EF Core)
-- Entity Framework Core integration
-- Dependency injection configuration
-- Basic error handling
-- Workflow definition validation
-- Activity execution engine
-- Status enumeration for workflows and activities
-- Custom exception types (WorkflowException, ActivityException, ValidationException)
-- Logging middleware
-- Basic REST controller structure
+- Parallel activity execution with fork/join semantics
+- ExecutionMode enum (Sequential, Parallel)
+- Concurrent branch coordination in WorkflowExecutionService
+- WorkflowBuilder fluent API for programmatic workflow definition
+- CollectionExtensions and DateTimeExtensions utilities
+- WorkflowConstants for shared configuration values
 
-### Known Issues
-- Parallel execution not yet optimized
-- No built-in clustering support
-- Limited monitoring capabilities
+### Changed
+- WorkflowExecutionService refactored to support both sequential and parallel paths
+- ActivityResult model extended with branch tracking fields
 
-## [0.9.0] - 2025-08-15
+## [0.6.0] - 2025-04-14
 
 ### Added
-- Initial alpha release for testing
-- Core data models (Workflow, Activity, Transition)
-- Basic execution engine
-- Database context setup
-- Unit test framework
+- WorkflowController, WorkflowInstanceController, AuditController REST endpoints
+- AuditService with immutable append-only log
+- AuditLogEntry model and AuditRepository
+- IOutputFormatter abstraction with JSON and CSV implementations
+- WorkflowInstanceRepository with status filtering queries
+- Pagination and filtering support in list endpoints
 
-## [0.8.0] - 2025-07-01
+### Changed
+- Audit trail now captures actor identity and change reason per entry
+
+### Fixed
+- Entity mapping inconsistency causing duplicate audit records on retry
+
+## [0.5.0] - 2025-03-31
 
 ### Added
-- Project skeleton and structure
-- Initial architecture design
-- Dependency injection setup
+- RetryPolicyService with exponential, fixed-delay, and linear-backoff strategies
+- RetryPolicyConfig model and RetryPolicy enum
+- Activity timeout support with configurable cancellation tokens
+- StateException and custom exception hierarchy
+- WorkflowValidator framework with extensible rule pipeline
+
+### Changed
+- ActivityService wraps execution in retry loop driven by RetryPolicyService
+- WorkflowDefinitionService validates definition before persisting
+
+## [0.4.0] - 2025-03-17
+
+### Added
+- WorkflowDefinitionService for CRUD operations on workflow definitions
+- WorkflowExecutionService with sequential execution orchestration
+- ActivityService for individual activity execution and input validation
+- IRepository generic base with CRUD contract
+- WorkflowRepository and WorkflowInstanceRepository
+- Dependency injection configuration (ServiceCollection, DependencyInjection extensions)
+
+### Changed
+- Separated workflow definition storage from runtime execution concerns
+
+## [0.3.0] - 2025-03-03
+
+### Added
+- DatabaseContext via Entity Framework Core
+- Entity mappings for Workflow, WorkflowInstance, Activity, AuditLogEntry
+- Database persistence for workflow state
+- WorkflowInstance model tracking execution progress
+- ActivityResult model for capturing step outcomes
+- StringExtensions utility methods
+
+### Fixed
+- Database migration failures on clean first run
+
+## [0.2.0] - 2025-02-17
+
+### Added
+- Core domain models: Workflow, Activity, Transition, ExecutionContext
+- Enums: WorkflowStatus, ActivityStatus, RetryPolicy, ExecutionMode
+- Custom exception types: WorkflowException, ActivityException, ValidationException
+- Program.cs with minimal API host setup
+- Initial .editorconfig and project structure
+
+## [0.1.0] - 2025-02-03
+
+### Added
+- Project skeleton (DotNetWorkflowEngine.csproj, solution file)
+- Initial architecture design and namespace layout
+- Dependency injection scaffold
+- Unit test project with xUnit, FluentAssertions, and Moq
 
 ---
 
@@ -111,49 +159,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Focus |
 |---------|------|-------|
-| 1.2.0 | 2026-01-15 | Production-ready with full docs and examples |
-| 1.1.0 | 2025-11-20 | Advanced features (parallel, caching, retry) |
-| 1.0.0 | 2025-09-10 | Stable initial release |
-| 0.9.0 | 2025-08-15 | Alpha for community testing |
-| 0.8.0 | 2025-07-01 | Initial project structure |
+| 1.0.0 | 2025-06-16 | Production release with full docs, API, monitoring |
+| 0.9.0 | 2025-05-26 | CLI, webhooks, expression evaluation |
+| 0.8.0 | 2025-05-12 | Caching, background jobs, event bus, metrics |
+| 0.7.0 | 2025-04-28 | Parallel execution, WorkflowBuilder fluent API |
+| 0.6.0 | 2025-04-14 | REST API, audit trail, output formatters |
+| 0.5.0 | 2025-03-31 | Retry policies, activity timeouts, validation |
+| 0.4.0 | 2025-03-17 | Service layer, DI configuration |
+| 0.3.0 | 2025-03-03 | Database persistence, EF Core |
+| 0.2.0 | 2025-02-17 | Core models, exception types |
+| 0.1.0 | 2025-02-03 | Project skeleton and test framework |
 
 ## Upgrade Guide
 
-### 1.0.0 → 1.1.0
-No breaking changes. New features are additive only.
+### 0.9.0 → 1.0.0
+No breaking changes. New monitoring and CLI features are additive only.
+Recommended: register health check endpoints in your load balancer configuration.
 
-### 1.1.0 → 1.2.0
-- Update configuration with new Prometheus and cache settings
-- No code changes required for existing workflows
-- Recommended: Add health check endpoints to load balancer
+### 0.8.0 → 0.9.0
+No breaking changes. Add `WebhookHandler` registration to DI if you use webhook activities.
 
-## Future Roadmap
-
-### 2.0.0 (Q3 2026)
-- [ ] GraphQL API support
-- [ ] Workflow versioning with side-by-side deployment
-- [ ] Distributed workflow execution across multiple nodes
-- [ ] Event sourcing implementation
-- [ ] Enhanced security with encryption at rest
-- [ ] Web-based workflow designer UI
-
-### 2.1.0 (Q4 2026)
-- [ ] Machine learning-based performance optimization
-- [ ] Advanced monitoring dashboard
-- [ ] Workflow analytics and insights
-- [ ] Custom DSL parser
-
-### 3.0.0 (2027)
-- [ ] Zero-downtime deployment support
-- [ ] BPMN 2.0 full compliance
-- [ ] Cloud-native optimizations
-- [ ] Multi-tenant support
+### 0.7.0 → 0.8.0
+Add Redis connection string to `appsettings.json` if using the Redis cache provider.
+In-memory provider requires no configuration changes.
 
 ## Contributors
 
 - [Vladyslav Zaiets](https://sarmkadan.com) - Creator and maintainer
-
-See [CONTRIBUTORS.md](CONTRIBUTORS.md) for a full list of contributors.
 
 ## License
 
