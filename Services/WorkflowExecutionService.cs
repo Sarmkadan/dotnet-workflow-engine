@@ -12,8 +12,24 @@ using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 namespace DotNetWorkflowEngine.Services;
 
 /// <summary>
-/// Service for executing workflows and managing instances.
+/// Core execution engine for workflows. Manages the full lifecycle of workflow instances -
+/// creation, execution, suspension, resumption, completion, and failure handling.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Workflow execution follows this sequence:
+/// <list type="number">
+///   <item>Create an instance via <see cref="CreateInstance"/> from a published workflow definition</item>
+///   <item>Start execution with <see cref="StartAsync"/> which runs the start activity</item>
+///   <item>Activities execute in sequence, following transitions defined in the workflow graph</item>
+///   <item>Instance completes when no more transitions remain, or fails on unhandled exceptions</item>
+/// </list>
+/// </para>
+/// <para>
+/// All instances are stored in a thread-safe <see cref="ConcurrentDictionary{TKey,TValue}"/>
+/// and can be queried by workflow ID, correlation ID, or status.
+/// </para>
+/// </remarks>
 public class WorkflowExecutionService
 {
     private readonly ConcurrentDictionary<string, WorkflowInstance> _instances = new();
@@ -35,8 +51,14 @@ public class WorkflowExecutionService
     }
 
     /// <summary>
-    /// Creates a new workflow instance.
+    /// Creates a new workflow instance from a published workflow definition.
+    /// The instance starts in an idle state and must be explicitly started via <see cref="StartAsync"/>.
     /// </summary>
+    /// <param name="workflowId">The ID of the workflow definition to instantiate.</param>
+    /// <param name="correlationId">Optional business correlation ID for grouping related instances.</param>
+    /// <param name="initiatedBy">Optional identifier of the user or system that triggered this instance.</param>
+    /// <returns>The newly created <see cref="WorkflowInstance"/>.</returns>
+    /// <exception cref="WorkflowException">Thrown when the workflow is not found or not in Active status.</exception>
     public WorkflowInstance CreateInstance(string workflowId, string? correlationId = null, string? initiatedBy = null)
     {
         var workflow = _definitionService.GetWorkflow(workflowId);
@@ -58,8 +80,13 @@ public class WorkflowExecutionService
     }
 
     /// <summary>
-    /// Starts execution of a workflow instance.
+    /// Begins executing a workflow instance by running its start activity and following
+    /// transitions until completion or failure.
     /// </summary>
+    /// <param name="instanceId">The ID of the instance to start.</param>
+    /// <returns>The updated <see cref="WorkflowInstance"/> after the start activity completes.</returns>
+    /// <exception cref="WorkflowException">Thrown when the instance is not found or has no start activity.</exception>
+    /// <exception cref="StateException">Thrown when the instance is not in an active state.</exception>
     public async Task<WorkflowInstance> StartAsync(string instanceId)
     {
         var instance = GetInstance(instanceId);
