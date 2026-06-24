@@ -1,6 +1,6 @@
 # dotnet-workflow-engine
 
-![CI](https://github.com/sarmkadan/dotnet-workflow-engine/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/sarmkadan/dotnet-workflow-engine/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/github/license/sarmkadan/dotnet-workflow-engine)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 

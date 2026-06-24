@@ -24,6 +24,9 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance is created.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="createdBy">The user or system that created the instance.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task LogInstanceCreated(string instanceId, string createdBy)
     {
         var entry = new AuditLogEntry(instanceId, "InstanceCreated", "Workflow instance created")

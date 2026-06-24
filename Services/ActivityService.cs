@@ -35,16 +35,23 @@ public class ActivityService
     }
 
     /// <summary>
-    /// Registers an activity handler.
+    /// Registers a handler for a specific activity type.
     /// </summary>
+    /// <param name="handlerType">The activity type identifier.</param>
+    /// <param name="handler">The handler implementation.</param>
     public void RegisterHandler(string handlerType, IActivityHandler handler)
     {
         _handlers[handlerType] = handler;
     }
 
     /// <summary>
-    /// Executes an activity with retry logic.
+    /// Executes an activity with its configured retry policy.
     /// </summary>
+    /// <param name="activity">The activity to execute.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>A task representing the asynchronous operation, returning the <see cref="ActivityResult"/>.</returns>
+    /// <exception cref="ValidationException">Thrown if activity validation fails.</exception>
+    /// <exception cref="ActivityException">Thrown if execution fails after all retries.</exception>
     public virtual async Task<ActivityResult> ExecuteAsync(Activity activity, ExecutionContext context)
     {
         if (activity.Validate(out var errors))
