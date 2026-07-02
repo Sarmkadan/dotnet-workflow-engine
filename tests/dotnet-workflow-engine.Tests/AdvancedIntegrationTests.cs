@@ -6,6 +6,8 @@
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Data.Repositories;
+using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -34,7 +36,7 @@ public class AdvancedIntegrationTests
     {
         var (executionService, activityService, _, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
         activityService.RegisterHandler("default", mockHandler.Object);
 
@@ -67,7 +69,7 @@ public class AdvancedIntegrationTests
         var result = await executionService.StartAsync(instance.Id);
 
         result.Should().NotBeNull();
-        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()), Times.AtLeast(4));
+        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()), Times.AtLeast(4));
     }
 
     [Fact]
@@ -79,7 +81,7 @@ public class AdvancedIntegrationTests
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
         mockHandler.Setup(h => h.ExecuteAsync(
                 It.Is<Activity>(a => a.Id == "flaky-activity"),
-                It.IsAny<ExecutionContext>()))
+                It.IsAny<WorkflowExecutionContext>()))
             .Returns(() =>
             {
                 callCount++;
@@ -89,7 +91,7 @@ public class AdvancedIntegrationTests
             });
         mockHandler.Setup(h => h.ExecuteAsync(
                 It.Is<Activity>(a => a.Id != "flaky-activity"),
-                It.IsAny<ExecutionContext>()))
+                It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
 
         activityService.RegisterHandler("default", mockHandler.Object);
@@ -138,8 +140,8 @@ public class AdvancedIntegrationTests
         var executedSteps = new List<string>();
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Callback<Activity, ExecutionContext>((activity, ctx) =>
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Callback<Activity, WorkflowExecutionContext>((activity, ctx) =>
             {
                 executedSteps.Add(activity.Id);
                 ctx.SetVariable($"{activity.Id}_executed", true);
@@ -188,8 +190,8 @@ public class AdvancedIntegrationTests
         var executionTraces = new Dictionary<string, List<string>>();
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Callback<Activity, ExecutionContext>((activity, ctx) =>
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Callback<Activity, WorkflowExecutionContext>((activity, ctx) =>
             {
                 var instanceId = ctx.WorkflowInstanceId;
                 if (!executionTraces.ContainsKey(instanceId))
@@ -242,8 +244,8 @@ public class AdvancedIntegrationTests
         var executedPaths = new List<string>();
 
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Callback<Activity, ExecutionContext>((activity, ctx) =>
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Callback<Activity, WorkflowExecutionContext>((activity, ctx) =>
             {
                 if (activity.Id == "decision")
                 {
@@ -328,7 +330,7 @@ public class AdvancedIntegrationTests
     {
         var (executionService, activityService, _, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
 
         activityService.RegisterHandler("default", mockHandler.Object);

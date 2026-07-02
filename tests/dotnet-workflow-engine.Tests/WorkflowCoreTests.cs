@@ -9,6 +9,7 @@ using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services; // Add this using directive
 using DotNetWorkflowEngine.Data.Repositories; // Add this using directive
 using DotNetWorkflowEngine.Utilities;
+using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -145,7 +146,7 @@ public class WorkflowCoreTests
         // Setup mock ActivityService to throw an exception
         mockActivityService = new Mock<ActivityService>(new RetryPolicyService());
         mockActivityService
-            .Setup(s => s.ExecuteAsync(It.Is<Activity>(a => a.Id == activityId), It.IsAny<DotNetWorkflowEngine.Models.ExecutionContext>()))
+            .Setup(s => s.ExecuteAsync(It.Is<Activity>(a => a.Id == activityId), It.IsAny<WorkflowExecutionContext>()))
             .ThrowsAsync(new InvalidOperationException("Simulated activity failure"));
 
         // Instantiate the service under test

@@ -47,6 +47,12 @@ public class Activity
     /// <summary>Gets or sets the timeout in seconds for activity execution.</summary>
     public int TimeoutSeconds { get; set; } = 300;
 
+    /// <summary>Gets or sets the message name for MessageCatchEvent.</summary>
+    public string? MessageName { get; set; }
+
+    /// <summary>Gets or sets the correlation property for MessageCatchEvent.</summary>
+    public string? CorrelationProperty { get; set; }
+
     /// <summary>Gets or sets whether this activity is optional.</summary>
     public bool IsOptional { get; set; } = false;
 
