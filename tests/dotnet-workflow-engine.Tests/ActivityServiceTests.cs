@@ -10,6 +10,7 @@ using DotNetWorkflowEngine.Services;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
@@ -30,14 +31,13 @@ public class ActivityServiceTests
             TimeoutSeconds = 30,
             MaxRetries = 0,
             RetryPolicy = RetryPolicy.NoRetry,
-            HandlerType = handlerType,
-            Validate = _ => true
+            HandlerType = handlerType
         };
     }
 
-    private ExecutionContext CreateContext()
+    private WorkflowExecutionContext CreateContext()
     {
-        return new ExecutionContext
+        return new WorkflowExecutionContext
         {
             WorkflowInstanceId = "inst-1",
             CorrelationId = "corr-1"
@@ -49,7 +49,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
 
         service.RegisterHandler("custom", mockHandler.Object);
@@ -105,7 +105,7 @@ public class ActivityServiceTests
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
         var expectedOutput = new Dictionary<string, object?> { { "result", "success" } };
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(expectedOutput);
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -124,7 +124,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ThrowsAsync(new InvalidOperationException("Handler error"));
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -153,7 +153,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -164,7 +164,7 @@ public class ActivityServiceTests
         var result = await service.ExecuteAsync(activity, context);
 
         result.Status.Should().Be(ActivityStatus.Completed);
-        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()), Times.Once);
+        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()), Times.Once);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class ActivityServiceTests
         var service = CreateService();
         var callCount = 0;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .Callback(() => callCount++)
             .ThrowsAsync(new InvalidOperationException("Temporary error"));
         service.RegisterHandler("default", mockHandler.Object);
@@ -195,7 +195,7 @@ public class ActivityServiceTests
         var service = CreateService();
         var callCount = 0;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .Callback(() => callCount++)
             .Returns(() =>
             {
@@ -222,7 +222,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -239,10 +239,10 @@ public class ActivityServiceTests
     public async Task ExecuteAsync_SetActivityIdInContext()
     {
         var service = CreateService();
-        ExecutionContext? capturedContext = null;
+        WorkflowExecutionContext? capturedContext = null;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Callback<Activity, ExecutionContext>((_, ctx) => capturedContext = ctx)
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Callback<Activity, WorkflowExecutionContext>((_, ctx) => capturedContext = ctx)
             .ReturnsAsync(new Dictionary<string, object?>());
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -260,7 +260,7 @@ public class ActivityServiceTests
         var service = CreateService();
         var callCount = 0;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .Callback(() => callCount++)
             .ThrowsAsync(new TimeoutException("Timeout"));
         service.RegisterHandler("default", mockHandler.Object);
@@ -283,7 +283,7 @@ public class ActivityServiceTests
         var callCount = 0;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .Callback(() => callCount++)
             .ThrowsAsync(new InvalidOperationException("Error"));
         service.RegisterHandler("default", mockHandler.Object);
@@ -306,9 +306,9 @@ public class ActivityServiceTests
         var service = CreateService();
         var mockHandler1 = new Mock<ActivityService.IActivityHandler>();
         var mockHandler2 = new Mock<ActivityService.IActivityHandler>();
-        mockHandler1.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler1.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?> { { "source", "handler1" } });
-        mockHandler2.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler2.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?> { { "source", "handler2" } });
 
         service.RegisterHandler("handler1", mockHandler1.Object);
@@ -355,7 +355,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ThrowsAsync(new InvalidOperationException("Specific error message"));
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -373,7 +373,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ThrowsAsync(new InvalidOperationException("Error"));
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -392,10 +392,10 @@ public class ActivityServiceTests
     public async Task ExecuteAsync_CorrelationIdPreserved()
     {
         var service = CreateService();
-        ExecutionContext? capturedContext = null;
+        WorkflowExecutionContext? capturedContext = null;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Callback<Activity, ExecutionContext>((_, ctx) => capturedContext = ctx)
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Callback<Activity, WorkflowExecutionContext>((_, ctx) => capturedContext = ctx)
             .ReturnsAsync(new Dictionary<string, object?>());
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -414,7 +414,7 @@ public class ActivityServiceTests
         var service = CreateService();
         var callCount = 0;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .Callback(() => callCount++)
             .ThrowsAsync(new InvalidOperationException("Error"));
         service.RegisterHandler("default", mockHandler.Object);
@@ -435,7 +435,7 @@ public class ActivityServiceTests
     {
         var service = CreateService();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
         service.RegisterHandler("default", mockHandler.Object);
 
@@ -447,6 +447,6 @@ public class ActivityServiceTests
         var result = await service.ExecuteAsync(activity, context);
 
         result.Status.Should().Be(ActivityStatus.Completed);
-        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()), Times.Once);
+        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()), Times.Once);
     }
 }

@@ -6,10 +6,12 @@
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Data.Repositories;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
@@ -58,7 +60,7 @@ public class IntegrationTests
     {
         var (executionService, activityService, auditService, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?> { { "status", "completed" } });
         activityService.RegisterHandler("default", mockHandler.Object);
 
@@ -73,7 +75,7 @@ public class IntegrationTests
         var result = await executionService.StartAsync(instance.Id);
 
         result.Should().NotBeNull();
-        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()), Times.AtLeast(3));
+        mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()), Times.AtLeast(3));
     }
 
     [Fact]
@@ -81,8 +83,8 @@ public class IntegrationTests
     {
         var (executionService, activityService, auditService, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .ReturnsAsync((Activity activity, ExecutionContext ctx) =>
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .ReturnsAsync((Activity activity, WorkflowExecutionContext ctx) =>
             {
                 if (activity.Id == "check")
                     ctx.SetVariable("approved", true);
@@ -151,7 +153,7 @@ public class IntegrationTests
     {
         var (executionService, activityService, auditService, auditRepoMock) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
         activityService.RegisterHandler("default", mockHandler.Object);
 
@@ -170,8 +172,8 @@ public class IntegrationTests
         var (executionService, activityService, _, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
         var executedActivities = new List<string>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Callback<Activity, ExecutionContext>((act, _) => executedActivities.Add(act.Id))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Callback<Activity, WorkflowExecutionContext>((act, _) => executedActivities.Add(act.Id))
             .ReturnsAsync(new Dictionary<string, object?>());
         activityService.RegisterHandler("default", mockHandler.Object);
 
@@ -197,8 +199,8 @@ public class IntegrationTests
         var (executionService, activityService, _, _) = CreateServices();
         var callCount = 0;
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
-            .Returns((Activity act, ExecutionContext ctx) =>
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
+            .Returns((Activity act, WorkflowExecutionContext ctx) =>
             {
                 if (act.Id == "step1")
                 {
@@ -297,7 +299,7 @@ public class IntegrationTests
     [Fact]
     public async Task ExecutionContext_VariableManagement_WorksCorrectly()
     {
-        var context = new ExecutionContext
+        var context = new WorkflowExecutionContext
         {
             WorkflowInstanceId = "inst-1"
         };
@@ -321,7 +323,7 @@ public class IntegrationTests
     [Fact]
     public void ExecutionContext_Reset_ClearsAllData()
     {
-        var context = new ExecutionContext();
+        var context = new WorkflowExecutionContext();
         context.SetVariable("key", "value");
         context.SetActivityInput("input", "data");
         context.IsActive = false;
@@ -339,7 +341,7 @@ public class IntegrationTests
     {
         var (executionService, activityService, _, _) = CreateServices();
         var mockHandler = new Mock<ActivityService.IActivityHandler>();
-        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<ExecutionContext>()))
+        mockHandler.Setup(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()))
             .ReturnsAsync(new Dictionary<string, object?>());
         activityService.RegisterHandler("default", mockHandler.Object);
 
@@ -392,7 +394,7 @@ public class IntegrationTests
     [Fact]
     public void ExpressionEvaluation_ComplexConditions_EvaluateCorrectly()
     {
-        var context = new ExecutionContext();
+        var context = new WorkflowExecutionContext();
         context.SetVariable("amount", 1000);
         context.SetVariable("approved", true);
         context.SetVariable("status", "active");

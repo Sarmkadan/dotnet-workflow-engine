@@ -9,7 +9,7 @@ using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
-class Program
+partial class Program
 {
     static async Task Main(string[] args)
     {

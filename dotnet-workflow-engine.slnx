@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="DotNetWorkflowEngine.csproj" />
   <Project Path="tests/dotnet-workflow-engine.Tests/dotnet-workflow-engine.Tests.csproj" />
+  <Project Path="dotnet-workflow-engine.Benchmarks/dotnet-workflow-engine.Benchmarks.csproj" />
 </Solution>
