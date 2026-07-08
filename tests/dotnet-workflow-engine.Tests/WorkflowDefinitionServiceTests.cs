@@ -179,7 +179,7 @@ public class WorkflowDefinitionServiceTests
         System.Threading.Thread.Sleep(10);
         service.AddActivity("wf-1", activity);
 
-        workflow.ModifiedAt.Should().BeGreaterThan(originalModified);
+        workflow.ModifiedAt.Should().BeAfter(originalModified);
     }
 
     [Fact]

@@ -25,6 +25,22 @@ public interface IWorkflowMessage
 }
 
 /// <summary>
+/// Default concrete implementation of <see cref="IWorkflowMessage"/> for constructing
+/// and dispatching correlation messages to the engine.
+/// </summary>
+public class WorkflowMessage : IWorkflowMessage
+{
+    /// <summary>Gets or sets the unique identifier for the message, used for correlation.</summary>
+    public string CorrelationKey { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the name of the message (e.g., "PaymentConfirmed", "ApprovalGranted").</summary>
+    public string MessageName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets any payload data associated with the message.</summary>
+    public Dictionary<string, object?> Payload { get; set; } = new();
+}
+
+/// <summary>
 /// Event published by the engine when an external message is received and
 /// potentially correlated to a workflow instance.
 /// </summary>
