@@ -22,7 +22,7 @@ public class MessageEventServiceTests
         var workflowExecutionMock = new Mock<WorkflowExecutionService>();
         var auditMock = new Mock<AuditService>();
 
-        eventBusMock.Setup(eb => eb.PublishAsync(It.IsAny<IEvent>()))
+        eventBusMock.Setup(eb => eb.PublishAsync(It.IsAny<IWorkflowEvent>()))
             .Returns(Task.CompletedTask);
 
         var service = new MessageEventService(

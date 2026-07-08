@@ -11,7 +11,7 @@ namespace DotNetWorkflowEngine.Benchmarks.Benchmarks;
 /// Measures performance of condition evaluation in workflows.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net100)]
+[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net10_0)]
 public class ExpressionEvaluationBenchmarks
 {
     private ActivityService _activityService;
@@ -37,7 +37,7 @@ public class ExpressionEvaluationBenchmarks
             Name = "True Condition Activity",
             ConditionExpression = "true",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         };
 
         _falseConditionActivity = new Activity
@@ -46,7 +46,7 @@ public class ExpressionEvaluationBenchmarks
             Name = "False Condition Activity",
             ConditionExpression = "false",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         };
 
         _complexConditionActivity = new Activity
@@ -55,7 +55,7 @@ public class ExpressionEvaluationBenchmarks
             Name = "Complex Condition Activity",
             ConditionExpression = "${orderAmount} > 1000 && ${customerTier} == 'premium'",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         };
 
         // Create execution contexts with different variable values

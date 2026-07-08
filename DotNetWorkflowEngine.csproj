@@ -31,6 +31,9 @@
   <ItemGroup>
     <Compile Remove="examples/**" />
     <Compile Remove="tests/**" />
+    <Compile Remove="dotnet-workflow-engine.Benchmarks/**" />
+    <Content Remove="dotnet-workflow-engine.Benchmarks/**" />
+    <None Remove="dotnet-workflow-engine.Benchmarks/**" />
     <Compile Remove="Controllers/**" />
     <Compile Remove="Configuration/DependencyInjection.cs" />
     <Compile Remove="Integration/HttpClientFactory.cs" />

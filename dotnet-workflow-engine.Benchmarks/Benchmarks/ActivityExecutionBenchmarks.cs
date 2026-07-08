@@ -11,7 +11,7 @@ namespace DotNetWorkflowEngine.Benchmarks.Benchmarks;
 /// Measures throughput of basic activity execution with different retry policies.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net100)]
+[SimpleJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net10_0)]
 public class ActivityExecutionBenchmarks
 {
     private ActivityService _activityService;
@@ -36,7 +36,7 @@ public class ActivityExecutionBenchmarks
             Id = "simple_activity",
             Name = "Simple Activity",
             HandlerType = "Simple",
-            ActivityType = "TestActivity"
+            Type = "TestActivity"
         };
 
         // Create an activity with retry policy
@@ -45,7 +45,7 @@ public class ActivityExecutionBenchmarks
             Id = "retry_activity",
             Name = "Retry Activity",
             HandlerType = "Retry",
-            ActivityType = "TestActivity",
+            Type = "TestActivity",
             RetryPolicy = RetryPolicy.ExponentialBackoff,
             MaxRetries = 3
         };
@@ -77,7 +77,7 @@ public class ActivityExecutionBenchmarks
             Id = "fixed_retry_activity",
             Name = "Fixed Retry Activity",
             HandlerType = "Retry",
-            ActivityType = "TestActivity",
+            Type = "TestActivity",
             RetryPolicy = RetryPolicy.FixedDelay,
             MaxRetries = 2
         };
@@ -93,8 +93,8 @@ public class ActivityExecutionBenchmarks
             Id = "no_retry_activity",
             Name = "No Retry Activity",
             HandlerType = "Retry",
-            ActivityType = "TestActivity",
-            RetryPolicy = RetryPolicy.None,
+            Type = "TestActivity",
+            RetryPolicy = RetryPolicy.NoRetry,
             MaxRetries = 0
         };
 
