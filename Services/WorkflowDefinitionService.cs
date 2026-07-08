@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
@@ -18,10 +18,14 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Creates a new workflow definition.
     /// </summary>
+    /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
     public Workflow CreateWorkflow(string id, string name, string? description = null)
     {
         if (string.IsNullOrWhiteSpace(id))
             throw new ValidationException("Workflow ID cannot be empty", "INVALID_ID");
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ValidationException("Workflow name cannot be empty", "INVALID_NAME");
 
         if (_workflows.ContainsKey(id))
             throw new WorkflowException($"Workflow with ID '{id}' already exists", "WORKFLOW_EXISTS");
@@ -41,6 +45,8 @@ public class WorkflowDefinitionService
     /// Registers an already-constructed workflow definition, overwriting any
     /// existing definition with the same ID.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when workflow is null.</exception>
+    /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
     public void AddWorkflow(Workflow workflow)
     {
         if (workflow == null)
@@ -48,6 +54,9 @@ public class WorkflowDefinitionService
 
         if (string.IsNullOrWhiteSpace(workflow.Id))
             throw new ValidationException("Workflow ID cannot be empty", "INVALID_ID");
+
+        if (string.IsNullOrWhiteSpace(workflow.Name))
+            throw new ValidationException("Workflow name cannot be empty", "INVALID_NAME");
 
         _workflows[workflow.Id] = workflow;
     }
@@ -57,6 +66,9 @@ public class WorkflowDefinitionService
     /// </summary>
     public virtual Workflow? GetWorkflow(string id)
     {
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(id));
+
         _workflows.TryGetValue(id, out var workflow);
         return workflow;
     }
@@ -72,8 +84,16 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Adds an activity to a workflow.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow not found or activity already exists.</exception>
+    /// <exception cref="ValidationException">Thrown when activity is invalid.</exception>
     public void AddActivity(string workflowId, Activity activity)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        if (activity == null)
+            throw new ArgumentNullException(nameof(activity));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -91,8 +111,16 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Adds a transition between activities.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow not found or activities don't exist.</exception>
+    /// <exception cref="ValidationException">Thrown when transition is invalid.</exception>
     public void AddTransition(string workflowId, Transition transition)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        if (transition == null)
+            throw new ArgumentNullException(nameof(transition));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -116,8 +144,15 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Sets the start activity for a workflow.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetStartActivity(string workflowId, string activityId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -132,8 +167,15 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Sets the end activity for a workflow.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetEndActivity(string workflowId, string activityId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -148,8 +190,12 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Publishes a workflow to make it active.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public void PublishWorkflow(string workflowId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -171,6 +217,12 @@ public class WorkflowDefinitionService
     /// </summary>
     public bool ValidateWorkflow(string workflowId, out List<string> errors)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+        {
+            errors = new List<string> { "Workflow ID cannot be null or empty" };
+            return false;
+        }
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
         {
@@ -184,8 +236,12 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Gets all activities in a workflow.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public List<Activity> GetActivities(string workflowId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -198,6 +254,12 @@ public class WorkflowDefinitionService
     /// </summary>
     public Activity? GetActivity(string workflowId, string activityId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
         var workflow = GetWorkflow(workflowId);
         if (workflow == null)
             return null;
@@ -210,14 +272,27 @@ public class WorkflowDefinitionService
     /// </summary>
     public bool DeleteWorkflow(string workflowId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
         return _workflows.Remove(workflowId);
     }
 
     /// <summary>
     /// Clones a workflow definition.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when source workflow not found.</exception>
     public Workflow CloneWorkflow(string sourceWorkflowId, string newWorkflowId, string newName)
     {
+        if (string.IsNullOrWhiteSpace(sourceWorkflowId))
+            throw new ArgumentException("Source workflow ID cannot be null or empty", nameof(sourceWorkflowId));
+
+        if (string.IsNullOrWhiteSpace(newWorkflowId))
+            throw new ArgumentException("New workflow ID cannot be null or empty", nameof(newWorkflowId));
+
+        if (string.IsNullOrWhiteSpace(newName))
+            throw new ArgumentException("New workflow name cannot be null or empty", nameof(newName));
+
         var source = GetWorkflow(sourceWorkflowId);
         if (source == null)
             throw new WorkflowException($"Source workflow '{sourceWorkflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -241,14 +316,14 @@ public class WorkflowDefinitionService
                 Type = activity.Type,
                 ExecutionMode = activity.ExecutionMode,
                 HandlerType = activity.HandlerType,
-                InputParameters = new Dictionary<string, object?>(activity.InputParameters),
-                OutputMapping = new Dictionary<string, string>(activity.OutputMapping),
+                InputParameters = new Dictionary<string, object?>((IDictionary<string, object?>)activity.InputParameters),
+                OutputMapping = new Dictionary<string, string>((IDictionary<string, string>)activity.OutputMapping),
                 RetryPolicy = activity.RetryPolicy,
                 MaxRetries = activity.MaxRetries,
                 TimeoutSeconds = activity.TimeoutSeconds,
                 IsOptional = activity.IsOptional,
                 ConditionExpression = activity.ConditionExpression,
-                Metadata = new Dictionary<string, object?>(activity.Metadata)
+                Metadata = new Dictionary<string, object?>((IDictionary<string, object?>)activity.Metadata)
             });
         }
 

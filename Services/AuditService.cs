@@ -1,11 +1,12 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Constants;
 using DotNetWorkflowEngine.Models;
-using DotNetWorkflowEngine.Data.Repositories; // Add this using directive
+using DotNetWorkflowEngine.Data.Repositories;
+using DotNetWorkflowEngine.Exceptions;
 
 namespace DotNetWorkflowEngine.Services;
 
@@ -16,9 +17,13 @@ public class AuditService : IAuditTrailQuery
 {
     private readonly IAuditRepository _auditRepository;
 
+    /// <summary>
+    /// Initializes a new instance of the AuditService.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when audit repository is null.</exception>
     public AuditService(IAuditRepository auditRepository)
     {
-        _auditRepository = auditRepository;
+        _auditRepository = auditRepository ?? throw new ArgumentNullException(nameof(auditRepository));
     }
 
     /// <summary>
@@ -27,8 +32,15 @@ public class AuditService : IAuditTrailQuery
     /// <param name="instanceId">The ID of the workflow instance.</param>
     /// <param name="createdBy">The user or system that created the instance.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceCreated(string instanceId, string createdBy)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(createdBy))
+            throw new ArgumentException("Created by cannot be null or empty", nameof(createdBy));
+
         var entry = new AuditLogEntry(instanceId, "InstanceCreated", "Workflow instance created")
         {
             Severity = "Info",
@@ -41,8 +53,12 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance starts executing.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceStarted(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var entry = new AuditLogEntry(instanceId, "InstanceStarted", "Workflow instance started execution")
         {
             Severity = "Info"
@@ -54,8 +70,12 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance completes.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceCompleted(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var entry = new AuditLogEntry(instanceId, "InstanceCompleted", "Workflow instance completed successfully")
         {
             Severity = "Info"
@@ -67,8 +87,15 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance fails.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID or error message is invalid.</exception>
     public async Task LogInstanceFailed(string instanceId, string errorMessage)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(errorMessage))
+            throw new ArgumentException("Error message cannot be null or empty", nameof(errorMessage));
+
         var entry = new AuditLogEntry(instanceId, "InstanceFailed", $"Workflow instance failed: {errorMessage}")
         {
             Severity = "Error"
@@ -80,8 +107,12 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance is resumed.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceResumed(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var entry = new AuditLogEntry(instanceId, "InstanceResumed", "Workflow instance resumed from suspension")
         {
             Severity = "Warning"
@@ -93,8 +124,18 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when an activity completes.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityCompleted(string instanceId, string activityId, ActivityResult result)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
+        if (result == null)
+            throw new ArgumentNullException(nameof(result));
+
         var entry = new AuditLogEntry(instanceId, "ActivityCompleted", $"Activity '{activityId}' completed successfully")
         {
             ActivityId = activityId,
@@ -113,8 +154,18 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when an activity fails.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityFailed(string instanceId, string activityId, string errorMessage)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
+        if (string.IsNullOrWhiteSpace(errorMessage))
+            throw new ArgumentException("Error message cannot be null or empty", nameof(errorMessage));
+
         var entry = new AuditLogEntry(instanceId, "ActivityFailed", $"Activity '{activityId}' failed: {errorMessage}")
         {
             ActivityId = activityId,
@@ -132,17 +183,25 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when an activity is retried.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityRetry(string instanceId, string activityId, int attemptNumber, string? reason = null)
     {
-        var entry = new AuditLogEntry(instanceId, "ActivityRetry", $"Activity '{activityId}' being retried (attempt {attemptNumber})")
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
+        if (attemptNumber <= 0)
+            throw new ArgumentException("Attempt number must be positive", nameof(attemptNumber));
+
+        var entry = new AuditLogEntry(instanceId, "ActivityRetry", $"Activity '{activityId}' being retried (attempt {attemptNumber})");
+        entry.ActivityId = activityId;
+        entry.Severity = "Warning";
+        entry.Details = new Dictionary<string, object?>
         {
-            ActivityId = activityId,
-            Severity = "Warning",
-            Details = new Dictionary<string, object?>
-            {
-                ["AttemptNumber"] = attemptNumber,
-                ["Reason"] = reason ?? "Execution failed"
-            }
+            ["AttemptNumber"] = attemptNumber,
+            ["Reason"] = reason ?? "Execution failed"
         };
 
         await AddEntry(entry);
@@ -151,8 +210,21 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs a custom event.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(eventType))
+            throw new ArgumentException("Event type cannot be null or empty", nameof(eventType));
+
+        if (string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("Description cannot be null or empty", nameof(description));
+
+        if (string.IsNullOrWhiteSpace(severity))
+            throw new ArgumentException("Severity cannot be null or empty", nameof(severity));
+
         var entry = new AuditLogEntry(instanceId, eventType, description)
         {
             ActivityId = activityId,
@@ -165,16 +237,24 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Gets audit log entries for a specific workflow instance.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         return await _auditRepository.GetByInstanceIdAsync(instanceId);
     }
 
     /// <summary>
     /// Gets audit log entries with filtering.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId, DateTime? since = null, string? eventType = null)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var (logs, total) = await _auditRepository.GetFilteredAndPagedAsync(
             instanceId: instanceId,
             eventType: eventType,
@@ -186,24 +266,39 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Gets the most recent audit entries.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetRecentAuditLog(string instanceId, int count = 10)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (count <= 0)
+            throw new ArgumentException("Count must be positive", nameof(count));
+
         return await _auditRepository.GetRecentForInstanceAsync(instanceId, count);
     }
 
     /// <summary>
     /// Clears audit log for an instance.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task ClearAuditLog(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         await _auditRepository.ClearInstanceAsync(instanceId);
     }
 
     /// <summary>
     /// Exports audit log as CSV string.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<string> ExportAuditLogAsCsv(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var log = await GetAuditLog(instanceId);
         if (log.Count == 0)
             return "No audit entries";
@@ -213,7 +308,8 @@ public class AuditService : IAuditTrailQuery
 
         foreach (var entry in log.OrderBy(e => e.Timestamp))
         {
-            csv.AppendLine($"\"{entry.GetFormattedTimestamp()}\",\"{entry.EventType}\",\"{entry.WorkflowInstanceId}\",\"{entry.ActivityId}\",\"{entry.Severity}\",\"{entry.Description.Replace("\"", "\"\"")}\",\"{entry.Actor}\",\"{entry.CorrelationId}\"");
+            var escapedDescription = entry.Description.Replace("\"", "\"\"");
+            csv.AppendLine($"\"{entry.GetFormattedTimestamp()}\",\"{entry.EventType}\",\"{entry.WorkflowInstanceId}\",\"{entry.ActivityId}\",\"{entry.Severity}\",\"{escapedDescription}\",\"{entry.Actor}\",\"{entry.CorrelationId}\"");
         }
 
         return csv.ToString();
@@ -253,6 +349,9 @@ public class AuditService : IAuditTrailQuery
     /// </summary>
     private async Task AddEntry(AuditLogEntry entry)
     {
+        if (entry == null)
+            throw new ArgumentNullException(nameof(entry));
+
         await _auditRepository.AddAsync(entry);
     }
 
@@ -303,6 +402,6 @@ public class AuditService : IAuditTrailQuery
             toDate: toDate,
             take: int.MaxValue);
         return all.GroupBy(e => e.EventType)
-                  .ToDictionary(g => g.Key, g => g.Count());
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 }
