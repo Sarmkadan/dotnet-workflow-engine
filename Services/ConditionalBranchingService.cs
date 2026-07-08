@@ -1,10 +1,11 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Utilities;
+using DotNetWorkflowEngine.Exceptions;
 using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Services;
@@ -13,13 +14,13 @@ namespace DotNetWorkflowEngine.Services;
 /// Evaluates conditional expressions on workflow transitions to determine which
 /// branches to activate after an activity completes.
 /// <para>
-/// Resolution order per activity:
+/// Resolution order per activity: 1
 /// <list type="number">
-///   <item>Conditional transitions (those with a <c>ConditionExpression</c>), ordered by
-///   <c>Priority</c> descending — all matching ones are selected.</item>
-///   <item>Unconditional transitions (no expression, not default) — always selected.</item>
-///   <item>Default transition(s) — selected only when no conditional branch matched and
-///   no unconditional transition exists.</item>
+/// <item>Conditional transitions (those with a <c>ConditionExpression</c>), ordered by
+/// <c>Priority</c> descending — all matching ones are selected.</item>
+/// <item>Unconditional transitions (no expression, not default) — always selected.</item>
+/// <item>Default transition(s) — selected only when no conditional branch matched and
+/// no unconditional transition exists.</item>
 /// </list>
 /// </para>
 /// </summary>
@@ -30,10 +31,10 @@ public class ConditionalBranchingService
     /// <summary>
     /// Initializes the service with the required logger.
     /// </summary>
-    /// <param name="logger">Logger for diagnostic output.</param>
+    /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
     public ConditionalBranchingService(ILogger<ConditionalBranchingService> logger)
     {
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -51,17 +52,19 @@ public class ConditionalBranchingService
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="workflow"/> or <paramref name="context"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="activityId"/> is null or whitespace.
-    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="activityId"/> is null or whitespace.</exception>
     public async Task<BranchingResult> ResolveBranchesAsync(
         Workflow workflow,
         string activityId,
         ExecutionContext context,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(workflow);
-        ArgumentNullException.ThrowIfNull(context);
+        if (workflow == null)
+            throw new ArgumentNullException(nameof(workflow));
+
+        if (context == null)
+            throw new ArgumentNullException(nameof(context));
+
         if (string.IsNullOrWhiteSpace(activityId))
             throw new ArgumentException("Activity ID is required.", nameof(activityId));
 
@@ -76,15 +79,16 @@ public class ConditionalBranchingService
         {
             _logger.LogDebug(
                 "Activity '{ActivityId}' has no outgoing transitions in workflow '{WorkflowId}'.",
-                activityId, workflow.Id);
+                activityId,
+                workflow.Id);
             return BranchingResult.Empty(activityId);
         }
 
         var result = new BranchingResult { ActivityId = activityId };
 
-        var conditionals   = outgoing.Where(t => !t.IsDefault && t.ConditionExpression != null).ToList();
+        var conditionals = outgoing.Where(t => !t.IsDefault && t.ConditionExpression != null).ToList();
         var unconditionals = outgoing.Where(t => !t.IsDefault && t.ConditionExpression == null).ToList();
-        var defaults       = outgoing.Where(t => t.IsDefault).ToList();
+        var defaults = outgoing.Where(t => t.IsDefault).ToList();
 
         // Evaluate each conditional transition independently
         foreach (var transition in conditionals)
@@ -101,12 +105,13 @@ public class ConditionalBranchingService
                 _logger.LogWarning(ex,
                     "Expression evaluation failed for transition '{TransitionId}' " +
                     "(expression: '{Expression}'). Transition treated as non-matching.",
-                    transition.Id, transition.ConditionExpression);
+                    transition.Id,
+                    transition.ConditionExpression);
 
                 result.EvaluationErrors.Add(new TransitionEvaluationError
                 {
                     TransitionId = transition.Id,
-                    Expression   = transition.ConditionExpression!,
+                    Expression = transition.ConditionExpression!,
                     ErrorMessage = ex.Message
                 });
                 matched = false;
@@ -117,14 +122,16 @@ public class ConditionalBranchingService
                 result.SelectedTransitions.Add(transition);
                 _logger.LogDebug(
                     "Transition '{TransitionId}' selected (expression '{Expression}' = true).",
-                    transition.Id, transition.ConditionExpression);
+                    transition.Id,
+                    transition.ConditionExpression);
             }
             else
             {
                 result.SkippedTransitions.Add(transition);
                 _logger.LogDebug(
                     "Transition '{TransitionId}' skipped (expression '{Expression}' = false).",
-                    transition.Id, transition.ConditionExpression);
+                    transition.Id,
+                    transition.ConditionExpression);
             }
         }
 
@@ -139,7 +146,8 @@ public class ConditionalBranchingService
                 _logger.LogWarning(
                     "Activity '{ActivityId}' has {Count} default transitions; " +
                     "selecting the one with the highest Priority.",
-                    activityId, defaults.Count);
+                    activityId,
+                    defaults.Count);
             }
 
             var chosen = defaults.OrderByDescending(t => t.Priority).First();
@@ -149,7 +157,8 @@ public class ConditionalBranchingService
             _logger.LogDebug(
                 "No conditional branch matched for activity '{ActivityId}'; " +
                 "falling back to default transition '{TransitionId}'.",
-                activityId, chosen.Id);
+                activityId,
+                chosen.Id);
         }
 
         result.AnyConditionMatched = conditionals.Any(t => result.SelectedTransitions.Contains(t));
@@ -157,7 +166,8 @@ public class ConditionalBranchingService
         _logger.LogInformation(
             "Branch resolution complete for activity '{ActivityId}' in workflow '{WorkflowId}': " +
             "{Selected} selected, {Skipped} skipped, {Errors} error(s).",
-            activityId, workflow.Id,
+            activityId,
+            workflow.Id,
             result.SelectedTransitions.Count,
             result.SkippedTransitions.Count,
             result.EvaluationErrors.Count);
@@ -183,6 +193,15 @@ public class ConditionalBranchingService
         ExecutionContext context,
         CancellationToken cancellationToken = default)
     {
+        if (workflow == null)
+            throw new ArgumentNullException(nameof(workflow));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
+        if (context == null)
+            throw new ArgumentNullException(nameof(context));
+
         var branchingResult = await ResolveBranchesAsync(workflow, activityId, context, cancellationToken);
 
         var targetIds = branchingResult.SelectedTransitions
@@ -208,7 +227,8 @@ public class ConditionalBranchingService
     /// </exception>
     public List<TransitionEvaluationError> ValidateTransitionExpressions(Workflow workflow)
     {
-        ArgumentNullException.ThrowIfNull(workflow);
+        if (workflow == null)
+            throw new ArgumentNullException(nameof(workflow));
 
         var errors = new List<TransitionEvaluationError>();
 
@@ -221,14 +241,16 @@ public class ConditionalBranchingService
                     errors.Add(new TransitionEvaluationError
                     {
                         TransitionId = transition.Id,
-                        Expression   = transition.ConditionExpression!,
+                        Expression = transition.ConditionExpression!,
                         ErrorMessage = error
                     });
 
                     _logger.LogWarning(
                         "Transition '{TransitionId}' has an invalid condition expression " +
                         "'{Expression}': {Error}",
-                        transition.Id, transition.ConditionExpression, error);
+                        transition.Id,
+                        transition.ConditionExpression,
+                        error);
                 }
             }
         }

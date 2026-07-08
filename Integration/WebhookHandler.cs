@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using System;
 using System.Collections.Generic;
@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Utilities;
+using DotNetWorkflowEngine.Exceptions;
 
 namespace DotNetWorkflowEngine.Integration;
 
@@ -23,6 +24,7 @@ public interface IWebhookHandler
     /// <summary>
     /// Registers a webhook endpoint to receive notifications for specific events.
     /// </summary>
+    /// <exception cref="ConfigurationException">Thrown when webhook configuration is invalid.</exception>
     Task RegisterWebhookAsync(WebhookRegistration registration);
 
     /// <summary>
@@ -33,6 +35,7 @@ public interface IWebhookHandler
     /// <summary>
     /// Fires a webhook event, delivering it to all registered endpoints.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when webhook delivery fails.</exception>
     Task FireWebhookAsync(WorkflowEvent workflowEvent);
 
     /// <summary>
@@ -95,19 +98,29 @@ public class WebhookHandler : IWebhookHandler
 
     public WebhookHandler(HttpClient httpClient, ILogger<WebhookHandler> logger)
     {
-        _httpClient = httpClient;
-        _logger = logger;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
     /// Registers a webhook for event notifications.
     /// </summary>
-    public Task RegisterWebhookAsync(WebhookRegistration registration)
+    /// <exception cref="ConfigurationException">Thrown when webhook configuration is invalid.</exception>
+    public async Task RegisterWebhookAsync(WebhookRegistration registration)
     {
+        if (registration == null)
+            throw new ArgumentNullException(nameof(registration));
+
         if (string.IsNullOrEmpty(registration.Url))
-            throw new ArgumentException("Webhook URL is required");
+            throw new ConfigurationException("Webhook URL is required", "WEBHOOK_URL_REQUIRED");
+
+        if (registration.Events == null || registration.Events.Count == 0)
+            throw new ConfigurationException("Webhook must subscribe to at least one event", "WEBHOOK_EVENTS_REQUIRED");
 
         registration.Id = registration.Id ?? Guid.NewGuid().ToString();
+        registration.CreatedAt = DateTime.UtcNow;
+        registration.Active = true;
+
         _registrations.Add(registration);
 
         _logger.LogInformation(
@@ -115,14 +128,17 @@ public class WebhookHandler : IWebhookHandler
             registration.Id,
             string.Join(", ", registration.Events));
 
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
     /// <summary>
     /// Unregisters a webhook endpoint.
     /// </summary>
-    public Task UnregisterWebhookAsync(string webhookId)
+    public async Task UnregisterWebhookAsync(string webhookId)
     {
+        if (string.IsNullOrEmpty(webhookId))
+            throw new ArgumentException("Webhook ID cannot be null or empty", nameof(webhookId));
+
         var registration = _registrations.FirstOrDefault(w => w.Id == webhookId);
         if (registration != null)
         {
@@ -130,15 +146,22 @@ public class WebhookHandler : IWebhookHandler
             _logger.LogInformation("Unregistered webhook {WebhookId}", webhookId);
         }
 
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
     /// <summary>
     /// Fires a webhook event to all matching registered webhooks.
     /// Uses background tasks for async delivery without blocking caller.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when webhook delivery fails.</exception>
     public async Task FireWebhookAsync(WorkflowEvent workflowEvent)
     {
+        if (workflowEvent == null)
+            throw new ArgumentNullException(nameof(workflowEvent));
+
+        if (string.IsNullOrEmpty(workflowEvent.EventType))
+            throw new ConfigurationException("Event type is required", "EVENT_TYPE_REQUIRED");
+
         var matchingWebhooks = _registrations
             .Where(w => w.Active && w.Events.Contains(workflowEvent.EventType))
             .ToList();
@@ -160,15 +183,21 @@ public class WebhookHandler : IWebhookHandler
     /// <summary>
     /// Gets delivery history for a specific webhook.
     /// </summary>
-    public Task<IEnumerable<WebhookDelivery>> GetDeliveryHistoryAsync(string webhookId, int limit = 100)
+    public async Task<IEnumerable<WebhookDelivery>> GetDeliveryHistoryAsync(string webhookId, int limit = 100)
     {
+        if (string.IsNullOrEmpty(webhookId))
+            throw new ArgumentException("Webhook ID cannot be null or empty", nameof(webhookId));
+
+        if (limit <= 0)
+            throw new ArgumentException("Limit must be positive", nameof(limit));
+
         var history = _deliveryHistory
             .Where(d => d.WebhookId == webhookId)
             .OrderByDescending(d => d.AttemptedAt)
             .Take(limit)
             .ToList();
 
-        return Task.FromResult(history.AsEnumerable());
+        return await Task.FromResult(history.AsEnumerable());
     }
 
     /// <summary>
@@ -177,6 +206,12 @@ public class WebhookHandler : IWebhookHandler
     /// </summary>
     private async Task DeliverWebhookAsync(WebhookRegistration webhook, WorkflowEvent workflowEvent)
     {
+        if (webhook == null)
+            throw new ArgumentNullException(nameof(webhook));
+
+        if (workflowEvent == null)
+            throw new ArgumentNullException(nameof(workflowEvent));
+
         const int maxAttempts = 3;
         int baseDelayMs = 1000;
 
@@ -249,7 +284,7 @@ public class WebhookHandler : IWebhookHandler
                     return;
                 }
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "Webhook {WebhookId} delivery exception (attempt {Attempt})", webhook.Id, attempt);
 
@@ -272,7 +307,59 @@ public class WebhookHandler : IWebhookHandler
                     await Task.Delay(delay);
                 }
             }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Webhook {WebhookId} delivery timeout (attempt {Attempt})", webhook.Id, attempt);
+
+                var delivery = new WebhookDelivery
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    WebhookId = webhook.Id,
+                    EventType = workflowEvent.EventType,
+                    AttemptedAt = DateTime.UtcNow,
+                    Success = false,
+                    ErrorMessage = $"Request timeout: {ex.Message}",
+                    AttemptNumber = attempt
+                };
+
+                _deliveryHistory.Add(delivery);
+
+                if (attempt < maxAttempts)
+                {
+                    var delay = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+                    await Task.Delay(delay);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Webhook {WebhookId} delivery unexpected exception (attempt {Attempt})", webhook.Id, attempt);
+
+                var delivery = new WebhookDelivery
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    WebhookId = webhook.Id,
+                    EventType = workflowEvent.EventType,
+                    AttemptedAt = DateTime.UtcNow,
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    AttemptNumber = attempt
+                };
+
+                _deliveryHistory.Add(delivery);
+
+                if (attempt < maxAttempts)
+                {
+                    var delay = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+                    await Task.Delay(delay);
+                }
+            }
         }
+
+        throw new WorkflowException(
+            $"Webhook delivery failed after {maxAttempts} attempts for event {workflowEvent.EventType}",
+            "WEBHOOK_DELIVERY_FAILED",
+            null,
+            null);
     }
 
     /// <summary>
@@ -280,6 +367,12 @@ public class WebhookHandler : IWebhookHandler
     /// </summary>
     private string GenerateSignature(string payload, string secret)
     {
+        if (string.IsNullOrEmpty(payload))
+            throw new ArgumentException("Payload cannot be null or empty", nameof(payload));
+
+        if (string.IsNullOrEmpty(secret))
+            throw new ArgumentException("Secret cannot be null or empty", nameof(secret));
+
         using (var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secret)))
         {
             var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload));

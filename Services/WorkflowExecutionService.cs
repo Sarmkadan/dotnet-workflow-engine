@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using System.Collections.Concurrent;
 using DotNetWorkflowEngine.Enums;
@@ -19,10 +19,10 @@ namespace DotNetWorkflowEngine.Services;
 /// <para>
 /// Workflow execution follows this sequence:
 /// <list type="number">
-///   <item>Create an instance via <see cref="CreateInstance"/> from a published workflow definition</item>
-///   <item>Start execution with <see cref="StartAsync"/> which runs the start activity</item>
-///   <item>Activities execute in sequence, following transitions defined in the workflow graph</item>
-///   <item>Instance completes when no more transitions remain, or fails on unhandled exceptions</item>
+/// <item>Create an instance via <see cref="CreateInstance"/> from a published workflow definition</item>
+/// <item>Start execution with <see cref="StartAsync"/> which runs the start activity</item>
+/// <item>Activities execute in sequence, following transitions defined in the workflow graph</item>
+/// <item>Instance completes when no more transitions remain, or fails on unhandled exceptions</item>
 /// </list>
 /// </para>
 /// <para>
@@ -40,14 +40,15 @@ public class WorkflowExecutionService
     /// <summary>
     /// Initializes the execution service with required dependencies.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when any dependency is null.</exception>
     public WorkflowExecutionService(
         WorkflowDefinitionService definitionService,
         AuditService auditService,
         ActivityService activityService)
     {
-        _definitionService = definitionService;
-        _auditService = auditService;
-        _activityService = activityService;
+        _definitionService = definitionService ?? throw new ArgumentNullException(nameof(definitionService));
+        _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
+        _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
     }
 
     /// <summary>
@@ -61,6 +62,9 @@ public class WorkflowExecutionService
     /// <exception cref="WorkflowException">Thrown when the workflow is not found or not in Active status.</exception>
     public WorkflowInstance CreateInstance(string workflowId, string? correlationId = null, string? initiatedBy = null)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
         var workflow = _definitionService.GetWorkflow(workflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -74,7 +78,7 @@ public class WorkflowExecutionService
         };
 
         _instances[instance.Id] = instance;
-        _auditService.LogInstanceCreated(instance.Id, initiatedBy ?? "System");
+        _auditService.LogInstanceCreated(instance.Id, initiatedBy ?? "System").GetAwaiter().GetResult();
 
         return instance;
     }
@@ -89,6 +93,9 @@ public class WorkflowExecutionService
     /// <exception cref="StateException">Thrown when the instance is not in an active state.</exception>
     public async Task<WorkflowInstance> StartAsync(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var instance = GetInstance(instanceId);
         if (instance == null)
             throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
@@ -101,7 +108,7 @@ public class WorkflowExecutionService
         if (workflow?.StartActivityId == null)
             throw new WorkflowException("Workflow has no start activity", "NO_START_ACTIVITY");
 
-        _auditService.LogInstanceStarted(instance.Id);
+        await _auditService.LogInstanceStarted(instance.Id);
 
         // Execute start activity
         await ExecuteActivityAsync(instance, workflow.StartActivityId);
@@ -112,8 +119,16 @@ public class WorkflowExecutionService
     /// <summary>
     /// Executes a specific activity within an instance.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when workflow or activity not found.</exception>
+    /// <exception cref="ActivityException">Thrown when activity execution fails.</exception>
     public async Task ExecuteActivityAsync(WorkflowInstance instance, string activityId)
     {
+        if (instance == null)
+            throw new ArgumentNullException(nameof(instance));
+
+        if (string.IsNullOrWhiteSpace(activityId))
+            throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
+
         var workflow = _definitionService.GetWorkflow(instance.WorkflowId);
         if (workflow == null)
             throw new WorkflowException($"Workflow '{instance.WorkflowId}' not found", "WORKFLOW_NOT_FOUND");
@@ -144,7 +159,10 @@ public class WorkflowExecutionService
             instance.SetContextVariable("WaitingActivityId", activityId);
             instance.Status = WorkflowStatus.WaitingForMessage;
 
-            await _auditService.LogCustomEvent(instance.Id, "WorkflowSuspended", $"Workflow suspended at MessageCatchEvent '{activityId}', waiting for message '{activity.MessageName}' with correlation key '{correlationKey}'", "Info", activityId);
+            await _auditService.LogCustomEvent(instance.Id, "WorkflowSuspended",
+                $"Workflow suspended at MessageCatchEvent '{activityId}', waiting for message '{activity.MessageName}' with correlation key '{correlationKey}'",
+                "Info", activityId);
+
             lock (instance.ActiveActivities)
                 instance.ActiveActivities.Remove(activityId);
             return;
@@ -236,27 +254,38 @@ public class WorkflowExecutionService
     /// <summary>
     /// Completes a workflow instance.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
     public void CompleteInstance(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var instance = GetInstance(instanceId);
         if (instance == null)
             throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
 
         instance.Complete();
-        _auditService.LogInstanceCompleted(instanceId);
+        _auditService.LogInstanceCompleted(instanceId).GetAwaiter().GetResult();
     }
 
     /// <summary>
     /// Fails a workflow instance with error message.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
     public void FailInstance(string instanceId, string errorMessage)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(errorMessage))
+            throw new ArgumentException("Error message cannot be null or empty", nameof(errorMessage));
+
         var instance = GetInstance(instanceId);
         if (instance == null)
             throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
 
         instance.Fail(errorMessage);
-        _auditService.LogInstanceFailed(instanceId, errorMessage);
+        _auditService.LogInstanceFailed(instanceId, errorMessage).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -264,6 +293,9 @@ public class WorkflowExecutionService
     /// </summary>
     public WorkflowInstance? GetInstance(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         _instances.TryGetValue(instanceId, out var instance);
         return instance;
     }
@@ -273,6 +305,9 @@ public class WorkflowExecutionService
     /// </summary>
     public List<WorkflowInstance> GetInstancesByWorkflow(string workflowId)
     {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
         return _instances.Values.Where(i => i.WorkflowId == workflowId).ToList();
     }
 
@@ -281,6 +316,9 @@ public class WorkflowExecutionService
     /// </summary>
     public List<WorkflowInstance> GetInstancesByCorrelation(string correlationId)
     {
+        if (string.IsNullOrWhiteSpace(correlationId))
+            throw new ArgumentException("Correlation ID cannot be null or empty", nameof(correlationId));
+
         return _instances.Values.Where(i => i.CorrelationId == correlationId).ToList();
     }
 
@@ -295,8 +333,12 @@ public class WorkflowExecutionService
     /// <summary>
     /// Resumes a suspended or waiting instance.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when instance not found or invalid.</exception>
     public async Task ResumeInstanceAsync(string instanceId)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
         var instance = GetInstance(instanceId);
         if (instance == null)
             throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
@@ -304,9 +346,9 @@ public class WorkflowExecutionService
         if (instance.CurrentActivityId == null)
             throw new WorkflowException("Instance has no current activity", "NO_CURRENT_ACTIVITY");
 
-        _auditService.LogInstanceResumed(instanceId);
+        await _auditService.LogInstanceResumed(instanceId);
         var workflow = _definitionService.GetWorkflow(instance.WorkflowId);
-        if (workflow?.StartActivityId == null) // This check is probably not accurate for resuming
+        if (workflow?.StartActivityId == null)
             throw new WorkflowException("Workflow has no start activity", "NO_START_ACTIVITY");
 
         // Continue with next activities
@@ -328,6 +370,18 @@ public class WorkflowExecutionService
     /// <exception cref="StateException">Thrown if the instance is in an unexpected state.</exception>
     public async Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)
     {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        if (string.IsNullOrWhiteSpace(messageName))
+            throw new ArgumentException("Message name cannot be null or empty", nameof(messageName));
+
+        if (string.IsNullOrWhiteSpace(correlationKey))
+            throw new ArgumentException("Correlation key cannot be null or empty", nameof(correlationKey));
+
+        if (messagePayload == null)
+            throw new ArgumentNullException(nameof(messagePayload));
+
         var instance = GetInstance(instanceId);
         if (instance == null)
             throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
@@ -341,7 +395,9 @@ public class WorkflowExecutionService
 
         if (expectedMessageName != messageName || expectedCorrelationKey != correlationKey || string.IsNullOrWhiteSpace(waitingActivityId))
         {
-            _auditService.LogCustomEvent(instance.Id, "MessageMismatch", $"Received message '{messageName}' with key '{correlationKey}' but instance was waiting for '{expectedMessageName}' with key '{expectedCorrelationKey}'.", "Error", waitingActivityId);
+            await _auditService.LogCustomEvent(instance.Id, "MessageMismatch",
+                $"Received message '{messageName}' with key '{correlationKey}' but instance was waiting for '{expectedMessageName}' with key '{expectedCorrelationKey}'.",
+                "Error", waitingActivityId);
             throw new WorkflowException("Message correlation mismatch or waiting activity not found in instance context.", "MESSAGE_CORRELATION_MISMATCH");
         }
 
@@ -351,7 +407,9 @@ public class WorkflowExecutionService
         instance.Context.Remove("WaitingActivityId");
 
         instance.Status = WorkflowStatus.Active;
-        _auditService.LogCustomEvent(instance.Id, "MessageReceived", $"Workflow instance resumed by message '{messageName}' with key '{correlationKey}'.", "Info", waitingActivityId);
+        await _auditService.LogCustomEvent(instance.Id, "MessageReceived",
+            $"Workflow instance resumed by message '{messageName}' with key '{correlationKey}'.",
+            "Info", waitingActivityId);
 
         var workflow = _definitionService.GetWorkflow(instance.WorkflowId);
         if (workflow == null)

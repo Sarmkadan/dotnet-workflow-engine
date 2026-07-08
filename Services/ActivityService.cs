@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Exceptions;
@@ -29,18 +29,24 @@ public class ActivityService
     /// <summary>
     /// Initializes the activity service.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when retry policy service is null.</exception>
     public ActivityService(RetryPolicyService retryPolicyService)
     {
-        _retryPolicyService = retryPolicyService;
+        _retryPolicyService = retryPolicyService ?? throw new ArgumentNullException(nameof(retryPolicyService));
     }
 
     /// <summary>
     /// Registers a handler for a specific activity type.
     /// </summary>
-    /// <param name="handlerType">The activity type identifier.</param>
-    /// <param name="handler">The handler implementation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when handler is null.</exception>
     public void RegisterHandler(string handlerType, IActivityHandler handler)
     {
+        if (string.IsNullOrWhiteSpace(handlerType))
+            throw new ArgumentException("Handler type cannot be null or empty", nameof(handlerType));
+
+        if (handler == null)
+            throw new ArgumentNullException(nameof(handler));
+
         _handlers[handlerType] = handler;
     }
 
@@ -54,6 +60,15 @@ public class ActivityService
     /// <exception cref="ActivityException">Thrown if execution fails after all retries.</exception>
     public virtual async Task<ActivityResult> ExecuteAsync(Activity activity, ExecutionContext context)
     {
+        if (activity == null)
+            throw new ArgumentNullException(nameof(activity));
+
+        if (context == null)
+            throw new ArgumentNullException(nameof(context));
+
+        if (string.IsNullOrWhiteSpace(activity.Id))
+            throw new ValidationException("Activity ID cannot be empty", "INVALID_ACTIVITY_ID", "Activity");
+
         if (activity.Validate(out var errors))
         {
             throw new ValidationException("Invalid activity configuration", errors, activity.Name);
@@ -145,7 +160,9 @@ public class ActivityService
     /// </summary>
     private bool EvaluateCondition(string expression, ExecutionContext context)
     {
-        // Simple condition evaluation - can be extended with expression evaluator
+        if (string.IsNullOrEmpty(expression))
+            return true;
+
         if (expression == "true")
             return true;
         if (expression == "false")
@@ -167,6 +184,9 @@ public class ActivityService
     /// </summary>
     private Models.RetryPolicyConfig BuildRetryConfig(Activity activity)
     {
+        if (activity == null)
+            throw new ArgumentNullException(nameof(activity));
+
         var config = activity.RetryPolicy switch
         {
             RetryPolicy.FixedDelay => Models.RetryPolicyConfig.CreateFixedDelay(
@@ -201,6 +221,12 @@ public class ActivityService
     /// </summary>
     public bool ValidateActivity(Activity activity, out List<string> errors)
     {
+        if (activity == null)
+        {
+            errors = new List<string> { "Activity cannot be null" };
+            return false;
+        }
+
         return activity.Validate(out errors);
     }
 }

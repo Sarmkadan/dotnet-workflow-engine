@@ -1,12 +1,13 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using DotNetWorkflowEngine.Exceptions;
 
 namespace DotNetWorkflowEngine.Integration;
 
@@ -25,6 +26,7 @@ public interface IHttpClientFactory
     /// <summary>
     /// Registers a custom HTTP client configuration.
     /// </summary>
+    /// <exception cref="ConfigurationException">Thrown when configuration is invalid.</exception>
     void RegisterClient(string name, HttpClientConfig config);
 }
 
@@ -80,15 +82,33 @@ public class StandardHttpClientFactory : IHttpClientFactory
     /// Gets or creates an HTTP client with registered configuration.
     /// Applies base URL and default headers if configured.
     /// </summary>
+    /// <exception cref="ConfigurationException">Thrown when client configuration is invalid.</exception>
     public HttpClient GetClient(string name = "default")
     {
+        if (string.IsNullOrEmpty(name))
+            throw new ArgumentException("Client name cannot be null or empty", nameof(name));
+
         var client = _httpClientFactory.GetHttpClient(name);
 
         if (_configs.TryGetValue(name, out var config))
         {
             // Set base URL if configured
             if (!string.IsNullOrEmpty(config.BaseUrl))
-                client.BaseAddress = new Uri(config.BaseUrl);
+            {
+                try
+                {
+                    client.BaseAddress = new Uri(config.BaseUrl);
+                }
+                catch (UriFormatException ex)
+                {
+                    throw new ConfigurationException(
+                        $"Invalid base URL format for HTTP client '{name}': {config.BaseUrl}",
+                        "INVALID_BASE_URL",
+                        "BaseUrl",
+                        config.BaseUrl,
+                        ex);
+                }
+            }
 
             // Set timeout
             client.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
@@ -108,10 +128,17 @@ public class StandardHttpClientFactory : IHttpClientFactory
     /// <summary>
     /// Registers a custom HTTP client configuration.
     /// </summary>
+    /// <exception cref="ConfigurationException">Thrown when configuration is invalid.</exception>
     public void RegisterClient(string name, HttpClientConfig config)
     {
         if (string.IsNullOrEmpty(name))
             throw new ArgumentException("Client name cannot be null or empty");
+
+        if (config == null)
+            throw new ConfigurationException("HTTP client configuration cannot be null", "HTTP_CLIENT_CONFIG_NULL");
+
+        if (string.IsNullOrEmpty(config.BaseUrl) && config.DefaultHeaders.Count == 0)
+            _logger.LogWarning("HTTP client '{ClientName}' registered without base URL or headers", name);
 
         _configs[name] = config;
         _logger.LogInformation("Registered HTTP client: {ClientName} -> {BaseUrl}", name, config.BaseUrl);
@@ -126,6 +153,7 @@ public static class HttpClientExtensions
     /// <summary>
     /// Makes a GET request with automatic retry on transient failures.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when request fails after all retries.</exception>
     public static async Task<HttpResponseMessage> GetWithRetryAsync(
         this HttpClient client,
         string requestUri,
@@ -133,6 +161,9 @@ public static class HttpClientExtensions
         int delayMs = 1000,
         ILogger? logger = null)
     {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentException.ThrowIfNullOrEmpty(requestUri);
+
         return await ExecuteWithRetryAsync(
             () => client.GetAsync(requestUri),
             maxRetries,
@@ -143,6 +174,7 @@ public static class HttpClientExtensions
     /// <summary>
     /// Makes a POST request with automatic retry on transient failures.
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when request fails after all retries.</exception>
     public static async Task<HttpResponseMessage> PostWithRetryAsync(
         this HttpClient client,
         string requestUri,
@@ -151,6 +183,10 @@ public static class HttpClientExtensions
         int delayMs = 1000,
         ILogger? logger = null)
     {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentException.ThrowIfNullOrEmpty(requestUri);
+        ArgumentNullException.ThrowIfNull(content);
+
         return await ExecuteWithRetryAsync(
             () => client.PostAsync(requestUri, content),
             maxRetries,
@@ -162,12 +198,17 @@ public static class HttpClientExtensions
     /// Executes an HTTP request with exponential backoff retry logic.
     /// Retries on transient failures (timeouts, 5xx errors).
     /// </summary>
+    /// <exception cref="WorkflowException">Thrown when request fails after all retries.</exception>
     private static async Task<HttpResponseMessage> ExecuteWithRetryAsync(
         Func<Task<HttpResponseMessage>> request,
         int maxRetries,
         int delayMs,
         ILogger? logger)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (maxRetries < 0)
+            throw new ArgumentException("Max retries cannot be negative", nameof(maxRetries));
+
         int attempt = 0;
         while (true)
         {
@@ -186,7 +227,10 @@ public static class HttpClientExtensions
                     var delayForThisAttempt = delayMs * (int)Math.Pow(2, attempt - 1);
                     logger?.LogWarning(
                         "HTTP request failed with {StatusCode}. Attempt {Attempt}/{MaxRetries}. Retrying in {DelayMs}ms",
-                        response.StatusCode, attempt, maxRetries, delayForThisAttempt);
+                        response.StatusCode,
+                        attempt,
+                        maxRetries,
+                        delayForThisAttempt);
 
                     await Task.Delay(delayForThisAttempt);
                     continue;
@@ -197,12 +241,33 @@ public static class HttpClientExtensions
             catch (HttpRequestException ex) when (attempt < maxRetries)
             {
                 var delayForThisAttempt = delayMs * (int)Math.Pow(2, attempt - 1);
-                logger?.LogWarning(
-                    ex,
+                logger?.LogWarning(ex,
                     "HTTP request failed with exception. Attempt {Attempt}/{MaxRetries}. Retrying in {DelayMs}ms",
-                    attempt, maxRetries, delayForThisAttempt);
+                    attempt,
+                    maxRetries,
+                    delayForThisAttempt);
 
                 await Task.Delay(delayForThisAttempt);
+            }
+            catch (TaskCanceledException ex) when (attempt < maxRetries)
+            {
+                var delayForThisAttempt = delayMs * (int)Math.Pow(2, attempt - 1);
+                logger?.LogWarning(ex,
+                    "HTTP request timed out. Attempt {Attempt}/{MaxRetries}. Retrying in {DelayMs}ms",
+                    attempt,
+                    maxRetries,
+                    delayForThisAttempt);
+
+                await Task.Delay(delayForThisAttempt);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "HTTP request failed with unrecoverable exception");
+                throw new WorkflowException(
+                    $"HTTP request failed after {attempt} attempt(s): {ex.Message}",
+                    "HTTP_REQUEST_FAILED",
+                    null,
+                    ex);
             }
         }
     }
