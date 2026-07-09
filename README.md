@@ -359,27 +359,222 @@ See `docs/api-reference.md` for complete API documentation.
 
 ## Configuration
 
+The dotnet-workflow-engine supports comprehensive configuration through the standard .NET configuration system using `IOptions` pattern. All configuration is optional with sensible defaults provided.
+
+### Basic Configuration
+
 Configure the workflow engine in `appsettings.json`:
 
 ```json
 {
   "WorkflowEngine": {
-    "DefaultExecutionMode": "Sequential",
-    "MaxConcurrentActivities": 10,
-    "DefaultTimeout": "00:05:00",
-    "EnableAuditTrail": true,
-    "EnableMetrics": true,
-    "CachingEnabled": true,
-    "CacheProvider": "Redis"
+    "ConnectionString": "Server=localhost;Database=WorkflowEngine;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;",
+    "DefaultActivityTimeoutSeconds": 300,
+    "EnableAuditLogging": true,
+    "MaxConcurrentWorkflows": 100,
+    "ValidateWorkflowsOnLoad": true
   },
   "Database": {
-    "ConnectionString": "Server=localhost;Database=WorkflowEngine;",
+    "ConnectionString": "Server=localhost;Database=WorkflowEngine;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;",
     "Provider": "SqlServer"
   }
 }
 ```
 
-See `docs/configuration.md` for all configuration options.
+### Complete Configuration Reference
+
+All available configuration options with their default values:
+
+```json
+{
+  "WorkflowEngine": {
+    // Core engine configuration
+    "ConnectionString": "Server=localhost;Database=WorkflowEngine;...",
+    "DefaultRetryPolicy": {
+      "MaxRetries": 3,
+      "InitialDelayMilliseconds": 1000,
+      "MaxDelayMilliseconds": 300000,
+      "BackoffFactor": 2
+    },
+    "EnableAuditLogging": true,
+    "MaxConcurrentWorkflows": 100,
+    "DefaultActivityTimeoutSeconds": 300,
+    "ValidateWorkflowsOnLoad": true,
+
+    // Infrastructure configuration
+    "EnableMetrics": true,
+    "EnableBackgroundJobs": true,
+    "EnableAuditTrail": true,
+
+    // Caching configuration
+    "CachingEnabled": true,
+    "CacheProvider": "Memory",
+    "RedisConnectionString": "localhost:6379,password=your-redis-password",
+    "DefaultCacheExpiration": "01:00:00",
+    "UseDistributedCache": false,
+
+    // Middleware configuration
+    "EnableRequestLogging": true,
+    "LogRequestBody": false,
+    "LogResponseBody": false,
+    "EnableRateLimiting": true,
+    "RateLimit": {
+      "MaxRequests": 100,
+      "WindowSeconds": 60,
+      "RetryAfterSeconds": 60
+    },
+    "EnableCors": true,
+
+    // Security configuration
+    "EnableWebhookValidation": true,
+    "WebhookSecret": "your-webhook-secret-key",
+    "EnableActivityValidation": true,
+    "EnableWorkflowValidation": true,
+
+    // Expression evaluation
+    "EnableExpressionEvaluation": true,
+    "MaxExpressionDepth": 20,
+    "MaxWorkflowVariables": 1000,
+    "MaxWorkflowDepth": 50,
+
+    // Execution configuration
+    "ExecutionMode": "Sequential",
+    "EnableParallelExecution": true,
+    "MaxParallelActivities": 10,
+    "EnableConditionalBranching": true,
+    "EnableErrorRecovery": true,
+    "EnableCircuitBreaker": true,
+    "CircuitBreaker": {
+      "FailureThreshold": 5,
+      "SamplingDurationSeconds": 60,
+      "MinimumThroughput": 10,
+      "BreakDurationSeconds": 30
+    },
+
+    // Audit trail configuration
+    "EnableImmutableAuditTrail": true,
+    "AuditTrailRetentionDays": 365,
+
+    // Health and monitoring
+    "EnableHealthChecks": true,
+    "HealthCheckIntervalSeconds": 30,
+    "EnablePrometheusMetrics": false,
+    "MetricsPort": 9090
+  }
+}
+```
+
+### Using Configuration in Code
+
+#### Option 1: Using IConfiguration (Recommended)
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddWorkflowEngine(builder.Configuration.GetSection("WorkflowEngine"))
+    .AddDbContext<DatabaseContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+app.UseWorkflowEngine();
+```
+
+#### Option 2: Using Action Configuration
+
+```csharp
+builder.Services.AddWorkflowEngine(options =>
+{
+    options.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.DefaultActivityTimeoutSeconds = 600;
+    options.MaxConcurrentWorkflows = 200;
+    options.EnableAuditLogging = true;
+    options.CachingEnabled = true;
+    options.CacheProvider = "Redis";
+    options.RedisConnectionString = builder.Configuration.GetValue<string>("Redis:ConnectionString");
+});
+```
+
+#### Option 3: Using IOptions Pattern
+
+```csharp
+// In your service
+public class MyWorkflowService
+{
+    private readonly DotnetWorkflowEngineOptions _options;
+    
+    public MyWorkflowService(IOptions<DotnetWorkflowEngineOptions> options)
+    {
+        _options = options.Value;
+        
+        // Access configuration
+        var timeout = _options.DefaultActivityTimeoutSeconds;
+        var auditEnabled = _options.EnableAuditLogging;
+    }
+}
+```
+
+### Configuration Validation
+
+The workflow engine validates all configuration options on startup using FluentValidation. Invalid configurations will throw a `ValidationException` with detailed error messages.
+
+### Environment-Specific Configuration
+
+Use standard .NET environment variables and configuration providers:
+
+```bash
+# appsettings.Development.json
+{
+  "WorkflowEngine": {
+    "EnableDebugLogging": true,
+    "MaxConcurrentWorkflows": 50
+  }
+}
+
+# appsettings.Production.json
+{
+  "WorkflowEngine": {
+    "MaxConcurrentWorkflows": 500,
+    "EnableDebugLogging": false
+  }
+}
+```
+
+### Sensitive Data
+
+For production environments, use:
+- Environment variables
+- Azure Key Vault
+- AWS Secrets Manager
+- User secrets (development only)
+
+```bash
+# Using environment variables
+# export WorkflowEngine__ConnectionString="Server=..."
+```
+
+See `appsettings.example.json` for a complete configuration template with all available options.
+
+### Configuration Best Practices
+
+1. **Never hardcode sensitive data** - Use configuration providers
+2. **Validate on startup** - Invalid configurations will fail fast
+3. **Use environment-specific files** - appsettings.{Environment}.json
+4. **Monitor configuration** - Log configuration at startup for debugging
+5. **Document changes** - Update configuration when making breaking changes
+
+### Configuration Hot Reload
+
+The workflow engine supports configuration hot reload in development:
+
+```csharp
+builder.Services.AddWorkflowEngine(builder.Configuration.GetSection("WorkflowEngine"))
+    .AddOptions<DotnetWorkflowEngineOptions>()
+    .Bind(builder.Configuration.GetSection("WorkflowEngine"))
+    .ValidateOnStart();
+```
+
+See `docs/configuration.md` for advanced configuration scenarios and best practices.
 
 ## CLI Reference
 
