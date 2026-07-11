@@ -11,6 +11,9 @@ using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Contains unit tests for the <see cref="ExpressionEvaluator"/> class, verifying expression evaluation logic.
+/// </summary>
 public class ExpressionEvaluatorTests
 {
     private WorkflowExecutionContext CreateContext(Dictionary<string, object?>? variables = null)
@@ -23,6 +26,9 @@ public class ExpressionEvaluatorTests
         return context;
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns true for null, empty, or whitespace-only expressions.
+    /// </summary>
     [Fact]
     public void Evaluate_NullOrEmptyExpression_ReturnsTrue()
     {
@@ -33,6 +39,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("   ", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns true for the literal "true" or numeric "1".
+    /// </summary>
     [Fact]
     public void Evaluate_LiteralTrue_ReturnsTrue()
     {
@@ -42,6 +51,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("1", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false for the literal "false" or numeric "0".
+    /// </summary>
     [Fact]
     public void Evaluate_LiteralFalse_ReturnsFalse()
     {
@@ -51,6 +63,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("0", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> resolves variable references correctly to their values.
+    /// </summary>
     [Fact]
     public void Evaluate_VariableReference_ReturnsVariableValue()
     {
@@ -64,6 +79,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${status}", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false for variable references that are null, empty, or false.
+    /// </summary>
     [Fact]
     public void Evaluate_VariableReferenceNullOrFalse_ReturnsFalse()
     {
@@ -79,6 +97,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${falseValue}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates equality comparisons for string values.
+    /// </summary>
     [Fact]
     public void Evaluate_EqualityComparison_StringValues_EvaluatesCorrectly()
     {
@@ -91,6 +112,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${status} == \"rejected\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates inequality comparisons for string values.
+    /// </summary>
     [Fact]
     public void Evaluate_InequalityComparison_StringValues_EvaluatesCorrectly()
     {
@@ -103,6 +127,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${status} != \"pending\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates numeric greater-than comparisons.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericGreaterThan_EvaluatesCorrectly()
     {
@@ -115,6 +142,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${amount} > \"150\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates numeric less-than comparisons.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericLessThan_EvaluatesCorrectly()
     {
@@ -127,6 +157,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${priority} < \"3\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates numeric greater-than-or-equal comparisons.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericGreaterThanOrEqual_EvaluatesCorrectly()
     {
@@ -139,6 +172,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${value} >= \"101\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates numeric less-than-or-equal comparisons.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericLessThanOrEqual_EvaluatesCorrectly()
     {
@@ -151,6 +187,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${cost} <= \"49\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates string "contains" operations.
+    /// </summary>
     [Fact]
     public void Evaluate_StringContains_EvaluatesCorrectly()
     {
@@ -163,6 +202,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${description} contains \"urgent\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns true for a logical AND operation when all conditions are true.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalAnd_AllTrue_ReturnsTrue()
     {
@@ -175,6 +217,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} && ${funded}", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false for a logical AND operation when one condition is false.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalAnd_OneFalse_ReturnsFalse()
     {
@@ -187,6 +232,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} && ${funded}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates logical AND operations with multiple conditions.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalAnd_MultipleConditions_EvaluatesCorrectly()
     {
@@ -203,6 +251,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} && ${funded} && ${reviewed}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns true for a logical OR operation when one condition is true.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalOr_OneTrue_ReturnsTrue()
     {
@@ -215,6 +266,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} || ${urgent}", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false for a logical OR operation when all conditions are false.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalOr_AllFalse_ReturnsFalse()
     {
@@ -227,6 +281,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} || ${urgent}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates logical OR operations with multiple conditions.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalOr_MultipleConditions_EvaluatesCorrectly()
     {
@@ -240,6 +297,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} || ${urgent} || ${escalated}", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false for a logical NOT operation on a true variable.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalNot_True_ReturnsFalse()
     {
@@ -251,6 +311,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("!${blocked}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns true for a logical NOT operation on a false variable.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalNot_False_ReturnsTrue()
     {
@@ -262,6 +325,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("!${blocked}", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates logical NOT operations on literals.
+    /// </summary>
     [Fact]
     public void Evaluate_LogicalNot_Literal_EvaluatesCorrectly()
     {
@@ -271,6 +337,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("!false", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates complex, combined logical expressions.
+    /// </summary>
     [Fact]
     public void Evaluate_ComplexExpression_CombinedLogic_EvaluatesCorrectly()
     {
@@ -286,6 +355,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${approved} || ${status} == \"inactive\"", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly trims whitespace from expressions.
+    /// </summary>
     [Fact]
     public void Evaluate_WhitespaceHandling_TrimsExpression()
     {
@@ -298,6 +370,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("  true  ", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles both single and double quotes correctly.
+    /// </summary>
     [Fact]
     public void Evaluate_QuotedStrings_WithSingleAndDoubleQuotes_EvaluatesCorrectly()
     {
@@ -310,6 +385,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${language} == 'csharp'", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly handles numeric comparisons with numeric variables.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericVariableWithNumericComparison_EvaluatesCorrectly()
     {
@@ -322,6 +400,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${count} <= \"50\"", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns true for a valid "true" literal.
+    /// </summary>
     [Fact]
     public void ValidateExpression_ValidLiteralTrue_ReturnsTrue()
     {
@@ -331,6 +412,9 @@ public class ExpressionEvaluatorTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns true for a valid variable reference.
+    /// </summary>
     [Fact]
     public void ValidateExpression_ValidVariableReference_ReturnsTrue()
     {
@@ -340,6 +424,9 @@ public class ExpressionEvaluatorTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns true for a valid comparison expression.
+    /// </summary>
     [Fact]
     public void ValidateExpression_ValidComparison_ReturnsTrue()
     {
@@ -349,6 +436,9 @@ public class ExpressionEvaluatorTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns true for a valid logical AND expression.
+    /// </summary>
     [Fact]
     public void ValidateExpression_ValidLogicalAnd_ReturnsTrue()
     {
@@ -358,6 +448,9 @@ public class ExpressionEvaluatorTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns false for an expression with unbalanced braces.
+    /// </summary>
     [Fact]
     public void ValidateExpression_UnbalancedBraces_ReturnsFalse()
     {
@@ -367,6 +460,9 @@ public class ExpressionEvaluatorTests
         errors.Should().Contain(e => e.Contains("Unbalanced braces"));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns true for an empty expression.
+    /// </summary>
     [Fact]
     public void ValidateExpression_EmptyExpression_ReturnsTrue()
     {
@@ -376,6 +472,9 @@ public class ExpressionEvaluatorTests
         errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.ValidateExpression"/> returns false for an invalid expression lacking a valid operator.
+    /// </summary>
     [Fact]
     public void ValidateExpression_InvalidWithoutOperator_ReturnsFalse()
     {
@@ -385,6 +484,9 @@ public class ExpressionEvaluatorTests
         errors.Should().Contain(e => e.Contains("valid operator"));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false when performing a "contains" operation on a null string.
+    /// </summary>
     [Fact]
     public void Evaluate_StringContainsNull_ReturnsFalse()
     {
@@ -396,6 +498,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${text} contains \"word\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> returns false when a numeric comparison fails due to an invalid number.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericComparisonWithInvalidNumber_ReturnsFalse()
     {
@@ -407,6 +512,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${value} > \"100\"", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> treats nonexistent variables as null, which evaluates to false.
+    /// </summary>
     [Fact]
     public void Evaluate_VariableNotInContext_TreatsAsNull()
     {
@@ -415,6 +523,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${nonexistent}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly converts string-encoded numeric variables for comparison.
+    /// </summary>
     [Fact]
     public void Evaluate_NumericStringVariable_ConvertsForComparison()
     {
@@ -426,6 +537,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${amount} > \"100\"", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly interprets string-encoded boolean values.
+    /// </summary>
     [Fact]
     public void Evaluate_BooleanStringVariable_ConvertsCorrectly()
     {
@@ -437,6 +551,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${active}", context).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> treats the numeric value 0 as false.
+    /// </summary>
     [Fact]
     public void Evaluate_ZeroAsBoolean_ReturnsFalse()
     {
@@ -448,6 +565,9 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${count}", context).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> treats non-zero numeric values as true.
+    /// </summary>
     [Fact]
     public void Evaluate_NonZeroAsBoolean_ReturnsTrue()
     {
