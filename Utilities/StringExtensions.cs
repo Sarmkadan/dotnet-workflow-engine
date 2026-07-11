@@ -1,6 +1,18 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 // =============================================================================
 
 using System;
@@ -12,8 +24,8 @@ using System.Text.RegularExpressions;
 namespace DotNetWorkflowEngine.Utilities;
 
 /// <summary>
-/// String extension methods providing common text manipulation operations
-/// used throughout the workflow engine. Includes case conversion, validation,
+/// Provides extension methods for string manipulation operations commonly used
+/// throughout the workflow engine, including case conversion, validation,
 /// truncation, and specialized parsing utilities.
 /// </summary>
 public static class StringExtensions
@@ -22,8 +34,13 @@ public static class StringExtensions
     /// Converts a string to PascalCase (UpperCamelCase).
     /// Example: "hello-world" -> "HelloWorld", "hello_world" -> "HelloWorld"
     /// </summary>
+    /// <param name="input">The string to convert.</param>
+    /// <returns>The PascalCase representation of the input string, or empty string if input is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static string ToPascalCase(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return input;
 
@@ -38,8 +55,13 @@ public static class StringExtensions
     /// Converts a string to snake_case.
     /// Example: "HelloWorld" -> "hello_world", "hello-world" -> "hello_world"
     /// </summary>
+    /// <param name="input">The string to convert.</param>
+    /// <returns>The snake_case representation of the input string, or empty string if input is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static string ToSnakeCase(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return input;
 
@@ -51,8 +73,13 @@ public static class StringExtensions
     /// Converts a string to kebab-case.
     /// Example: "HelloWorld" -> "hello-world", "hello_world" -> "hello-world"
     /// </summary>
+    /// <param name="input">The string to convert.</param>
+    /// <returns>The kebab-case representation of the input string, or empty string if input is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static string ToKebabCase(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return input;
 
@@ -65,8 +92,17 @@ public static class StringExtensions
     /// Example: "Hello World".Truncate(5) -> "Hello"
     /// Example: "Hello World".Truncate(5, "...") -> "He..."
     /// </summary>
+    /// <param name="input">The string to truncate.</param>
+    /// <param name="maxLength">The maximum length of the resulting string.</param>
+    /// <param name="suffix">Optional suffix to append when truncation occurs. Default is empty string.</param>
+    /// <returns>The truncated string, or the original string if it's shorter than maxLength.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="maxLength"/> is negative.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static string Truncate(this string input, int maxLength, string suffix = "")
     {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxLength);
+
         if (string.IsNullOrEmpty(input) || input.Length <= maxLength)
             return input;
 
@@ -80,8 +116,13 @@ public static class StringExtensions
     /// Checks if a string is a valid email address using a simple regex pattern.
     /// Note: This is a pragmatic check, not RFC-compliant validation.
     /// </summary>
+    /// <param name="input">The string to validate.</param>
+    /// <returns>True if the string appears to be a valid email format; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static bool IsValidEmail(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return false;
 
@@ -99,8 +140,12 @@ public static class StringExtensions
     /// <summary>
     /// Checks if a string is a valid URL format.
     /// </summary>
+    /// <param name="input">The string to validate.</param>
+    /// <returns>True if the string is a valid absolute URI; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static bool IsValidUrl(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
         return Uri.TryCreate(input, UriKind.Absolute, out var _);
     }
 
@@ -108,17 +153,26 @@ public static class StringExtensions
     /// Removes all whitespace from a string including spaces, tabs, and newlines.
     /// Example: "hello world" -> "helloworld"
     /// </summary>
+    /// <param name="input">The string to process.</param>
+    /// <returns>A new string with all whitespace removed, or empty string if input is null.</returns>
     public static string RemoveWhitespace(this string input)
     {
-        return Regex.Replace(input ?? string.Empty, @"\s+", string.Empty);
+        return input is null
+            ? string.Empty
+            : Regex.Replace(input, @"\s+", string.Empty);
     }
 
     /// <summary>
     /// Normalizes whitespace in a string by replacing multiple spaces/tabs/newlines
     /// with single spaces and trimming leading/trailing whitespace.
     /// </summary>
+    /// <param name="input">The string to normalize.</param>
+    /// <returns>The normalized string, or empty string if input is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static string NormalizeWhitespace(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return input;
 
@@ -129,25 +183,33 @@ public static class StringExtensions
     /// Repeats a string N times.
     /// Example: "ab".Repeat(3) -> "ababab"
     /// </summary>
+    /// <param name="input">The string to repeat.</param>
+    /// <param name="count">The number of times to repeat the string.</param>
+    /// <returns>A new string containing the input repeated count times.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="count"/> is negative.</exception>
     public static string Repeat(this string input, int count)
     {
-        if (count <= 0)
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+
+        if (count == 0)
             return string.Empty;
 
-        var builder = new StringBuilder();
-        for (int i = 0; i < count; i++)
-            builder.Append(input);
-
-        return builder.ToString();
+        return string.Concat(Enumerable.Repeat(input, count));
     }
 
     /// <summary>
     /// Safely extracts a substring without throwing an exception if indices are out of bounds.
     /// </summary>
+    /// <param name="input">The source string.</param>
+    /// <param name="startIndex">The zero-based starting character position of the substring.</param>
+    /// <param name="length">The number of characters in the substring. Use -1 for the rest of the string.</param>
+    /// <returns>The extracted substring, or empty string if extraction is not possible.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is null.</exception>
     public static string SafeSubstring(this string input, int startIndex, int length = -1)
     {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
+        ArgumentNullException.ThrowIfNull(input);
 
         if (startIndex >= input.Length)
             return string.Empty;
@@ -167,10 +229,16 @@ public static class StringExtensions
     /// Extracts the content between two delimiters.
     /// Example: "prefix[content]suffix".ExtractBetween("[", "]") -> "content"
     /// </summary>
+    /// <param name="input">The source string to search within.</param>
+    /// <param name="startDelimiter">The starting delimiter to search for.</param>
+    /// <param name="endDelimiter">The ending delimiter to search for.</param>
+    /// <returns>The extracted content between delimiters, or null if delimiters are not found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if any parameter is null.</exception>
     public static string? ExtractBetween(this string input, string startDelimiter, string endDelimiter)
     {
-        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(startDelimiter) || string.IsNullOrEmpty(endDelimiter))
-            return null;
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(startDelimiter);
+        ArgumentNullException.ThrowIfNull(endDelimiter);
 
         var startIndex = input.IndexOf(startDelimiter, StringComparison.Ordinal);
         if (startIndex < 0)
@@ -189,8 +257,15 @@ public static class StringExtensions
     /// Splits a string by a delimiter while respecting quoted sections.
     /// Example: "a,b,\"c,d\",e".SmartSplit(",") -> ["a", "b", "\"c,d\"", "e"]
     /// </summary>
+    /// <param name="input">The string to split.</param>
+    /// <param name="delimiter">The delimiter to split by.</param>
+    /// <returns>An enumerable of split string segments.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> or <paramref name="delimiter"/> is null.</exception>
     public static IEnumerable<string> SmartSplit(this string input, string delimiter)
     {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(delimiter);
+
         if (string.IsNullOrEmpty(input))
             yield break;
 
