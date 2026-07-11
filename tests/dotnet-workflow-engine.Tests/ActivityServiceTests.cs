@@ -14,14 +14,29 @@ using WorkflowExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Contains unit tests for the <see cref="ActivityService"/> class.
+/// Tests various scenarios including handler registration, activity execution,
+/// conditional branching, retry policies, error handling, and context management.
+/// </summary>
 public class ActivityServiceTests
 {
+    /// <summary>
+    /// Creates an instance of <see cref="ActivityService"/> for testing.
+    /// </summary>
+    /// <returns>An initialized <see cref="ActivityService"/> instance.</returns>
     private ActivityService CreateService()
     {
         var retryPolicyService = new RetryPolicyService();
         return new ActivityService(retryPolicyService);
     }
 
+    /// <summary>
+    /// Creates a test <see cref="Activity"/> with default values.
+    /// </summary>
+    /// <param name="id">The activity identifier. Defaults to "test-activity".</param>
+    /// <param name="handlerType">The handler type to assign. Defaults to "default".</param>
+    /// <returns>A configured <see cref="Activity"/> instance for testing.</returns>
     private Activity CreateActivity(string id = "test-activity", string handlerType = "default")
     {
         return new Activity
@@ -35,6 +50,10 @@ public class ActivityServiceTests
         };
     }
 
+    /// <summary>
+    /// Creates a test <see cref="WorkflowExecutionContext"/> with default values.
+    /// </summary>
+    /// <returns>A configured <see cref="WorkflowExecutionContext"/> instance for testing.</returns>
     private WorkflowExecutionContext CreateContext()
     {
         return new WorkflowExecutionContext
@@ -44,6 +63,9 @@ public class ActivityServiceTests
         };
     }
 
+    /// <summary>
+    /// Tests that registering a custom handler adds it to the handler registry.
+    /// </summary>
     [Fact]
     public void RegisterHandler_AddsHandlerToRegistry()
     {
@@ -61,6 +83,10 @@ public class ActivityServiceTests
         act.Should().NotThrowAsync();
     }
 
+    /// <summary>
+    /// Tests that executing a gateway activity succeeds without requiring a handler.
+    /// Gateway activities should complete successfully even when no handler is registered.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_GatewayActivity_ReturnsSuccessWithoutHandler()
     {
@@ -76,6 +102,10 @@ public class ActivityServiceTests
         result.Status.Should().Be(ActivityStatus.Completed);
     }
 
+    /// <summary>
+    /// Tests that executing an invalid activity throws a <see cref="ValidationException"/>.
+    /// An activity with an empty ID is considered invalid.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_InvalidActivity_ThrowsValidationException()
     {
@@ -89,6 +119,10 @@ public class ActivityServiceTests
             service.ExecuteAsync(activity, context));
     }
 
+    /// <summary>
+    /// Tests that executing an activity with no registered handler throws an <see cref="ActivityException"/>.
+    /// Activities require a registered handler to execute unless they are gateway activities.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_NoHandlerRegistered_ThrowsActivityException()
     {
@@ -100,6 +134,10 @@ public class ActivityServiceTests
             service.ExecuteAsync(activity, context));
     }
 
+    /// <summary>
+    /// Tests that executing an activity with a registered handler returns success.
+    /// Verifies that the handler is invoked and its output is captured in the result.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_HandlerExecutes_ReturnsSuccess()
     {
@@ -120,6 +158,10 @@ public class ActivityServiceTests
         result.Output.Should().Contain(expectedOutput);
     }
 
+    /// <summary>
+    /// Tests that when a handler throws an exception, an <see cref="ActivityException"/> is thrown.
+    /// Verifies that exceptions from handlers are properly wrapped and propagated.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_HandlerThrows_ThrowsActivityException()
     {
@@ -136,6 +178,10 @@ public class ActivityServiceTests
             service.ExecuteAsync(activity, context));
     }
 
+    /// <summary>
+    /// Tests that an activity with a false condition expression is skipped.
+    /// Verifies conditional branching logic works correctly.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_ConditionalSkip_ReturnsSkipped()
     {
@@ -149,6 +195,10 @@ public class ActivityServiceTests
         result.Status.Should().Be(ActivityStatus.Skipped);
     }
 
+    /// <summary>
+    /// Tests that an activity with a true condition expression executes successfully.
+    /// Verifies that the handler is invoked when the condition passes.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_ConditionalPass_ExecutesActivity()
     {
@@ -168,6 +218,10 @@ public class ActivityServiceTests
         mockHandler.Verify(h => h.ExecuteAsync(It.IsAny<Activity>(), It.IsAny<WorkflowExecutionContext>()), Times.Once);
     }
 
+    /// <summary>
+    /// Tests that activities with retry policies retry on failure according to the policy.
+    /// Verifies that retry logic executes multiple times when configured.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_WithRetryPolicy_RetriesOnFailure()
     {
@@ -190,6 +244,10 @@ public class ActivityServiceTests
         callCount.Should().BeGreaterThan(1);
     }
 
+    /// <summary>
+    /// Tests that retry policies eventually succeed if the handler eventually succeeds.
+    /// Verifies that retry logic can recover from transient failures.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_RetryWithEventualSuccess_Succeeds()
     {
@@ -218,6 +276,10 @@ public class ActivityServiceTests
         callCount.Should().Be(3);
     }
 
+    /// <summary>
+    /// Tests that the execution result contains correct attempt tracking information.
+    /// Verifies that attempt numbers and total attempts are properly recorded.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_AttemptsInResult_SetCorrectly()
     {
@@ -236,6 +298,10 @@ public class ActivityServiceTests
         result.TotalAttempts.Should().BeGreaterThanOrEqualTo(1);
     }
 
+    /// <summary>
+    /// Tests that the activity ID is set in the execution context.
+    /// Verifies that the activity ID is properly propagated to the context.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_SetActivityIdInContext()
     {
@@ -255,6 +321,10 @@ public class ActivityServiceTests
         capturedContext!.ActivityId.Should().Be("specific-activity");
     }
 
+    /// <summary>
+    /// Tests that retry policies retry on specific retryable exceptions like <see cref="TimeoutException"/>.
+    /// Verifies that exception type checking works correctly for retry decisions.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_HandlerWithExceptionType_RetriesIfRetryableException()
     {
@@ -277,6 +347,10 @@ public class ActivityServiceTests
         callCount.Should().BeGreaterThan(1);
     }
 
+    /// <summary>
+    /// Tests that exponential backoff retry policy uses appropriate delays between attempts.
+    /// Verifies that the retry mechanism respects exponential backoff timing.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_ExponentialBackoffPolicy_UsesBackoff()
     {
@@ -301,6 +375,10 @@ public class ActivityServiceTests
         callCount.Should().Be(2);
     }
 
+    /// <summary>
+    /// Tests that multiple registered handlers can coexist and the correct one is selected based on activity's handler type.
+    /// Verifies handler registry lookup and selection logic.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_MultipleHandlers_SelectsCorrectOne()
     {
@@ -324,6 +402,10 @@ public class ActivityServiceTests
         result.Output["source"].Should().Be("handler2");
     }
 
+    /// <summary>
+    /// Tests that an activity with null or empty handler type throws an <see cref="ActivityException"/>.
+    /// Verifies validation of handler type configuration.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_HandlerNullEmptyType_ThrowsActivityException()
     {
@@ -335,6 +417,10 @@ public class ActivityServiceTests
             service.ExecuteAsync(activity, context));
     }
 
+    /// <summary>
+    /// Tests that activities without handlers succeed if they are not required to have one.
+    /// Some activity types like Event activities don't require handlers.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_ActivityWithNoHandler_SucceedsIfNotRequired()
     {
@@ -350,6 +436,10 @@ public class ActivityServiceTests
         result.Status.Should().Be(ActivityStatus.Completed);
     }
 
+    /// <summary>
+    /// Tests that activity execution failures record the error message in the exception.
+    /// Verifies that error details are properly captured and included in exceptions.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_FailureRecordsErrorMessage()
     {
@@ -368,6 +458,10 @@ public class ActivityServiceTests
         exception.Message.Should().Contain("Specific error message");
     }
 
+    /// <summary>
+    /// Tests that retry exhaustion produces an informative error message.
+    /// Verifies that when all retry attempts are exhausted, the error message contains relevant retry information.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_RetryExhaustionMessage_IsInformative()
     {
@@ -388,6 +482,10 @@ public class ActivityServiceTests
         exception.Message.Should().Contain("retry");
     }
 
+    /// <summary>
+    /// Tests that the correlation ID is preserved through activity execution.
+    /// Verifies that context properties like correlation ID are maintained during execution.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_CorrelationIdPreserved()
     {
@@ -408,6 +506,10 @@ public class ActivityServiceTests
         capturedContext!.CorrelationId.Should().Be("my-correlation-id");
     }
 
+    /// <summary>
+    /// Tests that activities with no retry policy throw immediately without retrying.
+    /// Verifies that the no-retry policy behaves correctly.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_NoRetryPolicy_ThrowsImmediately()
     {
@@ -430,6 +532,10 @@ public class ActivityServiceTests
         callCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// Tests that conditional expressions can reference workflow variables.
+    /// Verifies that the expression evaluator correctly resolves variable references like ${variableName}.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_ConditionalVariableReference_EvaluatesCorrectly()
     {
