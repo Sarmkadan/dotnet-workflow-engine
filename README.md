@@ -389,6 +389,91 @@ The extension methods include:
 - `GetUserEmail()` - Retrieve the authenticated user's email
 - `GetUserName()` - Retrieve the authenticated user's name
 
+### RetryPolicyConfigTestsExtensions
+
+Provides extension methods for testing `RetryPolicyConfig` configurations and behaviors. This class offers utilities to create different retry policy configurations (exponential backoff, fixed delay, no retry) and verify their behavior through fluent assertions.
+
+### Usage Example
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Tests;
+using FluentAssertions;
+using Xunit;
+
+public class RetryPolicyTests
+{
+    [Fact]
+    public void TestRetryPolicyConfigurations()
+    {
+        // Create different retry policy configurations
+        var exponentialConfig = new RetryPolicyConfigTestsExtensions().CreateExponentialBackoff(
+            maxAttempts: 5,
+            initialDelayMs: 100
+        );
+
+        var fixedConfig = new RetryPolicyConfigTestsExtensions().CreateFixedDelay(
+            maxAttempts: 3,
+            delayMs: 500
+        );
+
+        var noRetryConfig = new RetryPolicyConfigTestsExtensions().CreateNoRetry(
+            maxAttempts: 1
+        );
+
+        // Verify configuration properties
+        exponentialConfig.PolicyType.Should().Be(RetryPolicy.ExponentialBackoff);
+        exponentialConfig.MaxAttempts.Should().Be(5);
+        exponentialConfig.InitialDelayMs.Should().Be(100);
+
+        fixedConfig.PolicyType.Should().Be(RetryPolicy.FixedDelay);
+        fixedConfig.MaxAttempts.Should().Be(3);
+        fixedConfig.DelayMs.Should().Be(500);
+
+        noRetryConfig.MaxAttempts.Should().Be(1);
+
+        // Test retry behavior
+        var config = exponentialConfig;
+        new RetryPolicyConfigTestsExtensions().ShouldRetry_WhenMaxAttemptsExhausted_ShouldReturnFalse(
+            config,
+            exhaustedAttempt: 6
+        );
+
+        new RetryPolicyConfigTestsExtensions().ShouldRetry_WithRetryableExceptionType_ShouldReturnTrue(
+            "IOException"
+        );
+
+        // Test delay calculation
+        var expectedDelay = new RetryPolicyConfigTestsExtensions().CalculateExpectedExponentialDelay(
+            attempt: 3,
+            initialDelayMs: 1000
+        );
+        expectedDelay.Should().Be(4000);
+
+        // Test max delay constraint
+        var constrainedConfig = new RetryPolicyConfig
+        {
+            MaxAttempts = 5,
+            MaxDelayMs = 10000
+        };
+        new RetryPolicyConfigTestsExtensions().CalculateDelayMs_WithMaxDelayConstraint_ShouldNotExceedMax(
+            constrainedConfig,
+            attempt: 10,
+            expectedMaxDelay: 10000
+        );
+    }
+}
+```
+
+The extension methods include:
+- `CreateExponentialBackoff()` - Create a retry policy with exponential backoff
+- `CreateFixedDelay()` - Create a retry policy with fixed delay between attempts
+- `CreateNoRetry()` - Create a retry policy that doesn't retry (max attempts = 1)
+- `ShouldRetry_WhenMaxAttemptsExhausted_ShouldReturnFalse()` - Verify retry policy correctly identifies when max attempts are exhausted
+- `ShouldRetry_WithRetryableExceptionType_ShouldReturnTrue()` - Verify retry policy correctly identifies retryable exception types
+- `CalculateExpectedExponentialDelay()` - Calculate expected delay for exponential backoff at a specific attempt
+- `CalculateDelayMs_WithMaxDelayConstraint_ShouldNotExceedMax()` - Verify delay calculation respects max delay constraint
+
 ### Workflow Instances
 
 #### Execute Workflow
