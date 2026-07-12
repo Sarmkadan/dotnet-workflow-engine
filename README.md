@@ -474,6 +474,101 @@ The extension methods include:
 - `CalculateExpectedExponentialDelay()` - Calculate expected delay for exponential backoff at a specific attempt
 - `CalculateDelayMs_WithMaxDelayConstraint_ShouldNotExceedMax()` - Verify delay calculation respects max delay constraint
 
+## ConditionalBranchingServiceTestsExtensions
+
+Extension methods for testing conditional branching scenarios in workflow execution. This class provides a fluent API for asserting branching results, including transition selection, error handling, and expression evaluation validation. It offers helper methods to create test workflows and execution contexts, making it easier to write comprehensive tests for conditional workflow behavior.
+
+### Usage Example
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Tests;
+using FluentAssertions;
+using Xunit;
+
+public class ConditionalBranchingTests
+{
+[Fact]
+public async Task TestConditionalBranching_ShouldSelectCorrectTransitions()
+{
+// Create a workflow with conditional transitions
+var workflow = ConditionalBranchingServiceTestsExtensions.CreateWorkflowWithTransitions(
+"order-processing",
+("validate-order", "Validate Order", "process-payment", "order.Amount > 100", false),
+("process-payment", "Process Payment", "ship-order", "order.PaymentMethod == \"credit-card\"", false),
+("process-payment", "Process Payment", "pending-review", "order.PaymentMethod == \"bank-transfer\"", false),
+("ship-order", "Ship Order", "complete-order", null, true) // Default transition
+);
+
+// Create execution context with variables
+var context = ConditionalBranchingServiceTestsExtensions.CreateContext(new Dictionary<string, object?>
+{
+{ "order", new { Amount = 150, PaymentMethod = "credit-card" } }
+});
+
+// Execute branching service
+var service = ConditionalBranchingServiceTestsExtensions.CreateService();
+var result = await service.EvaluateTransitionsAsync(workflow, context);
+
+// Assert branching result using extension methods
+await result
+.ShouldHaveSelectedTransitionsCountAsync(2)
+.ShouldHaveSelectedTransitionsInOrderAsync("validate-order", "process-payment")
+.ShouldHaveSkippedTransitionsAsync("pending-review")
+.ShouldHaveNoErrorsAsync()
+.ShouldNotHaveUsedDefaultTransitionAsync();
+
+// Test with different conditions
+var context2 = ConditionalBranchingServiceTestsExtensions.CreateContext(new Dictionary<string, object?>
+{
+{ "order", new { Amount = 50, PaymentMethod = "bank-transfer" } }
+});
+
+var result2 = await service.EvaluateTransitionsAsync(workflow, context2);
+
+await result2
+.ShouldHaveSelectedTransitionsCountAsync(2)
+.ShouldHaveSelectedTransitionsInOrderAsync("validate-order", "process-payment")
+.ShouldHaveSkippedTransitionsAsync("ship-order")
+.ShouldHaveNoErrorsAsync()
+.ShouldNotHaveUsedDefaultTransitionAsync();
+
+// Test validation methods
+workflow.ShouldHaveValidTransitionExpressions();
+
+// Test workflow creation with activities only
+var simpleWorkflow = ConditionalBranchingServiceTestsExtensions.CreateWorkflow(
+"simple-workflow",
+("start", "Start Activity"),
+("end", "End Activity"));
+
+simpleWorkflow.Activities.Should().HaveCount(2);
+simpleWorkflow.Transitions.Should().BeEmpty();
+}
+}
+```
+
+The extension methods include:
+- `ShouldHaveSingleSelectedTransitionAsync()` - Assert exactly one selected transition with specific ID
+- `ShouldHaveSingleSkippedTransitionAsync()` - Assert exactly one skipped transition with specific ID  
+- `ShouldHaveSelectedTransitionsCountAsync()` - Assert the count of selected transitions
+- `ShouldHaveSkippedTransitionsCountAsync()` - Assert the count of skipped transitions
+- `ShouldHaveNoErrorsAsync()` - Assert no evaluation errors occurred
+- `ShouldHaveErrorsCountAsync()` - Assert the count of evaluation errors
+- `ShouldHaveUsedDefaultTransitionAsync()` - Assert default transition was used
+- `ShouldNotHaveUsedDefaultTransitionAsync()` - Assert no default transition was used
+- `ShouldHaveAnyConditionMatchedAsync()` - Assert at least one condition matched
+- `ShouldNotHaveAnyConditionMatchedAsync()` - Assert no conditions matched
+- `ShouldHaveSelectedTransitionsInOrderAsync()` - Assert transitions in specific order
+- `ShouldHaveSkippedTransitionsAsync()` - Assert specific skipped transitions
+- `CreateWorkflow()` - Create a workflow with activities
+- `CreateContext()` - Create execution context with variables
+- `CreateService()` - Create conditional branching service for testing
+- `CreateWorkflowWithTransitions()` - Create workflow with activities and transitions
+- `ShouldHaveValidTransitionExpressions()` - Validate workflow transition expressions
+- `ShouldHaveInvalidTransitionExpressions()` - Validate count of invalid transition expressions
+
 ### Workflow Instances
 
 #### Execute Workflow
