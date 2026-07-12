@@ -1,8 +1,3 @@
-// =============================================================================
-// Author: Vladyslav Zaiets | https://sarmkadan.com
-// CTO & Software Architect
-// =============================================================================
-
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
@@ -16,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Unit tests for <see cref="WorkflowExecutionService"/>.
+/// </summary>
 public class WorkflowExecutionServiceTests
 {
     private readonly WorkflowExecutionService _executionService;
@@ -24,6 +22,9 @@ public class WorkflowExecutionServiceTests
     private readonly AuditService _auditService;
     private readonly ActivityService _activityService;
 
+    /// <summary>
+    /// Initializes services and mocks for testing.
+    /// </summary>
     public WorkflowExecutionServiceTests()
     {
         _definitionService = new WorkflowDefinitionService();
@@ -37,6 +38,10 @@ public class WorkflowExecutionServiceTests
         _executionService = new WorkflowExecutionService(_definitionService, _auditService, _activityService);
     }
 
+    /// <summary>
+    /// Tests that <see cref="WorkflowExecutionService.CreateInstance(string)"/> creates an instance when the workflow is active.
+    /// </summary>
+    /// <returns>void</returns>
     [Fact]
     public void CreateInstance_ShouldCreateInstance_WhenWorkflowIsActive()
     {
@@ -54,6 +59,10 @@ public class WorkflowExecutionServiceTests
         instance.Status.Should().Be(WorkflowStatus.Draft);
     }
 
+    /// <summary>
+    /// Tests that <see cref="WorkflowExecutionService.CreateInstance(string)"/> throws a <see cref="WorkflowException"/> when the workflow is not found.
+    /// </summary>
+    /// <returns>void</returns>
     [Fact]
     public void CreateInstance_ShouldThrowWorkflowException_WhenWorkflowNotFound()
     {
@@ -68,6 +77,10 @@ public class WorkflowExecutionServiceTests
            .WithMessage($"Workflow '{workflowId}' not found");
     }
 
+    /// <summary>
+    /// Tests that <see cref="WorkflowExecutionService.CreateInstance(string)"/> throws a <see cref="StateException"/> when the workflow is not active.
+    /// </summary>
+    /// <returns>void</returns>
     [Fact]
     public void CreateInstance_ShouldThrowStateException_WhenWorkflowIsNotActive()
     {
@@ -84,6 +97,10 @@ public class WorkflowExecutionServiceTests
            .WithMessage("Workflow is not active");
     }
 
+    /// <summary>
+    /// Tests that <see cref="WorkflowExecutionService.StartAsync(string)"/> throws a <see cref="WorkflowException"/> when the instance is not found.
+    /// </summary>
+    /// <returns>void</returns>
     [Fact]
     public async Task StartAsync_ShouldThrowWorkflowException_WhenInstanceNotFound()
     {
@@ -95,6 +112,10 @@ public class WorkflowExecutionServiceTests
            .WithMessage("Instance 'nonExistent' not found");
     }
 
+    /// <summary>
+    /// Tests that <see cref="WorkflowExecutionService.GetInstance(string)"/> returns the instance when it exists.
+    /// </summary>
+    /// <returns>void</returns>
     [Fact]
     public void GetInstance_ShouldReturnInstance_WhenExists()
     {
