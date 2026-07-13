@@ -9,11 +9,10 @@ The `RetryPolicyConfigExtensions` class provides a set of extension methods for 
 Here's an example of using `RetryPolicyConfigExtensions` to create a custom retry policy:
 
 ```csharp
-var retryConfig = RetryPolicyConfigExtensions.CreateCustomRetry(
+var retryConfig = RetryPolicyConfigExtensions.CreateLinearBackoff(
     maxAttempts: 5,
-    retryableExceptions: new[] { typeof(IOException), typeof(SqlException) },
-    delay: TimeSpan.FromSeconds(2),
-    backoffCoefficient: 1.5
+    initialDelayMs: 2000,
+    backoffMultiplier: 1.5
 );
 
 var policyWithJitter = retryConfig.WithJitter(0.1);
@@ -36,4 +35,3 @@ The extension methods available on `RetryPolicyConfigExtensions` include:
 * `WithMaxDelay`: Sets the maximum delay between retries.
 * `WithBackoffMultiplier`: Sets the backoff multiplier for exponential backoff.
 * `WithJitter`: Adds random jitter to the retry delay.
-```
