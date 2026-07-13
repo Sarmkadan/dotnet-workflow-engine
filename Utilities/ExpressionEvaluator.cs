@@ -127,7 +127,8 @@ public class ExpressionEvaluator
         var left = ExtractValue(parts[0].Trim(), context);
         var right = parts[1].Trim().Trim('"', '\'');
 
-        if (double.TryParse(left?.ToString(), out var leftNum) && double.TryParse(right, out var rightNum))
+        if (double.TryParse(left?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var leftNum) &&
+            double.TryParse(right, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var rightNum))
         {
             return comparer(leftNum, rightNum);
         }
@@ -187,7 +188,7 @@ public class ExpressionEvaluator
             return d != 0;
 
         if (value is string s)
-            return !string.IsNullOrEmpty(s) && s.ToLower() != "false" && s != "0";
+            return !string.IsNullOrEmpty(s) && !s.Equals("false", StringComparison.OrdinalIgnoreCase) && s != "0";
 
         return true;
     }
