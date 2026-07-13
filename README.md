@@ -1,37 +1,31 @@
 // ... (rest of the README content remains unchanged)
 
-## RetryPolicyConfigExtensions
+## TransitionExtensions
 
-The `RetryPolicyConfigExtensions` class provides a set of extension methods for creating and modifying retry policy configurations. These extensions simplify the process of defining retry behaviors for workflow activities.
+The `TransitionExtensions` class provides a set of extension methods for working with transitions in workflows. These extensions simplify the process of analyzing and modifying transition properties.
 
 ### Usage Example
 
-Here's an example of using `RetryPolicyConfigExtensions` to create a custom retry policy:
+Here's an example of using `TransitionExtensions` to analyze and modify a transition:
 
 ```csharp
-var retryConfig = RetryPolicyConfigExtensions.CreateLinearBackoff(
-    maxAttempts: 5,
-    initialDelayMs: 2000,
-    backoffMultiplier: 1.5
-);
+var transition = new Transition
+{
+    From = "activity1",
+    To = "activity2",
+    Condition = "some condition"
+};
 
-var policyWithJitter = retryConfig.WithJitter(0.1);
-var policyWithMaxDelay = policyWithJitter.WithMaxDelay(TimeSpan.FromMinutes(5));
+if (TransitionExtensions.IsConditional(transition))
+{
+    Console.WriteLine("The transition is conditional.");
+}
 
-var executedWithRetry = await ExecuteWithRetryAsync(
-    action: () => DoWork(),
-    retryPolicy: policyWithMaxDelay
-);
+var labeledTransition = TransitionExtensions.WithProperties(transition, displayLabel: "Conditional Transition");
+Console.WriteLine(TransitionExtensions.GetDisplayLabel(labeledTransition)); // Outputs: Conditional Transition
+
+if (TransitionExtensions.PointsTo(labeledTransition, "activity2"))
+{
+    Console.WriteLine("The transition points to activity2.");
+}
 ```
-
-The extension methods available on `RetryPolicyConfigExtensions` include:
-
-* `CreateLinearBackoff`: Creates a retry policy with linear backoff.
-* `CreateCustomRetry`: Creates a custom retry policy with specified parameters.
-* `Clone`: Creates a deep copy of a retry policy configuration.
-* `AddRetryableExceptions`: Adds additional exception types to retry on.
-* `WithRetryableExceptions`: Sets the retryable exception types.
-* `WithRetryOnTimeout`: Configures retry on timeout.
-* `WithMaxDelay`: Sets the maximum delay between retries.
-* `WithBackoffMultiplier`: Sets the backoff multiplier for exponential backoff.
-* `WithJitter`: Adds random jitter to the retry delay.
