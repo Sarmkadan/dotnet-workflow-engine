@@ -364,6 +364,57 @@ Example usage:
 
 ```csharp
 
+## ExecutionContext
+
+The `ExecutionContext` class provides runtime information and control for workflow and activity execution. It tracks workflow instance identifiers, maintains execution state and variables, handles activity input/output, and manages execution lifecycle including timing and error states.
+
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+
+// Create an execution context for a workflow instance
+var context = new ExecutionContext
+{
+    WorkflowInstanceId = "wf-order-processing-001",
+    CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc",
+    ActivityId = "act-validate-order"
+};
+
+// Set variables for the workflow execution
+context.SetVariable("customerId", "CUST-12345");
+context.SetVariable("orderTotal", 299.99);
+context.SetVariable("isPriority", true);
+
+// Set activity input parameters
+context.SetActivityInput("orderId", "ORD-54321");
+context.SetActivityInput("validationRules", new List<string> { "fraud-check", "inventory-valid" });
+
+// Access variables and input
+var customerId = context.GetVariable<string>("customerId");
+var orderTotal = context.GetVariable<decimal>("orderTotal");
+var orderId = context.GetActivityInput("orderId");
+
+// Track workflow state
+context.State["orderStatus"] = "validating";
+context.State["validationAttempts"] = 1;
+
+// Mark activity as completed
+context.SetActivityOutput("validationResult", "approved");
+context.SetActivityOutput("riskScore", 0.15);
+
+// Complete the execution
+context.Complete();
+
+Console.WriteLine($"Workflow {context.WorkflowInstanceId} completed in {context.ExecutionDurationMs}ms");
+Console.WriteLine($"Status: {(context.IsActive ? "Active" : "Completed")}");
+Console.WriteLine($"Order total: {orderTotal:C}");
+Console.WriteLine($"Validation result: {context.GetActivityOutput("validationResult")}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
