@@ -415,6 +415,96 @@ Console.WriteLine($"Order total: {orderTotal:C}");
 Console.WriteLine($"Validation result: {context.GetActivityOutput("validationResult")}");
 ```
 
+## WorkflowInstance
+
+The `WorkflowInstance` class represents a runtime instance of a workflow definition. It tracks the execution state, context, and lifecycle of a workflow as it progresses through its activities. Each workflow instance maintains its own execution history, including completed activities, active activities, and any errors that may have occurred during execution.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+
+// Create a new workflow instance
+var workflowInstance = new WorkflowInstance
+{
+    Id = "wf-inst-order-processing-001",
+    WorkflowId = "order-processing-workflow",
+    Status = WorkflowStatus.Created,
+    CurrentActivityId = null,
+    ExecutedActivities = new List<string>(),
+    ActiveActivities = new List<string>(),
+    Context = new Dictionary<string, object?>
+    {
+        { "customerId", "CUST-12345" },
+        { "orderTotal", 299.99 },
+        { "priority", true }
+    },
+    CreatedAt = DateTime.UtcNow,
+    StartedAt = null,
+    CompletedAt = null,
+    ExecutionTimeMs = 0,
+    ErrorMessage = null,
+    CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc",
+    Metadata = new Dictionary<string, object?>
+    {
+        { "initiatedBy", "user@company.com" },
+        { "source", "api" }
+    },
+    InitiatedBy = "user@company.com"
+};
+
+// Start the workflow instance
+workflowInstance.Start();
+
+Console.WriteLine($"Workflow instance created: {workflowInstance.Id}");
+Console.WriteLine($"Status: {workflowInstance.Status}");
+Console.WriteLine($"Created at: {workflowInstance.CreatedAt}");
+
+// Simulate some activities being executed
+workflowInstance.ExecutedActivities.Add("validate-order");
+workflowInstance.ExecutedActivities.Add("check-inventory");
+workflowInstance.ActiveActivities.Add("process-payment");
+workflowInstance.CurrentActivityId = "process-payment";
+
+// Update context during execution
+workflowInstance.Context["paymentStatus"] = "pending";
+
+// Complete the workflow successfully
+workflowInstance.Complete();
+
+Console.WriteLine($"Workflow completed: {workflowInstance.Id}");
+Console.WriteLine($"Status: {workflowInstance.Status}");
+Console.WriteLine($"Completed at: {workflowInstance.CompletedAt}");
+Console.WriteLine($"Execution time: {workflowInstance.ExecutionTimeMs}ms");
+
+// Alternatively, handle a failure
+var failedInstance = new WorkflowInstance
+{
+    Id = "wf-inst-payment-failed-002",
+    WorkflowId = "payment-workflow",
+    Status = WorkflowStatus.Running,
+    CurrentActivityId = "process-payment",
+    ExecutedActivities = new List<string> { "validate-order" },
+    ActiveActivities = new List<string> { "process-payment" },
+    Context = new Dictionary<string, object?>
+    {
+        { "orderId", "ORD-54321" },
+        { "amount", 99.99 }
+    },
+    CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+    StartedAt = DateTime.UtcNow.AddMinutes(-5),
+    ExecutionTimeMs = 1250
+};
+
+failedInstance.Fail("Payment gateway timeout");
+
+Console.WriteLine($"Workflow failed: {failedInstance.Id}");
+Console.WriteLine($"Error: {failedInstance.ErrorMessage}");
+Console.WriteLine($"Status: {failedInstance.Status}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
