@@ -1228,6 +1228,61 @@ Console.WriteLine($"Image processed: {results.Value.Results.ImageResult}");
 Console.WriteLine($"Report generated: {results.Value.Results.ReportResult}");
 ```
 
+## ParallelExecutionExample
+
+The `ParallelExecutionExample` class demonstrates how to execute multiple independent workflow activities concurrently to improve performance and reduce total processing time. This example creates a workflow that validates inventory, checks payment, retrieves shipping quotes, and applies promotions simultaneously before combining results and continuing with sequential processing.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var workflowService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+
+// Create the parallel execution example instance
+var parallelExample = new ParallelExecutionExample(workflowService, executionService);
+
+// Initialize the parallel workflow
+var initResult = await parallelExample.InitializeWorkflow();
+Console.WriteLine($"Workflow initialized: {initResult.Value.message}");
+
+// Execute an order with parallel processing
+var orderData = new OrderData
+{
+    OrderId = "ORD-2024-001",
+    Items = new List<OrderItem>
+    {
+        new OrderItem { ProductId = "PROD-001", Quantity = 2, Price = 49.99m },
+        new OrderItem { ProductId = "PROD-002", Quantity = 1, Price = 99.99m }
+    },
+    ShippingAddress = "123 Main St, Anytown, USA 12345",
+    PaymentMethod = "Credit Card",
+    CustomerEmail = "customer@example.com"
+};
+
+var executionResult = await parallelExample.ExecuteParallelOrder(orderData);
+Console.WriteLine($"Order processing started: {executionResult.Value.instanceId}");
+
+// Get combined results from all parallel activities
+var instanceId = executionResult.Value.instanceId;
+var results = await parallelExample.GetParallelResults(instanceId);
+
+Console.WriteLine($"Order ID: {results.Value.orderId}");
+Console.WriteLine($"Inventory valid: {results.Value.inventoryValid}");
+Console.WriteLine($"Payment valid: {results.Value.paymentValid}");
+Console.WriteLine($"Shipping cost: {results.Value.shippingCost}");
+Console.WriteLine($"Applied promotion: {results.Value.appliedPromotion}");
+Console.WriteLine($"Final total: {results.Value.finalTotal}");
+Console.WriteLine($"Processing status: {results.Value.processingStatus}");
+```
+
 ## ApprovalChainExample
 
 The `ApprovalChainExample` class demonstrates a multi-level document approval workflow that requires sequential approval from manager, director, and optionally CFO (for amounts over $10,000). This example showcases conditional workflow routing, state management across multiple approval stages, and notification activities for approval/rejection outcomes.
