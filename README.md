@@ -284,6 +284,66 @@ Console.WriteLine($"Total workflow count: {totalCount}");
 
 The `Activity` class represents a single unit of work within a workflow definition. It encapsulates all configuration needed to execute a task, including timeouts, retry policies, input/output mappings, and execution modes. Activities can represent tasks, events, or gateways (fork/join points) and support conditional execution through expressions.
 
+## DotnetWorkflowEngineOptions
+
+The `DotnetWorkflowEngineOptions` class provides configuration options for the dotnet-workflow-engine using the IOptions pattern. It controls core engine behavior, infrastructure settings, caching configuration, middleware options, security parameters, and execution policies. This class is typically configured via dependency injection in your application's startup.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Configuration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
+// Configure options in appsettings.json or via code
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json")
+    .Build();
+
+// Setup services with configuration
+var services = new ServiceCollection();
+
+services.Configure<DotnetWorkflowEngineOptions>(configuration.GetSection("WorkflowEngine"));
+services.AddWorkflowServices();
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Access configured options
+var options = serviceProvider.GetRequiredService<IOptions<DotnetWorkflowEngineOptions>>().Value;
+
+Console.WriteLine($"Connection String: {options.ConnectionString}");
+Console.WriteLine($"Max Concurrent Workflows: {options.MaxConcurrentWorkflows}");
+Console.WriteLine($"Enable Audit Logging: {options.EnableAuditLogging}");
+Console.WriteLine($"Caching Enabled: {options.CachingEnabled}");
+Console.WriteLine($"Cache Provider: {options.CacheProvider}");
+
+// Configure specific options programmatically
+services.Configure<DotnetWorkflowEngineOptions>(options =>
+{
+    options.ConnectionString = "Host=localhost;Database=workflow_engine;Username=postgres;Password=secret";
+    options.MaxConcurrentWorkflows = 200;
+    options.DefaultActivityTimeoutSeconds = 600;
+    options.EnableMetrics = true;
+    options.EnableCaching = true;
+    options.CacheProvider = "Redis";
+    options.RedisConnectionString = "localhost:6379";
+    options.UseDistributedCache = true;
+    options.EnableAuditLogging = true;
+    options.EnableAuditTrail = true;
+    options.EnableRequestLogging = true;
+    options.EnableRateLimiting = true;
+    options.MaxConcurrentWorkflows = 150;
+    options.DefaultRetryPolicy = new RetryPolicyConfig
+    {
+        MaxRetries = 3,
+        InitialDelaySeconds = 1,
+        MaxDelaySeconds = 30,
+        BackoffType = "Exponential"
+    };
+});
+```
+
 ## AuditRepository
 
 The `AuditRepository` class provides data access methods for audit log persistence and querying. It serves as the primary interface for storing, retrieving, updating, and deleting audit log entries that track all workflow events including activity executions, state changes, errors, and completions. The repository supports comprehensive querying capabilities including filtering by workflow instance, activity, event type, severity level, date ranges, and pagination.
