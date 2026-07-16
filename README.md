@@ -239,6 +239,58 @@ validatorTests.ValidateTransition_ToActivityNotFound_ReturnsError();
 
 These calls execute the underlying assertions (via FluentAssertions) and will throw if any validation rule fails, making them useful for ad‑hoc verification during development.
 
+## IWorkflowJobProcessor
+
+The `IWorkflowJobProcessor` interface provides a background job processing mechanism for executing workflow instances asynchronously. It manages a queue of workflow jobs, processes them with automatic retry on failure, and tracks statistics about job execution. This interface is typically used to decouple workflow execution from the main request/response cycle, enabling better scalability and reliability.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.BackgroundJobs;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create a workflow job to be processed in the background
+var job = new WorkflowJob
+{
+    Id = "job-7f3b9c2e-4567-89ab-cdef-123456789abc",
+    WorkflowId = "order-processing-workflow",
+    InstanceId = null, // Will be set after processing starts
+    InputData = new Dictionary<string, object>
+    {
+        { "orderId", "ORD-12345" },
+        { "customerId", "CUST-67890" },
+        { "amount", 149.99 },
+        { "priority", "high" }
+    },
+    CreatedAt = DateTime.UtcNow,
+    ScheduledFor = null, // Process immediately
+    RetryCount = 0,
+    Priority = "high"
+};
+
+// Get the job processor (typically injected via DI)
+var jobProcessor = serviceProvider.GetRequiredService<IWorkflowJobProcessor>();
+
+// Enqueue the job for background processing
+await jobProcessor.EnqueueAsync(job);
+
+Console.WriteLine($"Job enqueued: {job.Id}");
+
+// Check how many jobs are pending
+var pendingCount = await jobProcessor.GetPendingCountAsync();
+Console.WriteLine($"Pending jobs: {pendingCount}");
+
+// Get processing statistics
+var stats = await jobProcessor.GetStatsAsync();
+Console.WriteLine($"Total processed: {stats.TotalProcessed}");
+Console.WriteLine($"Total failed: {stats.TotalFailed}");
+Console.WriteLine($"Total retried: {stats.TotalRetried}");
+Console.WriteLine($"Last processed: {stats.LastProcessedAt}");
+Console.WriteLine($"Average processing time: {stats.AvgProcessingTime.TotalMilliseconds}ms");
+```
+
 ## ValidationFilter
 
 The `ValidationFilter` is an action filter that validates model state using DataAnnotations validation attributes. It automatically validates incoming request data against validation attributes on model classes and returns a structured error response when validation fails. The filter integrates with ASP.NET Core's validation pipeline and can be applied to controller actions or Razor Pages.
