@@ -1061,6 +1061,50 @@ if (paymentActivity.RequiresHandler())
 Console.WriteLine($"Activity created at: {paymentActivity.CreatedAt:O}");
 ```
 
+## CustomActivityExample
+
+The `CustomActivityExample` class demonstrates how to create and use custom activity implementations for domain-specific workflow logic. It provides examples of three custom activities: `CustomSmsActivity` for sending SMS notifications, `CustomImageProcessingActivity` for image processing tasks, and `CustomReportGenerationActivity` for generating reports.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Threading.Tasks;
+
+// Create a custom activity workflow controller
+var customActivityExample = new CustomActivityExample(
+    workflowService: workflowDefinitionService,
+    executionService: workflowExecutionService,
+    activityService: activityService
+);
+
+// Initialize workflow with custom activities
+var initResult = await customActivityExample.InitializeWorkflow();
+Console.WriteLine($"Workflow initialized: {initResult.Value}");
+
+// Execute workflow with custom activities
+var executionResult = await customActivityExample.ExecuteWithCustomActivities(new CustomActivityRequest
+{
+    PhoneNumber = "+1234567890",
+    Message = "Your order has been processed successfully",
+    ImageUrl = "https://example.com/image.jpg",
+    ProcessingType = "resize",
+    ReportType = "detailed",
+    Format = "pdf"
+});
+
+Console.WriteLine($"Workflow execution started: {executionResult.Value}");
+
+// Get execution results
+var instanceId = executionResult.Value.InstanceId;
+var results = await customActivityExample.GetExecutionResults(instanceId);
+Console.WriteLine($"SMS sent: {results.Value.Results.SmsResult}");
+Console.WriteLine($"Image processed: {results.Value.Results.ImageResult}");
+Console.WriteLine($"Report generated: {results.Value.Results.ReportResult}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
