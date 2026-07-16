@@ -280,6 +280,61 @@ Console.WriteLine($"Total workflow count: {totalCount}");
 // await repository.ClearAsync();
 ```
 
+## NoOpCacheService
+
+The `NoOpCacheService` is a no-operation cache implementation that does nothing when caching is disabled. It implements the `ICacheService` interface to maintain consistency in the dependency injection container but provides no actual caching functionality. All operations return default values or complete immediately without performing any work.
+
+This service is useful when you want to disable caching without changing the code that depends on `ICacheService`. It bypasses all cache operations, ensuring that every call to retrieve or store data results in the actual operation being performed.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+
+// Setup services with caching disabled
+var services = new ServiceCollection();
+services.AddWorkflowServices(cacheProvider: "NoOp"); // Explicitly use NoOp cache
+var serviceProvider = services.BuildServiceProvider();
+
+// Resolve the cache service
+var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+// Try to get a value (returns null/default)
+var cachedValue = await cacheService.GetAsync<string>("non-existent-key");
+Console.WriteLine($"Cached value: {cachedValue}"); // null
+
+// Check if key exists (always returns false)
+bool exists = await cacheService.ExistsAsync("non-existent-key");
+Console.WriteLine($"Key exists: {exists}"); // false
+
+// Set a value (does nothing)
+await cacheService.SetAsync("test-key", "test-value", TimeSpan.FromMinutes(5));
+Console.WriteLine("Value set (no-op)");
+
+// Remove a value (does nothing)
+await cacheService.RemoveAsync("test-key");
+Console.WriteLine("Value removed (no-op)");
+
+// Clear cache (does nothing)
+await cacheService.ClearAsync();
+Console.WriteLine("Cache cleared (no-op)");
+
+// Get or load with fallback (always executes provider)
+var result = await cacheService.GetOrLoadAsync(
+    "data-key",
+    async () => {
+        Console.WriteLine("Loading data from source...");
+        await Task.Delay(100); // Simulate loading
+        return "actual-data";
+    },
+    TimeSpan.FromMinutes(5)
+);
+Console.WriteLine($"Result: {result}"); // "actual-data"
+```
+
 ## Activity
 
 The `Activity` class represents a single unit of work within a workflow definition. It encapsulates all configuration needed to execute a task, including timeouts, retry policies, input/output mappings, and execution modes. Activities can represent tasks, events, or gateways (fork/join points) and support conditional execution through expressions.
