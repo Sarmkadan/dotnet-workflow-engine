@@ -557,6 +557,105 @@ var sharedData = await cacheService.GetOrLoadAsync(
 Console.WriteLine($"Shared state: {sharedData.State}");
 ```
 
+## CollectionExtensions
+
+The `CollectionExtensions` class provides a set of extension methods for working with collections, lists, dictionaries, and enumerables. These methods offer safe access to collection elements, filtering capabilities, transformation utilities, and common operations that help prevent null reference exceptions and simplify collection manipulation.
+
+Key features include safe first-element retrieval, null filtering, batching, dictionary conversion, and element comparison operations.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// Create sample data for demonstration
+var numbers = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+var strings = new List<string?> { "hello", null, "world", null, "dotnet", "workflow", null };
+var people = new List<Person> 
+{
+    new Person { Id = 1, Name = "Alice", Age = 30 },
+    new Person { Id = 2, Name = "Bob", Age = 25 },
+    new Person { Id = 3, Name = "Charlie", Age = 35 }
+};
+
+var dict1 = new Dictionary<int, string> { { 1, "one" }, { 2, "two" } };
+var dict2 = new Dictionary<int, string> { { 3, "three" }, { 2, "TWO" } };
+
+// SafeFirst - safely get first element or default
+var firstNumber = numbers.SafeFirst();
+Console.WriteLine($"First number: {firstNumber}"); // 1
+
+var emptyList = new List<int>();
+var firstEmpty = emptyList.SafeFirst(-1);
+Console.WriteLine($"First of empty list: {firstEmpty}"); // -1
+
+// WhereNotNull - filter out null elements
+var nonNullStrings = strings.WhereNotNull().ToList();
+Console.WriteLine($"Non-null strings: {string.Join(", ", nonNullStrings)}"); // hello, world, dotnet, workflow
+
+// IsNullOrEmpty - check if collection is null or empty
+bool isEmpty = emptyList.IsNullOrEmpty();
+Console.WriteLine($"Is empty list null or empty: {isEmpty}"); // True
+
+bool isNull = ((List<int>)null).IsNullOrEmpty();
+Console.WriteLine($"Is null collection null or empty: {isNull}"); // True
+
+// Batch - split collection into chunks
+var batches = numbers.Batch(3).ToList();
+Console.WriteLine($"Batches: {batches.Count}"); // 4 batches: [1,2,3], [4,5,6], [7,8,9], [10]
+
+// ToSafeDictionary - convert collection to dictionary with duplicate key checking
+var peopleDict = people.ToSafeDictionary(p => p.Id);
+Console.WriteLine($"People dictionary count: {peopleDict.Count}"); // 3
+
+// ContainsSameElements - compare collections regardless of order
+var numbers2 = new List<int> { 3, 1, 2 };
+bool sameElements = numbers.Take(3).ContainsSameElements(numbers2);
+Console.WriteLine($"Same elements: {sameElements}"); // True
+
+// TryGetValue - safely get dictionary value without exceptions
+var dict = new Dictionary<int, string> { { 1, "one" }, { 2, "two" } };
+var value = dict.TryGetValue(2, "default");
+Console.WriteLine($"Value for key 2: {value}"); // "two"
+var missingValue = dict.TryGetValue(99, "not-found");
+Console.WriteLine($"Value for missing key: {missingValue}"); // "not-found"
+
+// Merge - combine multiple dictionaries
+var mergedDict = dict1.Merge(dict2);
+Console.WriteLine($"Merged dictionary count: {mergedDict.Count}"); // 3 (key 2 overwritten)
+
+// Flatten - flatten nested collections
+var nested = new List<List<int>> { new List<int> { 1, 2 }, new List<int> { 3, 4 } };
+var flattened = nested.Flatten().ToList();
+Console.WriteLine($"Flattened: {string.Join(", ", flattened)}"); // 1, 2, 3, 4
+
+// DistinctOrdered - remove duplicates while preserving order
+var withDuplicates = new List<int> { 1, 2, 2, 3, 1, 4, 5, 3 };
+var distinct = withDuplicates.DistinctOrdered().ToList();
+Console.WriteLine($"Distinct ordered: {string.Join(", ", distinct)}"); // 1, 2, 3, 4, 5
+
+// AddAndReturn - add item and return collection for chaining
+var list = new List<string>();
+list.AddAndReturn("first").AddAndReturn("second").AddAndReturn("third");
+Console.WriteLine($"Chained adds: {string.Join(", ", list)}"); // first, second, third
+
+// Partition - split collection based on predicate
+var (even, odd) = numbers.Partition(n => n % 2 == 0);
+Console.WriteLine($"Even numbers: {string.Join(", ", even)}"); // 2, 4, 6, 8, 10
+Console.WriteLine($"Odd numbers: {string.Join(", ", odd)}"); // 1, 3, 5, 7, 9
+
+// Example class for demonstration
+public class Person
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+```
+
 ## IWorkflowMetrics
 
 The `IWorkflowMetrics` interface provides comprehensive metrics and monitoring capabilities for tracking workflow execution statistics. It collects and exposes detailed metrics including workflow execution counts, success/failure rates, durations, activity statistics, error tracking, and snapshot timestamps. This interface is essential for monitoring system health, performance analysis, and capacity planning.
