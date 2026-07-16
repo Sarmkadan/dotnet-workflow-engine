@@ -27,6 +27,11 @@ public static class ServiceCollection
         // Register database context
         services.AddSingleton(new DatabaseContext(connectionString));
 
+        // AuditService depends on IAuditRepository; resolve it from the same
+        // DatabaseContext instance so the audit trail has a single backing store.
+        services.AddSingleton<Data.Repositories.IAuditRepository>(
+            sp => sp.GetRequiredService<DatabaseContext>().AuditLogs);
+
         // Register services
         services.AddSingleton<RetryPolicyService>();
         services.AddSingleton<AuditService>();
@@ -62,6 +67,11 @@ public static class ServiceCollection
             var options = sp.GetRequiredService<IOptions<DotnetWorkflowEngineOptions>>().Value;
             return new DatabaseContext(options.ConnectionString);
         });
+
+        // Same reasoning as above: AuditService needs IAuditRepository, and it
+        // must be the one owned by the DatabaseContext.
+        services.AddSingleton<Data.Repositories.IAuditRepository>(
+            sp => sp.GetRequiredService<DatabaseContext>().AuditLogs);
 
         // Register services
         services.AddSingleton<RetryPolicyService>();
