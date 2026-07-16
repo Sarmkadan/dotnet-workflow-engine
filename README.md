@@ -656,6 +656,47 @@ public class Person
 }
 ```
 
+## StringExtensions
+
+The `StringExtensions` class provides a comprehensive set of extension methods for common string manipulation operations used throughout the workflow engine. It includes utilities for case conversion (PascalCase, snake_case, kebab-case), validation (email, URL), text processing (truncation, whitespace handling, repetition), and specialized parsing (substring extraction, smart splitting).
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Utilities;
+using System;
+using System.Linq;
+
+// Case conversion examples
+string pascalCase = "hello-world".ToPascalCase(); // "HelloWorld"
+string snakeCase = "HelloWorld".ToSnakeCase(); // "hello_world"
+string kebabCase = "HelloWorld".ToKebabCase(); // "hello-world"
+
+// Validation examples
+bool isValidEmail = "test@example.com".IsValidEmail(); // true
+bool isValidUrl = "https://example.com".IsValidUrl(); // true
+
+// Text processing examples
+string truncated = "Hello World".Truncate(5); // "Hello"
+string withEllipsis = "Hello World".Truncate(5, "..."); // "He..."
+string noWhitespace = "hello world".RemoveWhitespace(); // "helloworld"
+string normalized = "  hello   world  ".NormalizeWhitespace(); // "hello world"
+string repeated = "ab".Repeat(3); // "ababab"
+
+// Safe operations examples
+string safeSubstring = "Hello World".SafeSubstring(6, 5); // "World"
+string? extracted = "prefix[start]middle[end]suffix".ExtractBetween("[", "]"); // "start"
+
+// Smart splitting example
+var parts = "a,b,\"c,d\",e".SmartSplit(","); // ["a", "b", "\"c,d\"", "e"]
+
+// Complex example combining multiple operations
+string workflowName = "process-order-workflow";
+string pascalWorkflow = workflowName.ToPascalCase(); // "ProcessOrderWorkflow"
+string kebabWorkflow = pascalWorkflow.ToKebabCase(); // "process-order-workflow"
+bool isValid = kebabWorkflow.IsValidUrl(); // false
+```
+
 ## SerializationHelper
 
 The `SerializationHelper` class provides a comprehensive set of utilities for JSON serialization and deserialization operations. It standardizes JSON handling across the application with consistent options for property naming, null handling, and type conversion. The helper includes methods for converting objects to JSON strings, parsing JSON back to objects, deep cloning, merging objects, and validating JSON content.
