@@ -85,6 +85,107 @@ var activeInstances = executionService.GetActiveInstances();
 Console.WriteLine($"Active instances: {activeInstances.Count}");
 ```
 
+## ActivityService
+
+The `ActivityService` manages the execution of workflow activities, including activity handler registration, conditional execution, retry policies, and validation. It serves as the central service for executing activities within workflows, supporting both standard activities and gateway activities (fork/join points).
+
+The service handles:
+
+- Registration and lookup of activity handlers by type
+- Execution of activities with configurable retry policies (exponential backoff, fixed delay, linear backoff, or no retry)
+- Conditional activity execution based on expressions
+- Activity validation before execution
+- Gateway activity handling (fork/join patterns)
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+// Get the activity service and retry policy service
+var activityService = serviceProvider.GetRequiredService<IActivityService>();
+var retryPolicyService = serviceProvider.GetRequiredService<IRetryPolicyService>();
+
+// Register a custom activity handler
+activityService.RegisterHandler("custom-handler", new CustomActivityHandler());
+
+// Get registered handler types
+var handlers = activityService.GetRegisteredHandlerTypes();
+Console.WriteLine($"Registered handlers: {string.Join(", ", handlers)}");
+
+// Validate an activity before execution
+var activity = new Activity
+{
+    Id = "validate-order",
+    Name = "Validate Order",
+    Type = "Validation",
+    HandlerType = "custom-handler",
+    TimeoutSeconds = 30,
+    MaxRetries = 3,
+    RetryPolicy = RetryPolicy.ExponentialBackoff
+};
+
+if (activityService.ValidateActivity(activity, out var errors))
+{
+    Console.WriteLine("Activity is valid");
+}
+else
+{
+    Console.WriteLine($"Validation errors: {string.Join(", ", errors)}");
+}
+
+// Execute the activity with execution context
+var context = new ExecutionContext
+{
+    WorkflowInstanceId = "wf-order-processing-001",
+    CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc"
+};
+
+// Set variables for conditional execution
+context.SetVariable("isValid", true);
+
+var result = await activityService.ExecuteAsync(activity, context);
+
+if (result.IsSuccess())
+{
+    Console.WriteLine($"Activity completed successfully in {result.ExecutionDurationMs}ms");
+    Console.WriteLine($"Output: {result.GetOutputs().Count} items");
+}
+else if (result.IsFailed())
+{
+    Console.WriteLine($"Activity failed: {result.ErrorMessage}");
+}
+else if (result.IsSkipped())
+{
+    Console.WriteLine($"Activity skipped: {result.SkipReason}");
+}
+
+// Example custom activity handler implementation
+public class CustomActivityHandler : ActivityService.IActivityHandler
+{
+    public async Task<Dictionary<string, object?>> ExecuteAsync(Activity activity, ExecutionContext context)
+    {
+        // Perform activity logic here
+        var output = new Dictionary<string, object?>();
+        output["result"] = "success";
+        output["processedAt"] = DateTime.UtcNow;
+        
+        await Task.Delay(100); // Simulate work
+        return output;
+    }
+}
+```
+
 ## AdvancedIntegrationTests
 
 The `AdvancedIntegrationTests` class contains comprehensive integration tests for verifying advanced workflow engine scenarios and complex workflows. These tests cover a range of features, including parallel workflow execution, error handling with retry policies, state preservation across activities, and conditional routing.
