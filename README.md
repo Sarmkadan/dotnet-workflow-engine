@@ -1549,6 +1549,59 @@ var stats = new Dictionary<string, object?>
 };
 ```
 
+## CachingBenchmarks
+
+The `CachingBenchmarks` class provides performance benchmarks for measuring caching throughput of workflow definitions. It benchmarks workflow definition caching operations including small and large workflow definitions, cache retrieval, cache removal, and cache clearing scenarios. These benchmarks help evaluate the workflow engine's caching performance characteristics and memory efficiency when handling workflow definitions of varying sizes.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Benchmarks.Benchmarks;
+using Microsoft.Extensions.Caching.Memory;
+
+// Create benchmark instance
+var benchmarks = new CachingBenchmarks();
+
+// Setup the benchmark environment
+benchmarks.Setup();
+
+// Benchmark caching a small workflow definition
+var smallWorkflowResult = benchmarks.Cache_Small_Workflow_Definition();
+Console.WriteLine("Small workflow cached successfully");
+
+// Benchmark caching a large workflow definition (100 activities)
+var largeWorkflowResult = benchmarks.Cache_Large_Workflow_Definition();
+Console.WriteLine("Large workflow cached successfully");
+
+// Benchmark retrieving a cached small workflow
+var cachedSmallResult = benchmarks.Get_Cached_Small_Workflow();
+Console.WriteLine($"Small workflow retrieved from cache: {cachedSmallResult}");
+
+// Benchmark retrieving a cached large workflow
+var cachedLargeResult = benchmarks.Get_Cached_Large_Workflow();
+Console.WriteLine($"Large workflow retrieved from cache: {cachedLargeResult}");
+
+// Benchmark retrieving a missing workflow from cache (should return false)
+var missingResult = benchmarks.Get_Missing_Workflow_From_Cache();
+Console.WriteLine("Missing workflow lookup completed");
+
+// Benchmark caching multiple workflows
+var multipleResult = benchmarks.Cache_Multiple_Workflows();
+Console.WriteLine("Multiple workflows cached successfully");
+
+// Benchmark removing a workflow from cache
+benchmarks.Remove_Workflow_From_Cache();
+Console.WriteLine("Workflow removed from cache");
+
+// Benchmark clearing the entire cache
+benchmarks.Clear_Entire_Cache();
+Console.WriteLine("Cache cleared successfully");
+
+// Access the MemoryCache instance for custom operations
+var memoryCache = benchmarks.GetCache(); // Helper method to access the cache
+Console.WriteLine("Cache operations completed");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
