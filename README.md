@@ -131,6 +131,75 @@ Console.WriteLine($"Webhook active: {webhookHandler.Active}");
 Console.WriteLine($"Last delivery status: {(deliveryAttempt.Success ? "Success" : "Failed")}");
 ```
 
+## IHttpClientFactory
+
+The `IHttpClientFactory` interface provides a standardized way to create and manage HTTP clients with built-in connection pooling, timeout management, and retry policies. It simplifies external API communication by allowing named clients with custom configurations including base URLs, default headers, and retry settings.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Integration;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+// Create HTTP client configurations
+var defaultConfig = new HttpClientConfig
+{
+    BaseUrl = "https://api.example.com/v1",
+    TimeoutSeconds = 60,
+    DefaultHeaders = new Dictionary<string, string>
+    {
+        { "Accept", "application/json" },
+        { "User-Agent", "dotnet-workflow-engine" }
+    },
+    MaxRetries = 5,
+    RetryDelayMs = 2000
+};
+
+var analyticsConfig = new HttpClientConfig
+{
+    BaseUrl = "https://analytics.example.com/api",
+    TimeoutSeconds = 30,
+    DefaultHeaders = new Dictionary<string, string>
+    {
+        { "Authorization", "Bearer analytics-token-123" },
+        { "X-API-Key", "analytics-secret" }
+    },
+    MaxRetries = 3,
+    RetryDelayMs = 1000
+};
+
+// Register clients (typically done in DI setup)
+var httpClientFactory = new StandardHttpClientFactory(
+    // In real usage, this would be injected via DI
+    new HttpClient(),
+    new Logger<StandardHttpClientFactory>()
+);
+
+httpClientFactory.RegisterClient("default", defaultConfig);
+httpClientFactory.RegisterClient("analytics", analyticsConfig);
+
+// Get configured clients
+var defaultClient = httpClientFactory.GetClient("default");
+var analyticsClient = httpClientFactory.GetClient("analytics");
+
+// Use with retry helper methods
+var response = await defaultClient.GetWithRetryAsync("/workflows");
+if (response.IsSuccessStatusCode)
+{
+    var content = await response.Content.ReadAsStringAsync();
+    Console.WriteLine(content);
+}
+
+// Make POST request with retry
+var postResponse = await analyticsClient.PostWithRetryAsync(
+    "/events",
+    new StringContent("{\"eventType\":\"workflow.started\"}", System.Text.Encoding.UTF8, "application/json")
+);
+```
+
 ## WorkflowValidatorTests
 
 `WorkflowValidatorTests` provides a suite of unit tests that verify the correctness of the workflow validation logic. Each public method exercises a specific validation rule, ensuring that workflows, activities, and transitions are checked for required fields, consistency, and logical correctness.
