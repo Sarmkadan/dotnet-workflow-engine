@@ -1228,6 +1228,67 @@ Console.WriteLine($"Image processed: {results.Value.Results.ImageResult}");
 Console.WriteLine($"Report generated: {results.Value.Results.ReportResult}");
 ```
 
+## OrderProcessingExample
+
+The `OrderProcessingExample` class demonstrates a complete order processing workflow that handles order validation, tax calculation, payment processing, shipment preparation, and customer notification. This example shows how to create a multi-step workflow with conditional transitions and audit trail tracking.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var workflowService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+var auditService = serviceProvider.GetRequiredService<IAuditService>();
+
+// Create the order processing example instance
+var orderProcessingExample = new OrderProcessingExample(
+    workflowService,
+    executionService,
+    auditService
+);
+
+// Initialize the workflow definition
+var initResult = await orderProcessingExample.InitializeWorkflow();
+Console.WriteLine($"Workflow initialized: {initResult.Value.message}");
+
+// Process a customer order
+var orderRequest = new OrderRequest
+{
+    OrderId = "ORD-2024-001",
+    CustomerId = "CUST-12345",
+    Amount = 299.99m,
+    ShippingAddress = "123 Main St, Anytown, USA 12345",
+    Items = new List<OrderItem>
+    {
+        new OrderItem { ProductId = "PROD-001", Quantity = 2, UnitPrice = 49.99m },
+        new OrderItem { ProductId = "PROD-002", Quantity = 1, UnitPrice = 99.99m }
+    }
+};
+
+var processResult = await orderProcessingExample.ProcessOrder(orderRequest);
+Console.WriteLine($"Order processing started: {processResult.Value.instanceId}");
+
+// Check order status
+var statusResult = await orderProcessingExample.GetOrderStatus(processResult.Value.instanceId);
+Console.WriteLine($"Order status: {statusResult.Value.status}");
+
+// Get order summary
+var summaryResult = await orderProcessingExample.GetOrderSummary(processResult.Value.instanceId);
+Console.WriteLine($"Order summary: {summaryResult.Value.orderId}, Duration: {summaryResult.Value.duration}");
+
+// Export audit trail
+var exportResult = await orderProcessingExample.ExportAuditTrail(processResult.Value.instanceId);
+Console.WriteLine("Audit trail exported successfully");
+```
+
 ## ParallelExecutionExample
 
 The `ParallelExecutionExample` class demonstrates how to execute multiple independent workflow activities concurrently to improve performance and reduce total processing time. This example creates a workflow that validates inventory, checks payment, retrieves shipping quotes, and applies promotions simultaneously before combining results and continuing with sequential processing.
