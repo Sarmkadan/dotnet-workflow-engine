@@ -311,6 +311,14 @@ The `AuditServiceTests` class contains unit tests that verify the audit logging 
 Example usage:
 
 ```csharp
+
+## CommandContext
+
+`CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
+
+Example usage:
+
+```csharp
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Tests;
 using Moq;
@@ -374,4 +382,60 @@ var (page1, pageTotal) = await auditService.GetFilteredAuditLogsAsync(
 // Export audit logs to CSV
 var csvData = await auditService.ExportAuditLogAsCsv("workflow-instance-123");
 Console.WriteLine(csvData);
+
+```csharp
+using DotNetWorkflowEngine.Cli;
+using System;
+using System.Collections.Generic;
+
+// Create a command context for a CLI command execution
+var context = new CommandContext
+{
+    CommandName = "workflow run",
+    Arguments = new List<string> { "--workflow-id", "wf-12345", "--timeout", "300" },
+    Options = new Dictionary<string, string>
+    {
+        { "workflow-id", "wf-12345" },
+        { "timeout", "300" },
+        { "output-format", "json" }
+    },
+    OutputFormat = "json",
+    IsVerbose = true,
+    ExecutingUser = "admin@company.com"
+};
+
+// Access command properties
+Console.WriteLine($"Executing command: {context.CommandName}");
+Console.WriteLine($"Verbose mode: {context.IsVerbose}");
+Console.WriteLine($"Output format: {context.OutputFormat}");
+Console.WriteLine($"Executing user: {context.ExecutingUser}");
+
+// Access arguments and options
+Console.WriteLine($"Arguments count: {context.Arguments.Count}");
+foreach (var arg in context.Arguments)
+{
+    Console.WriteLine($"  Argument: {arg}");
+}
+
+// Check for options
+if (context.HasFlag("verbose"))
+{
+    Console.WriteLine("Verbose logging enabled");
+}
+
+var workflowId = context.GetOption("workflow-id");
+Console.WriteLine($"Workflow ID: {workflowId}");
+
+var timeout = context.GetOption("timeout");
+Console.WriteLine($"Timeout: {timeout} seconds");
+
+// Validate arguments
+if (context.ValidateArguments())
+{
+    Console.WriteLine("Arguments are valid");
+}
+else
+{
+    Console.WriteLine("Arguments validation failed");
+}
 ```
