@@ -667,6 +667,67 @@ if (workflow.IsPublished)
 }
 ```
 
+## AuditLogEntry
+
+The `AuditLogEntry` class represents a structured audit log entry for tracking workflow events, state changes, activity executions, and errors. It provides a standardized format for recording workflow execution history with detailed context including previous and current states, timestamps, actors, and severity levels. Audit logs are essential for debugging workflow execution, compliance tracking, and monitoring workflow health.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+
+// Create a basic audit log entry
+var entry = new AuditLogEntry(
+    workflowInstanceId: "wf-order-processing-001",
+    eventType: "WorkflowStarted",
+    description: "Workflow instance created and started execution"
+);
+entry.Id = "log-7f3b9c2e-4567-89ab-cdef-123456789abc";
+entry.ActivityId = "act-initialize";
+entry.Severity = "Info";
+entry.Actor = "system@company.com";
+entry.CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc";
+entry.PreviousState = new Dictionary<string, object?> { { "status", "Created" } };
+entry.CurrentState = new Dictionary<string, object?> { { "status", "Running" } };
+entry.Details = new Dictionary<string, object?> { { "initiatedBy", "automation-service" } };
+
+Console.WriteLine($"Audit Entry: {entry.Id}");
+Console.WriteLine($"Timestamp: {entry.GetFormattedTimestamp()}");
+Console.WriteLine($"Event: {entry.EventType}");
+Console.WriteLine($"Description: {entry.Description}");
+
+// Use factory methods for common scenarios
+var activityEntry = AuditLogEntry.CreateActivityExecution(
+    workflowInstanceId: "wf-order-processing-001",
+    activityId: "act-validate-order",
+    status: "Completed"
+);
+activityEntry.Severity = "Info";
+activityEntry.Actor = "validation-service";
+
+var stateChangeEntry = AuditLogEntry.CreateStateChange(
+    workflowInstanceId: "wf-order-processing-001",
+    previousState: "Running",
+    currentState: "Completed",
+    reason: "All activities completed successfully"
+);
+stateChangeEntry.Severity = "Info";
+
+var errorEntry = AuditLogEntry.CreateError(
+    workflowInstanceId: "wf-order-processing-001",
+    activityId: "act-process-payment",
+    errorMessage: "Payment gateway timeout after 30 seconds",
+    correlationId: "corr-7f3b9c2e-4567-89ab-cdef-123456789abc"
+);
+errorEntry.Actor = "payment-gateway";
+
+Console.WriteLine($"\nActivity Execution Log: {activityEntry.Description}");
+Console.WriteLine($"State Change Log: {stateChangeEntry.Description}");
+Console.WriteLine($"Error Log: {errorEntry.Description}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
