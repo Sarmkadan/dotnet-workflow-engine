@@ -1410,6 +1410,59 @@ Console.WriteLine(cfoApproval.Value.message);
 // Document is now fully approved and will be archived
 ```
 
+## ActivityExecutionBenchmarks
+
+The `ActivityExecutionBenchmarks` class provides performance benchmarks for measuring activity execution throughput with different retry policies and execution scenarios. It benchmarks basic activity execution, activities with retry policies (exponential backoff, fixed delay, no retry), and measures the workflow engine's performance characteristics for individual activity execution under various workload scenarios.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Benchmarks.Benchmarks;
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
+
+// Create benchmark instance
+var benchmarks = new ActivityExecutionBenchmarks();
+
+// Setup the benchmark environment
+benchmarks.Setup();
+
+// Benchmark simple activity execution (no retry)
+var simpleResult = await benchmarks.Execute_Simple_Activity();
+Console.WriteLine($"Simple activity completed in: {simpleResult.TotalTime}");
+
+// Benchmark activity with exponential backoff retry policy
+var retryResult = await benchmarks.Execute_Activity_With_Retry_Policy();
+Console.WriteLine($"Activity with retry policy completed in: {retryResult.TotalTime}");
+
+// Benchmark activity with fixed delay retry policy
+var fixedRetryResult = await benchmarks.Execute_Activity_With_Fixed_Retry();
+Console.WriteLine($"Activity with fixed retry completed in: {fixedRetryResult.TotalTime}");
+
+// Benchmark activity with no retry policy
+var noRetryResult = await benchmarks.Execute_Activity_With_No_Retry();
+Console.WriteLine($"Activity with no retry completed in: {noRetryResult.TotalTime}");
+
+// Execute activity and get output dictionary
+var activity = new Activity
+{
+    Id = "test-activity",
+    Name = "Test Activity",
+    HandlerType = "Simple",
+    Type = "TestActivity"
+};
+
+var context = new ExecutionContext
+{
+    WorkflowInstanceId = Guid.NewGuid().ToString(),
+    ActivityId = "test-activity"
+};
+
+var output = await benchmarks.ExecuteAsync(activity, context);
+Console.WriteLine($"Activity output: {output.Count} items");
+```
+
 ## ConcurrentExecutionBenchmarks
 
 The `ConcurrentExecutionBenchmarks` class provides performance benchmarks for concurrent workflow execution scenarios. It measures the workflow engine's scalability, thread safety, and performance under load by executing multiple workflow instances simultaneously. These benchmarks help identify bottlenecks in workflow execution, activity handling, and state management when processing high volumes of concurrent workflows.
