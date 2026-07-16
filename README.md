@@ -656,6 +656,123 @@ public class Person
 }
 ```
 
+## SerializationHelper
+
+The `SerializationHelper` class provides a comprehensive set of utilities for JSON serialization and deserialization operations. It standardizes JSON handling across the application with consistent options for property naming, null handling, and type conversion. The helper includes methods for converting objects to JSON strings, parsing JSON back to objects, deep cloning, merging objects, and validating JSON content.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+
+// Create sample data for demonstration
+var person = new Person
+{
+    Id = 1,
+    Name = "John Doe",
+    Age = 30,
+    Address = new Address { Street = "123 Main St", City = "New York", ZipCode = "10001" },
+    Tags = new List<string> { "developer", "csharp", "workflow" }
+};
+
+var workflowConfig = new WorkflowConfig
+{
+    Id = "config-001",
+    Name = "Order Processing",
+    Enabled = true,
+    RetryPolicy = new RetryPolicyConfig { MaxRetries = 3, InitialDelaySeconds = 1 },
+    Settings = new Dictionary<string, object> { { "timeout", 30 }, { "retry", true } }
+};
+
+// Serialize an object to JSON string (compact format)
+string jsonCompact = SerializationHelper.ToJson(person);
+Console.WriteLine(jsonCompact);
+
+// Serialize an object to pretty-printed JSON (human-readable)
+string jsonPretty = SerializationHelper.ToJsonPretty(person);
+Console.WriteLine(jsonPretty);
+
+// Deserialize JSON string back to an object
+var deserializedPerson = SerializationHelper.FromJson<Person>(jsonCompact);
+Console.WriteLine($"Deserialized: {deserializedPerson?.Name}");
+
+// Safely deserialize JSON (returns null on error instead of throwing)
+string invalidJson = "{ invalid: json }";
+var safeResult = SerializationHelper.TryFromJson<Person>(invalidJson);
+Console.WriteLine($"Safe deserialization result: {safeResult}"); // null
+
+// Deep clone an object by serializing and deserializing
+var personClone = SerializationHelper.DeepClone(person);
+Console.WriteLine($"Clone equals original: {personClone?.Id == person.Id}"); // True
+
+// Merge two objects (later values override earlier ones)
+var person2 = new Person { Id = 1, Name = "John Updated", Age = 31 };
+var mergedPerson = SerializationHelper.Merge(person, person2);
+Console.WriteLine($"Merged name: {mergedPerson?.Name}"); // "John Updated"
+
+// Convert between JSON element and typed objects
+JsonElement jsonElement = SerializationHelper.ToJsonElement(person);
+var fromElement = SerializationHelper.FromJsonElement<Person>(jsonElement);
+Console.WriteLine($"From element: {fromElement?.Name}");
+
+// Validate JSON content
+bool isValid = SerializationHelper.IsValidJson(jsonCompact);
+Console.WriteLine($"Is valid JSON: {isValid}"); // True
+
+bool isInvalid = SerializationHelper.IsValidJson("not json");
+Console.WriteLine($"Is invalid JSON: {isInvalid}"); // False
+
+// Pretty-print existing JSON string
+string minifiedJson = "{\"name\":\"test\",\"value\":123}";
+string prettyJson = SerializationHelper.PrettyPrintJson(minifiedJson);
+Console.WriteLine(prettyJson);
+
+// Minify JSON string (remove whitespace)
+string prettyJsonInput = "{ \"name\": \"test\", \"value\": 123 }";
+string minified = SerializationHelper.MinifyJson(prettyJsonInput);
+Console.WriteLine(minified);
+
+// Deserialize to dictionary for untyped data
+string dictJson = "{\"key1\":\"value1\",\"key2\":123}";
+var dictionary = SerializationHelper.FromJsonToDict(dictJson);
+Console.WriteLine($"Dictionary count: {dictionary?.Count}"); // 2
+
+// Example classes for demonstration
+public class Person
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public Address Address { get; set; }
+    public List<string> Tags { get; set; }
+}
+
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string ZipCode { get; set; }
+}
+
+public class WorkflowConfig
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public bool Enabled { get; set; }
+    public RetryPolicyConfig RetryPolicy { get; set; }
+    public Dictionary<string, object> Settings { get; set; }
+}
+
+public class RetryPolicyConfig
+{
+    public int MaxRetries { get; set; }
+    public int InitialDelaySeconds { get; set; }
+}
+```
+
 ## IWorkflowMetrics
 
 The `IWorkflowMetrics` interface provides comprehensive metrics and monitoring capabilities for tracking workflow execution statistics. It collects and exposes detailed metrics including workflow execution counts, success/failure rates, durations, activity statistics, error tracking, and snapshot timestamps. This interface is essential for monitoring system health, performance analysis, and capacity planning.
