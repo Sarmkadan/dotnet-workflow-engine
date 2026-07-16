@@ -1443,6 +1443,59 @@ Console.WriteLine($"50 workflows completed in: {mediumLoadResult.TotalTime}");
 Console.WriteLine($"100 workflows completed in: {largeLoadResult.TotalTime}");
 ```
 
+## WorkflowExecutionBenchmarks
+
+The `WorkflowExecutionBenchmarks` class provides performance benchmarks for measuring workflow execution throughput across different workflow topologies. It benchmarks sequential, parallel, and conditional workflow execution patterns to evaluate the engine's performance characteristics under various workload scenarios. The class measures complete workflow execution including instance creation, activity execution, and state management.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Benchmarks.Benchmarks;
+using DotNetWorkflowEngine.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+var definitionService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var activityService = serviceProvider.GetRequiredService<IActivityService>();
+
+// Create benchmarks instance
+var benchmarks = new WorkflowExecutionBenchmarks();
+benchmarks.Setup(); // Initialize workflows and services
+
+// Benchmark sequential workflow execution
+var sequentialResult = await benchmarks.Execute_Sequential_Workflow();
+Console.WriteLine($"Sequential workflow completed in: {sequentialResult.TotalTime}");
+
+// Benchmark parallel workflow execution
+var parallelResult = await benchmarks.Execute_Parallel_Workflow();
+Console.WriteLine($"Parallel workflow completed in: {parallelResult.TotalTime}");
+
+// Benchmark conditional workflow execution
+var conditionalResult = await benchmarks.Execute_Conditional_Workflow();
+Console.WriteLine($"Conditional workflow completed in: {conditionalResult.TotalTime}");
+
+// Benchmark workflow instance creation performance
+benchmarks.Create_Workflow_Instance();
+Console.WriteLine("Workflow instance created");
+
+// Benchmark execution with multiple concurrent instances
+var multiInstanceResult = await benchmarks.Execute_Workflow_With_Multiple_Instances();
+Console.WriteLine("100 workflow instances executed concurrently");
+
+// Access benchmark statistics
+var stats = new Dictionary<string, object?> 
+{
+    { "Sequential", sequentialResult.TotalTime.TotalMilliseconds },
+    { "Parallel", parallelResult.TotalTime.TotalMilliseconds },
+    { "Conditional", conditionalResult.TotalTime.TotalMilliseconds }
+};
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
