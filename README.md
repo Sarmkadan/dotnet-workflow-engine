@@ -4,6 +4,15 @@
 
 The dotnet-workflow-engine is a lightweight, extensible workflow engine written in C#. It supports parallel execution, conditional branching, retry policies, and stateful activities. The engine is designed to be easily integrated into existing .NET applications and can be extended with custom activity handlers.
 
+## Architecture
+
+See [docs/architecture.md](docs/architecture.md) for the full picture: module breakdown,
+the execution flow (definition -> publish -> instance -> recursive graph walk), design
+decisions with their trade-offs, extension points (`IActivityHandler`, `IEventBus`,
+`IAuditRepository`, `IOutputFormatter`) and the honest list of current limitations.
+Short version: everything is in-memory today, handlers plug in per activity type, retry
+and routing are handled centrally by the engine.
+
 ## AdvancedIntegrationTests
 
 The `AdvancedIntegrationTests` class contains comprehensive integration tests for verifying advanced workflow engine scenarios and complex workflows. These tests cover a range of features, including parallel workflow execution, error handling with retry policies, state preservation across activities, and conditional routing.
