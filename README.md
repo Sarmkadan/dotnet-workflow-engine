@@ -13,6 +13,78 @@ decisions with their trade-offs, extension points (`IActivityHandler`, `IEventBu
 Short version: everything is in-memory today, handlers plug in per activity type, retry
 and routing are handled centrally by the engine.
 
+## WorkflowExecutionService
+
+The `WorkflowExecutionService` is the core execution engine for the workflow system. It manages the complete lifecycle of workflow instances from creation to completion, including:
+
+- Creating new instances from published workflow definitions
+- Starting and executing workflows by running activities in sequence
+- Handling parallel execution with fork/join patterns
+- Managing suspended workflows waiting for external messages
+- Tracking instance state and providing comprehensive querying capabilities
+- Providing statistics on workflow execution status
+
+The service maintains all active instances in memory and persists audit logs for all workflow events.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+var definitionService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var auditService = serviceProvider.GetRequiredService<IAuditService>();
+
+// Create a new workflow instance
+var workflowInstance = executionService.CreateInstance(
+    workflowId: "order-processing-workflow",
+    correlationId: "order-2024-001",
+    initiatedBy: "order-service@company.com"
+);
+
+Console.WriteLine($"Created workflow instance: {workflowInstance.Id}");
+
+// Start the workflow execution
+var startedInstance = await executionService.StartAsync(workflowInstance.Id);
+Console.WriteLine($"Workflow started: {startedInstance.Status}");
+
+// Execute a specific activity
+await executionService.ExecuteActivityAsync(startedInstance, "validate-order");
+Console.WriteLine("Validation activity completed");
+
+// Get the current instance state
+var currentInstance = executionService.GetInstance(workflowInstance.Id);
+Console.WriteLine($"Current status: {currentInstance?.Status}");
+
+// Get statistics
+var stats = executionService.GetStatistics();
+Console.WriteLine($"Total instances: {stats.Total}, Active: {stats.Active}, Completed: {stats.Completed}, Failed: {stats.Failed}");
+
+// Complete the workflow
+if (currentInstance != null && currentInstance.Status == WorkflowStatus.Completed)
+{
+    executionService.CompleteInstance(currentInstance.Id);
+    Console.WriteLine("Workflow completed successfully");
+}
+
+// Get instances by workflow
+var workflowInstances = executionService.GetInstancesByWorkflow("order-processing-workflow");
+Console.WriteLine($"Found {workflowInstances.Count} instances for this workflow");
+
+// Get active instances
+var activeInstances = executionService.GetActiveInstances();
+Console.WriteLine($"Active instances: {activeInstances.Count}");
+```
+
 ## AdvancedIntegrationTests
 
 The `AdvancedIntegrationTests` class contains comprehensive integration tests for verifying advanced workflow engine scenarios and complex workflows. These tests cover a range of features, including parallel workflow execution, error handling with retry policies, state preservation across activities, and conditional routing.
