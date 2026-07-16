@@ -415,6 +415,62 @@ Console.WriteLine($"Order total: {orderTotal:C}");
 Console.WriteLine($"Validation result: {context.GetActivityOutput("validationResult")}");
 ```
 
+## RetryPolicyConfig
+
+The `RetryPolicyConfig` class defines configuration for activity retry behavior, enabling automatic retries on transient failures with configurable policies. It supports no retry, fixed delay, linear backoff, and exponential backoff strategies with jitter for distributed system resilience.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Enums;
+using System;
+
+// Create a no-retry policy (default behavior)
+var noRetryConfig = RetryPolicyConfig.CreateNoRetry();
+Console.WriteLine($"No retry policy: {noRetryConfig.PolicyType}, MaxAttempts: {noRetryConfig.MaxAttempts}");
+
+// Create a fixed delay retry policy
+var fixedDelayConfig = RetryPolicyConfig.CreateFixedDelay(maxAttempts: 5, delayMs: 2000);
+fixedDelayConfig.PolicyType = RetryPolicy.FixedDelay;
+fixedDelayConfig.RetryableExceptionTypes = new List<string> { "TimeoutException", "HttpRequestException" };
+Console.WriteLine($"Fixed delay retry: {fixedDelayConfig.PolicyType}, Delay: {fixedDelayConfig.InitialDelayMs}ms, MaxAttempts: {fixedDelayConfig.MaxAttempts}");
+
+// Create an exponential backoff retry policy
+var exponentialConfig = RetryPolicyConfig.CreateExponentialBackoff(
+    maxAttempts: 10,
+    initialDelayMs: 1000,
+    maxDelayMs: 300000,
+    jitterFactor: 0.2
+);
+exponentialConfig.BackoffMultiplier = 2.5;
+Console.WriteLine($"Exponential backoff: {exponentialConfig.PolicyType}, Initial: {exponentialConfig.InitialDelayMs}ms, Max: {exponentialConfig.MaxDelayMs}ms, Multiplier: {exponentialConfig.BackoffMultiplier}");
+
+// Use the CalculateDelayMs method to get delay for a specific attempt
+var delayForAttempt3 = exponentialConfig.CalculateDelayMs(3);
+Console.WriteLine($"Delay for attempt 3: {delayForAttempt3}ms");
+
+// Use the ShouldRetry method to check if another attempt should be made
+var shouldRetry = exponentialConfig.ShouldRetry(5, "TimeoutException");
+Console.WriteLine($"Should retry on TimeoutException (attempt 5): {shouldRetry}");
+
+// Create a linear backoff retry policy
+var linearConfig = new RetryPolicyConfig
+{
+    PolicyType = RetryPolicy.LinearBackoff,
+    MaxAttempts = 8,
+    InitialDelayMs = 1500,
+    BackoffMultiplier = 1.0,
+    JitterFactor = 0.1,
+    RetryableExceptionTypes = new List<string> { "SqlException", "IOException" },
+    RetryOnTimeout = true
+};
+
+// Calculate delay for attempt 4 with linear backoff
+var linearDelay = linearConfig.CalculateDelayMs(4);
+Console.WriteLine($"Linear backoff delay for attempt 4: {linearDelay}ms");
+```
+
 ## WorkflowInstance
 
 The `WorkflowInstance` class represents a runtime instance of a workflow definition. It tracks the execution state, context, and lifecycle of a workflow as it progresses through its activities. Each workflow instance maintains its own execution history, including completed activities, active activities, and any errors that may have occurred during execution.
