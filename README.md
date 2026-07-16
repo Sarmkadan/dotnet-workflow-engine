@@ -1168,6 +1168,85 @@ app.MapControllers();
 app.Run();
 ```
 
+## RateLimitingMiddleware
+
+The `RateLimitingMiddleware` class enforces request quotas per client or user using a token bucket algorithm. It prevents abuse by limiting the number of requests that can be made within a configurable time window while allowing burst traffic. The middleware supports authentication-based identification and provides standardized rate limit headers in responses.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure rate limiting with custom settings
+builder.Services.AddWorkflowServices();
+builder.Services.Configure<RateLimitConfig>(options =>
+{
+    options.MaxRequests = 200;      // Allow 200 requests per window
+    options.WindowSeconds = 30;      // Per 30-second window
+    options.RetryAfterSeconds = 30;  // Retry after 30 seconds when limit exceeded
+});
+
+var app = builder.Build();
+
+// Add the rate limiting middleware
+app.UseMiddleware<RateLimitingMiddleware>();
+
+app.UseRouting();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+
+// Example: Making requests with rate limiting
+// var httpClient = new HttpClient();
+// var response = await httpClient.GetAsync("https://api.example.com/workflows");
+// 
+// Response headers:
+// - X-RateLimit-Limit: 200
+// - X-RateLimit-Remaining: 199
+// - X-RateLimit-Reset: <unix-timestamp>
+// - Retry-After: 30 (when limit exceeded)
+```
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddWorkflowServices();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+// Add the error handling middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
 ## ErrorHandlingExample
 
 The `ErrorHandlingExample` class demonstrates comprehensive error handling patterns in workflow execution, including retry policies, fallback activities, and graceful degradation. This example shows how to build resilient workflows that can recover from transient failures and provide meaningful error information.
