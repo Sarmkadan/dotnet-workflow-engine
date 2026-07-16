@@ -557,6 +557,68 @@ var sharedData = await cacheService.GetOrLoadAsync(
 Console.WriteLine($"Shared state: {sharedData.State}");
 ```
 
+## IWorkflowMetrics
+
+The `IWorkflowMetrics` interface provides comprehensive metrics and monitoring capabilities for tracking workflow execution statistics. It collects and exposes detailed metrics including workflow execution counts, success/failure rates, durations, activity statistics, error tracking, and snapshot timestamps. This interface is essential for monitoring system health, performance analysis, and capacity planning.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Monitoring;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+// Resolve the metrics service
+var metricsService = serviceProvider.GetRequiredService<IWorkflowMetrics>();
+
+// Record a successful workflow execution
+metricsService.RecordWorkflowExecution(isSuccess: true, durationMs: 1500);
+
+// Record a failed workflow execution
+metricsService.RecordWorkflowExecution(isSuccess: false, durationMs: 800);
+
+// Record a successful activity execution
+metricsService.RecordActivityExecution(isSuccess: true, durationMs: 250);
+
+// Record an activity failure with error details
+metricsService.RecordActivityExecution(isSuccess: false, durationMs: 120);
+metricsService.RecordError("database-connection-failed", "Failed to connect to database: timeout");
+
+// Get current metrics snapshot
+var metrics = await metricsService.GetMetricsAsync();
+
+Console.WriteLine($"Total workflows executed: {metrics.TotalWorkflowsExecuted}");
+Console.WriteLine($"Successful workflows: {metrics.SuccessfulWorkflows}");
+Console.WriteLine($"Failed workflows: {metrics.FailedWorkflows}");
+Console.WriteLine($"Success rate: {metrics.SuccessRate:P2}");
+Console.WriteLine($"Average workflow duration: {metrics.AverageWorkflowDurationMs}ms");
+Console.WriteLine($"Min workflow duration: {metrics.MinWorkflowDurationMs}ms");
+Console.WriteLine($"Max workflow duration: {metrics.MaxWorkflowDurationMs}ms");
+Console.WriteLine($"Total activities executed: {metrics.TotalActivitiesExecuted}");
+Console.WriteLine($"Successful activities: {metrics.SuccessfulActivities}");
+Console.WriteLine($"Failed activities: {metrics.FailedActivities}");
+Console.WriteLine($"Average activity duration: {metrics.AverageActivityDurationMs}ms");
+
+// Display error statistics
+foreach (var error in metrics.ErrorCount.OrderByDescending(kv => kv.Value).Take(5))
+{
+    Console.WriteLine($"Error '{error.Key}': {error.Value} occurrences");
+}
+
+Console.WriteLine($"Last updated: {metrics.LastUpdated}");
+Console.WriteLine($"Snapshot time: {metrics.SnapshotTime}");
+
+// Reset metrics (typically used for testing or when starting fresh)
+metricsService.Reset();
+Console.WriteLine("Metrics reset completed");
+```
+
 ## Activity
 
 The `Activity` class represents a single unit of work within a workflow definition. It encapsulates all configuration needed to execute a task, including timeouts, retry policies, input/output mappings, and execution modes. Activities can represent tasks, events, or gateways (fork/join points) and support conditional execution through expressions.
