@@ -107,3 +107,75 @@ validatorTests.ValidateTransition_ToActivityNotFound_ReturnsError();
 ```
 
 These calls execute the underlying assertions (via FluentAssertions) and will throw if any validation rule fails, making them useful for ad‑hoc verification during development.
+
+## AuditServiceTests
+
+The `AuditServiceTests` class contains unit tests that verify the audit logging functionality of the workflow engine. It tests instance creation logging, activity tracking, and comprehensive filtering capabilities for retrieving audit logs by instance ID, activity ID, event type, severity, date range, actor, and pagination.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Tests;
+using Moq;
+
+// Create mock repository and service instance
+var mockAuditRepository = new Mock<IAuditRepository>();
+var auditService = new AuditService(mockAuditRepository.Object);
+
+// Log workflow instance creation
+await auditService.LogInstanceCreated("workflow-instance-123", "user@company.com");
+
+// Log activity completion
+await auditService.LogActivityCompleted("workflow-instance-123", "activity-456", "user@company.com");
+
+// Log activity failure
+await auditService.LogActivityFailed("workflow-instance-123", "activity-789", "Task failed", "user@company.com");
+
+// Retrieve all audit logs
+var (allLogs, totalCount) = await auditService.GetFilteredAuditLogsAsync();
+Console.WriteLine($"Total logs: {totalCount}");
+
+// Filter logs by instance ID
+var (instanceLogs, instanceCount) = await auditService.GetFilteredAuditLogsAsync(
+    instanceId: "workflow-instance-123"
+);
+
+// Filter logs by activity ID
+var (activityLogs, activityCount) = await auditService.GetFilteredAuditLogsAsync(
+    activityId: "activity-456"
+);
+
+// Filter logs by event type
+var (failedLogs, failedCount) = await auditService.GetFilteredAuditLogsAsync(
+    eventType: "ActivityFailed"
+);
+
+// Filter logs by severity
+var (errorLogs, errorCount) = await auditService.GetFilteredAuditLogsAsync(
+    severity: "Error"
+);
+
+// Filter logs by date range
+var fromDate = DateTime.UtcNow.AddDays(-7);
+var toDate = DateTime.UtcNow;
+var (recentLogs, recentCount) = await auditService.GetFilteredAuditLogsAsync(
+    fromDate: fromDate,
+    toDate: toDate
+);
+
+// Filter logs by actor
+var (userLogs, userCount) = await auditService.GetFilteredAuditLogsAsync(
+    actor: "user@company.com"
+);
+
+// Get paginated results
+var (page1, pageTotal) = await auditService.GetFilteredAuditLogsAsync(
+    skip: 0,
+    take: 50
+);
+
+// Export audit logs to CSV
+var csvData = await auditService.ExportAuditLogAsCsv("workflow-instance-123");
+Console.WriteLine(csvData);
+```
