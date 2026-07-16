@@ -1410,6 +1410,62 @@ Console.WriteLine(cfoApproval.Value.message);
 // Document is now fully approved and will be archived
 ```
 
+## WorkflowDefinitionBenchmarks
+
+The `WorkflowDefinitionBenchmarks` class provides performance benchmarks for workflow definition operations including loading, validation, and graph traversal. It measures the workflow engine's performance characteristics for workflow definition operations across different workflow sizes (small, medium, and large) to evaluate the efficiency of workflow definition management and validation.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Benchmarks.Benchmarks;
+using DotNetWorkflowEngine.Models;
+
+// Create benchmark instance
+var benchmarks = new WorkflowDefinitionBenchmarks();
+
+// Setup the benchmark environment
+benchmarks.Setup();
+
+// Benchmark adding a small workflow definition
+var addSmallResult = benchmarks.Add_Small_Workflow();
+Console.WriteLine("Small workflow added successfully");
+
+// Benchmark retrieving a small workflow definition
+var getSmallResult = benchmarks.Get_Small_Workflow();
+Console.WriteLine("Small workflow retrieved successfully");
+
+// Benchmark validating a small workflow definition
+var validateSmallResult = benchmarks.Validate_Small_Workflow();
+Console.WriteLine("Small workflow validated successfully");
+
+// Benchmark getting next activities from a small workflow
+var nextActivitiesSmallResult = benchmarks.Get_Next_Activities_Small_Workflow();
+Console.WriteLine("Next activities retrieved from small workflow");
+
+// Benchmark adding a medium workflow definition (20 activities)
+var addMediumResult = benchmarks.Add_Medium_Workflow();
+Console.WriteLine("Medium workflow added successfully");
+
+// Benchmark adding a large workflow definition (100 activities)
+var addLargeResult = benchmarks.Add_Large_Workflow();
+Console.WriteLine("Large workflow added successfully");
+
+// Benchmark retrieving workflow definitions
+var getMediumResult = benchmarks.Get_Medium_Workflow();
+var getLargeResult = benchmarks.Get_Large_Workflow();
+Console.WriteLine("Medium and large workflows retrieved successfully");
+
+// Benchmark validating workflow definitions
+var validateMediumResult = benchmarks.Validate_Medium_Workflow();
+var validateLargeResult = benchmarks.Validate_Large_Workflow();
+Console.WriteLine("Medium and large workflows validated successfully");
+
+// Benchmark getting next activities from larger workflows
+var nextActivitiesMediumResult = benchmarks.Get_Next_Activities_Medium_Workflow();
+var nextActivitiesLargeResult = benchmarks.Get_Next_Activities_Large_Workflow();
+Console.WriteLine("Next activities retrieved from medium and large workflows");
+```
+
 ## ActivityExecutionBenchmarks
 
 The `ActivityExecutionBenchmarks` class provides performance benchmarks for measuring activity execution throughput with different retry policies and execution scenarios. It benchmarks basic activity execution, activities with retry policies (exponential backoff, fixed delay, no retry), and measures the workflow engine's performance characteristics for individual activity execution under various workload scenarios.
