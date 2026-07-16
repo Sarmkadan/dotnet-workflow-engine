@@ -2051,6 +2051,135 @@ var memoryCache = benchmarks.GetCache(); // Helper method to access the cache
 Console.WriteLine("Cache operations completed");
 ```
 
+## AuditService
+
+The `AuditService` provides centralized audit logging and tracking for workflow execution events. It records workflow instance lifecycle events (creation, start, completion, failure, resumption), activity executions (success, failure, retries), custom events, and provides comprehensive querying capabilities for audit trails. The service implements `IAuditTrailQuery` for advanced filtering and supports CSV export for compliance and analysis.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var auditService = serviceProvider.GetRequiredService<IAuditService>();
+
+// Log workflow instance creation
+await auditService.LogInstanceCreated("wf-inst-order-processing-001", "order-service@company.com");
+
+// Log workflow instance start
+await auditService.LogInstanceStarted("wf-inst-order-processing-001");
+
+// Log workflow instance completion
+await auditService.LogInstanceCompleted("wf-inst-order-processing-001");
+
+// Log activity completion with result details
+var activityResult = new ActivityResult("validate-order")
+{
+    StartTime = DateTime.UtcNow,
+    AttemptNumber = 1,
+    TotalAttempts = 3
+};
+activityResult.SetSuccess(new Dictionary<string, object?>
+{
+    { "validationResult", "approved" },
+    { "riskScore", 0.15 }
+});
+
+await auditService.LogActivityCompleted(
+    "wf-inst-order-processing-001",
+    "validate-order",
+    activityResult
+);
+
+// Log activity failure
+await auditService.LogActivityFailed(
+    "wf-inst-order-processing-001",
+    "process-payment",
+    "Payment gateway timeout after 30 seconds"
+);
+
+// Log activity retry
+await auditService.LogActivityRetry(
+    "wf-inst-order-processing-001",
+    "process-payment",
+    attemptNumber: 2,
+    reason: "Network timeout"
+);
+
+// Log custom event
+await auditService.LogCustomEvent(
+    "wf-inst-order-processing-001",
+    "PaymentGatewayWarning",
+    "Payment gateway latency detected",
+    severity: "Warning",
+    activityId: "process-payment"
+);
+
+// Log workflow instance failure
+await auditService.LogInstanceFailed(
+    "wf-inst-order-processing-001",
+    "Payment gateway timeout after 3 attempts"
+);
+
+// Log workflow instance resumption
+await auditService.LogInstanceResumed("wf-inst-order-processing-001");
+
+// Get all audit logs for a workflow instance
+var allLogs = await auditService.GetAuditLog("wf-inst-order-processing-001");
+Console.WriteLine($"Total logs: {allLogs.Count}");
+
+// Get recent audit logs (last 10 entries)
+var recentLogs = await auditService.GetRecentAuditLog("wf-inst-order-processing-001", count: 10);
+
+// Get filtered audit logs with pagination
+var (filteredLogs, totalCount) = await auditService.GetFilteredAuditLogsAsync(
+    instanceId: "wf-inst-order-processing-001",
+    eventType: "ActivityCompleted",
+    severity: "Info",
+    skip: 0,
+    take: 50
+);
+Console.WriteLine($"Filtered logs: {filteredLogs.Count} of {totalCount}");
+
+// Query audit logs using IAuditTrailQuery interface
+var queryResults = await auditService.QueryAsync(
+    workflowId: "order-processing-workflow",
+    fromDate: DateTime.UtcNow.AddDays(-7),
+    toDate: DateTime.UtcNow,
+    take: 100
+);
+
+// Get event types statistics
+var eventTypes = await auditService.GetEventTypesAsync();
+foreach (var eventType in eventTypes)
+{
+    Console.WriteLine($"Event type: {eventType}");
+}
+
+// Get outcome summary statistics
+var outcomeSummary = await auditService.GetOutcomeSummaryAsync(
+    fromDate: DateTime.UtcNow.AddDays(-30),
+    toDate: DateTime.UtcNow
+);
+foreach (var kvp in outcomeSummary)
+{
+    Console.WriteLine($"{kvp.Key}: {kvp.Value} occurrences");
+}
+
+// Export audit log to CSV
+var csvData = await auditService.ExportAuditLogAsCsv("wf-inst-order-processing-001");
+Console.WriteLine(csvData);
+
+// Clear audit log for a completed workflow
+await auditService.ClearAuditLog("wf-inst-order-processing-001");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
