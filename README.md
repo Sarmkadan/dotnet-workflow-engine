@@ -1061,6 +1061,75 @@ if (paymentActivity.RequiresHandler())
 Console.WriteLine($"Activity created at: {paymentActivity.CreatedAt:O}");
 ```
 
+## MonitoringExample
+
+The `MonitoringExample` class provides endpoints for monitoring workflow engine metrics, health checks, and system resource usage. It demonstrates how to expose workflow execution statistics, audit trail data, performance trends, and system health information through a REST API.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Mvc;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+services.AddLogging();
+var serviceProvider = services.BuildServiceProvider();
+
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+var auditService = serviceProvider.GetRequiredService<IAuditService>();
+var logger = serviceProvider.GetRequiredService<ILogger<MonitoringExample>>();
+
+// Create monitoring example instance
+var monitoringExample = new MonitoringExample(
+    executionService,
+    auditService,
+    logger
+);
+
+// Get workflow metrics for today
+var metrics = await monitoringExample.GetMetrics("today");
+Console.WriteLine($"Total workflows: {metrics.Value.workflowMetrics.totalInstances}");
+Console.WriteLine($"Completed: {metrics.Value.workflowMetrics.completedInstances}");
+Console.WriteLine($"Success rate: {metrics.Value.successRate:P}");
+
+// Get health status
+var health = await monitoringExample.GetHealthStatus();
+Console.WriteLine($"System status: {health.Value.status}");
+Console.WriteLine($"Database: {health.Value.components.database}");
+Console.WriteLine($"Cache: {health.Value.components.cache}");
+
+// Get audit statistics
+var auditStats = await monitoringExample.GetAuditStatistics("week");
+Console.WriteLine($"Total audit entries: {auditStats.Value.totalEntries}");
+Console.WriteLine($"Top 5 users: {string.Join(", ", auditStats.Value.topUsers.Select(u => u.userId))}");
+
+// Get performance trends
+var trends = await monitoringExample.GetPerformanceTrends(30);
+Console.WriteLine($"Performance trends for last 30 days: {trends.Value.Count} data points");
+
+// Get slowest workflows
+var slowWorkflows = await monitoringExample.GetSlowestWorkflows(5);
+Console.WriteLine($"Slowest workflows:");
+foreach (var workflow in slowWorkflows.Value)
+{
+    Console.WriteLine($"  - {workflow.instanceId}: {workflow.executionTimeSeconds}s");
+}
+
+// Get failed workflows
+var failedWorkflows = await monitoringExample.GetFailedWorkflows(7);
+Console.WriteLine($"Total failed workflows: {failedWorkflows.Value.totalFailed}");
+Console.WriteLine($"Failures by activity: {string.Join(", ", failedWorkflows.Value.failuresByActivity.Select(f => f.activityId))}");
+
+// Get resource usage
+var resourceUsage = monitoringExample.GetResourceUsage();
+Console.WriteLine($"Memory usage: {resourceUsage.Value.memory.workingSetMb} MB");
+Console.WriteLine($"CPU time: {resourceUsage.Value.cpu.totalProcessorTime}s");
+```
+
 ## ErrorHandlingExample
 
 The `ErrorHandlingExample` class demonstrates comprehensive error handling patterns in workflow execution, including retry policies, fallback activities, and graceful degradation. This example shows how to build resilient workflows that can recover from transient failures and provide meaningful error information.
