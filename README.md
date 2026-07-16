@@ -43,9 +43,9 @@ var auditService = serviceProvider.GetRequiredService<IAuditService>();
 
 // Create a new workflow instance
 var workflowInstance = executionService.CreateInstance(
-    workflowId: "order-processing-workflow",
-    correlationId: "order-2024-001",
-    initiatedBy: "order-service@company.com"
+workflowId: "order-processing-workflow",
+correlationId: "order-2024-001",
+initiatedBy: "order-service@company.com"
 );
 
 Console.WriteLine($"Created workflow instance: {workflowInstance.Id}");
@@ -253,7 +253,7 @@ if (retrievedWorkflow != null)
     retrievedWorkflow.Status = WorkflowStatus.Published;
     retrievedWorkflow.ModifiedAt = DateTime.UtcNow;
     retrievedWorkflow.ModifiedBy = "admin@company.com";
-    
+
     await repository.UpdateAsync(retrievedWorkflow);
     Console.WriteLine("Workflow updated successfully");
 }
@@ -298,8 +298,8 @@ using Microsoft.Extensions.Options;
 
 // Configure options in appsettings.json or via code
 var configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json")
-    .Build();
+.AddJsonFile("appsettings.json")
+.Build();
 
 // Setup services with configuration
 var services = new ServiceCollection();
@@ -342,6 +342,59 @@ services.Configure<DotnetWorkflowEngineOptions>(options =>
         BackoffType = "Exponential"
     };
 });
+```
+
+## DependencyInjection
+
+The `DependencyInjection` class provides extension methods for registering workflow engine services in the .NET dependency injection container. It centralizes the configuration of all services, middleware, and filters needed to run the workflow engine. The primary method `AddWorkflowEngine()` registers core services, while additional methods like `AddWorkflowEngineCors()`, `AddWorkflowEngineAuthentication()`, and `UseWorkflowEngine()` configure specific features.
+
+The middleware configuration class `WorkflowEngineMiddlewareOptions` controls request logging, rate limiting, CORS, and other HTTP middleware settings. You can customize these options when calling `UseWorkflowEngine()` to tailor the engine's behavior to your application's needs.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Configuration;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services in Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure workflow engine services with optional settings
+builder.Services.AddWorkflowEngine(options =>
+{
+    options.ConnectionString = "Host=localhost;Database=workflow_engine";
+    options.EnableAuditLogging = true;
+    options.EnableMetrics = true;
+    options.MaxConcurrentWorkflows = 100;
+});
+
+// Add CORS policy
+builder.Services.AddWorkflowEngineCors();
+
+// Add authentication with JWT
+builder.Services.AddWorkflowEngineAuthentication(
+    "your-secret-key-here-at-least-32-characters-long");
+
+var app = builder.Build();
+
+// Configure middleware with custom options
+app.UseWorkflowEngine(new WorkflowEngineMiddlewareOptions
+{
+    EnableRequestLogging = true,
+    LogRequestBody = true,
+    LogResponseBody = false,
+    EnableRateLimiting = true,
+    RateLimit = new RateLimitConfiguration
+    {
+        MaxRequests = 200,
+        WindowSeconds = 30,
+        RetryAfterSeconds = 30
+    },
+    EnableCors = true
+});
+
+Console.WriteLine("Workflow engine services configured successfully");
 ```
 
 ## AuditRepository
