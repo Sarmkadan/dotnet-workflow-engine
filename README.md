@@ -2353,6 +2353,111 @@ Console.WriteLine(csvData);
 await auditService.ClearAuditLog("wf-inst-order-processing-001");
 ```
 
+## WorkflowInstanceRepository
+
+The `WorkflowInstanceRepository` provides data access methods for managing workflow instances in the workflow engine. It handles CRUD operations for workflow instances, supports querying by various criteria (workflow ID, status, correlation ID, date ranges), and provides statistics about workflow execution. This repository is used by the workflow execution service to persist and retrieve workflow instance state.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Data.Repositories;
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create repository instance (typically via dependency injection)
+var repository = new WorkflowInstanceRepository(databaseContext);
+
+// Create a new workflow instance
+var workflowInstance = new WorkflowInstance
+{
+    Id = "wf-inst-order-processing-001",
+    WorkflowId = "order-processing-workflow",
+    Status = WorkflowStatus.Created,
+    CurrentActivityId = null,
+    ExecutedActivities = new List<string>(),
+    ActiveActivities = new List<string>(),
+    Context = new Dictionary<string, object?>
+    {
+        { "customerId", "CUST-12345" },
+        { "orderTotal", 299.99 }
+    },
+    CreatedAt = DateTime.UtcNow,
+    CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc",
+    InitiatedBy = "order-service@company.com"
+};
+
+// Add the workflow instance to database
+await repository.AddAsync(workflowInstance);
+
+// Get workflow instance by ID
+var instance = await repository.GetByIdAsync("wf-inst-order-processing-001");
+if (instance != null)
+{
+    Console.WriteLine($"Retrieved workflow instance: {instance.Id}");
+}
+
+// Get all workflow instances
+var allInstances = await repository.GetAllAsync();
+Console.WriteLine($"Total workflow instances: {allInstances.Count}");
+
+// Check if workflow instance exists
+var exists = await repository.ExistsAsync("wf-inst-order-processing-001");
+Console.WriteLine($"Instance exists: {exists}");
+
+// Get workflow instances by workflow ID
+var instancesByWorkflow = await repository.GetByWorkflowIdAsync("order-processing-workflow");
+Console.WriteLine($"Found {instancesByWorkflow.Count} instances for workflow: order-processing-workflow");
+
+// Get workflow instances by status
+var activeInstances = await repository.GetByStatusAsync(WorkflowStatus.Active);
+Console.WriteLine($"Active instances: {activeInstances.Count}");
+
+// Get active workflow instances
+var activeOnly = await repository.GetActiveInstancesAsync();
+Console.WriteLine($"Active only: {activeOnly.Count}");
+
+// Get workflow instances by correlation ID
+var instancesByCorrelation = await repository.GetByCorrelationIdAsync("corr-7f3b9c2e-4567-89ab-cdef-123456789abc");
+Console.WriteLine($"Instances by correlation ID: {instancesByCorrelation.Count}");
+
+// Get workflow instances by date range
+var dateRangeInstances = await repository.GetByDateRangeAsync(
+    DateTime.UtcNow.AddDays(-30),
+    DateTime.UtcNow
+);
+Console.WriteLine($"Instances in last 30 days: {dateRangeInstances.Count}");
+
+// Get failed workflow instances
+var failedInstances = await repository.GetFailedInstancesAsync();
+Console.WriteLine($"Failed instances: {failedInstances.Count}");
+
+// Get statistics about workflow instances
+var stats = await repository.GetStatisticsAsync();
+Console.WriteLine($"Total: {stats.Total}, Active: {stats.Active}, Completed: {stats.Completed}, Failed: {stats.Failed}");
+
+// Update workflow instance
+instance.Status = WorkflowStatus.Running;
+instance.StartedAt = DateTime.UtcNow;
+await repository.UpdateAsync(instance);
+
+// Delete workflow instance (typically only for completed/failed instances)
+await repository.DeleteAsync("wf-inst-old-instance-001");
+
+// Get paged results
+var (pagedInstances, totalCount) = await repository.GetPagedAsync(
+    skip: 0,
+    take: 20,
+    orderBy: "CreatedAt",
+    descending: true
+);
+Console.WriteLine($"Page 1 of {totalCount} total instances: {pagedInstances.Count} items");
+
+// Clear all workflow instances (use with caution)
+await repository.ClearAsync();
+```
+
 ## DatabaseContext
 
 The `DatabaseContext` class serves as the central data access layer for the workflow engine, providing repository access to workflow definitions, instances, and audit logs. It manages database connections, transactions, and provides methods for workflow persistence, statistics retrieval, and database initialization.
