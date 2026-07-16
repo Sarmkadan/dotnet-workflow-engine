@@ -697,6 +697,102 @@ string kebabWorkflow = pascalWorkflow.ToKebabCase(); // "process-order-workflow"
 bool isValid = kebabWorkflow.IsValidUrl(); // false
 ```
 
+## ReflectionHelper
+
+The `ReflectionHelper` class provides a comprehensive set of static utility methods for working with reflection operations. It simplifies common reflection tasks such as invoking methods, getting/setting property values, creating instances, finding types, checking for attributes, and determining type characteristics. The helper includes robust error handling and supports both static and instance member access.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+
+// Example class for reflection
+public class Order
+{
+    public int Id { get; set; }
+    public string CustomerName { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    
+    public bool Validate() => Amount > 0;
+    
+    public void Process() => Console.WriteLine("Processing order...");
+}
+
+public class PaymentProcessor
+{
+    public string ProcessPayment(decimal amount) => $"Processed: {amount}";
+}
+
+// Create an instance using reflection
+var orderInstance = ReflectionHelper.CreateInstance<Order>();
+Console.WriteLine($"Created instance: {orderInstance != null}");
+
+// Set property values using reflection
+ReflectionHelper.SetPropertyValue(orderInstance, "Id", 123);
+ReflectionHelper.SetPropertyValue(orderInstance, "CustomerName", "John Doe");
+ReflectionHelper.SetPropertyValue(orderInstance, "Amount", 99.99m);
+ReflectionHelper.SetPropertyValue(orderInstance, "CreatedAt", DateTime.UtcNow);
+
+// Get property values using reflection
+var id = ReflectionHelper.GetPropertyValue<int>(orderInstance, "Id");
+var customerName = ReflectionHelper.GetPropertyValue<string>(orderInstance, "CustomerName");
+Console.WriteLine($"Order {id}: {customerName} - {ReflectionHelper.GetPropertyValue<decimal>(orderInstance, "Amount")}");
+
+// Invoke methods using reflection
+var isValid = ReflectionHelper.InvokeMethod<bool>(orderInstance, "Validate");
+Console.WriteLine($"Order is valid: {isValid}");
+
+ReflectionHelper.InvokeMethod(orderInstance, "Process");
+
+// Get all properties and methods
+var properties = ReflectionHelper.GetProperties<Order>();
+Console.WriteLine($"Properties: {string.Join(", ", properties.Select(p => p.Name))}");
+
+var methods = ReflectionHelper.GetMethods<Order>();
+Console.WriteLine($"Methods: {string.Join(", ", methods.Select(m => m.Name))}");
+
+// Find types implementing an interface
+var implementingTypes = ReflectionHelper.FindTypesImplementing<IActivityHandler>();
+Console.WriteLine($"Types implementing IActivityHandler: {implementingTypes.Count()}");
+
+// Check for attributes
+bool hasAttribute = ReflectionHelper.HasAttribute<SerializableAttribute>(typeof(Order));
+Console.WriteLine($"Order has Serializable attribute: {hasAttribute}");
+
+// Type checking utilities
+bool isSimple = ReflectionHelper.IsSimpleType(typeof(int));
+bool isNullable = ReflectionHelper.IsNullable(typeof(int?));
+bool isCollection = ReflectionHelper.IsCollectionType(typeof(List<string>));
+Console.WriteLine($"int is simple: {isSimple}, int? is nullable: {isNullable}, List<string> is collection: {isCollection}");
+
+// Create instance with parameters
+var processor = ReflectionHelper.CreateInstanceWithParameters<PaymentProcessor>(
+    new[] { typeof(decimal) }, 
+    new object[] { 100.50m }
+);
+var result = ReflectionHelper.InvokeMethod<string>(processor, "ProcessPayment", 100.50m);
+Console.WriteLine(result);
+
+// Get collection element type
+var elementType = ReflectionHelper.GetCollectionElementType(typeof(List<Order>));
+Console.WriteLine($"Collection element type: {elementType?.Name}");
+
+// Get underlying type for nullable types
+var underlyingType = ReflectionHelper.GetUnderlyingType(typeof(int?));
+Console.WriteLine($"Underlying type of int?: {underlyingType?.Name}");
+
+// Get custom attributes
+var serializableAttr = ReflectionHelper.GetAttribute<SerializableAttribute>(typeof(Order));
+Console.WriteLine($"Serializable attribute: {serializableAttr != null}");
+
+var obsoleteAttrs = ReflectionHelper.GetAttributes<ObsoleteAttribute>(typeof(Order));
+Console.WriteLine($"Obsolete attributes count: {obsoleteAttrs.Count()}");
+```
+
 ## DateTimeExtensions
 
 The `DateTimeExtensions` class provides extension methods for DateTime operations commonly used in workflow processing. It includes formatting, duration calculation, temporal comparisons, and utility methods for working with dates and times.
