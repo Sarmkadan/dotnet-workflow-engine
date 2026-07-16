@@ -811,6 +811,94 @@ var emptyResult = BranchingResult.Empty("standalone-activity");
 Console.WriteLine($"Empty result for activity with no transitions: {emptyResult.ActivityId}");
 ```
 
+## ActivityResult
+
+The `ActivityResult` class represents the outcome of an activity execution within a workflow. It tracks execution status, timing, output data, error information, retry attempts, and metadata. This class is used throughout the workflow engine to communicate the result of activity execution back to the workflow instance and to determine subsequent workflow transitions.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Enums;
+using System;
+using System.Collections.Generic;
+
+// Create an activity result for a payment processing activity
+var paymentResult = new ActivityResult("process-payment")
+{
+    StartTime = DateTime.UtcNow,
+    AttemptNumber = 1,
+    TotalAttempts = 3,
+    Metadata = new Dictionary<string, object?>
+    {
+        { "retryPolicy", "exponential-backoff" },
+        { "maxRetries", 3 }
+    }
+};
+
+try
+{
+    // Simulate payment processing logic
+    var paymentSuccess = ProcessPayment("ORD-12345", 299.99m);
+    
+    if (paymentSuccess)
+    {
+        // Mark as successful with output data
+        var output = new Dictionary<string, object?>
+        {
+            { "transactionId", "txn-pay-7f3b9c2e" },
+            { "amount", 299.99m },
+            { "paymentMethod", "credit-card" },
+            { "customerId", "CUST-67890" },
+            { "status", "completed" }
+        };
+        
+        paymentResult.SetSuccess(output);
+        Console.WriteLine($"Payment processed successfully in {paymentResult.ExecutionDurationMs}ms");
+    }
+    else
+    {
+        throw new InvalidOperationException("Payment gateway declined the transaction");
+    }
+}
+catch (Exception ex)
+{
+    // Mark as failed with error details
+    paymentResult.SetFailure(
+        errorMessage: "Payment processing failed",
+        stackTrace: ex.StackTrace
+    );
+    Console.WriteLine($"Payment failed: {paymentResult.ErrorMessage}");
+}
+
+// Check result status
+if (paymentResult.IsSuccess())
+{
+    Console.WriteLine($"Transaction ID: {paymentResult.GetOutput<string>("transactionId")}");
+    Console.WriteLine($"Amount: {paymentResult.GetOutput<decimal>("amount"):C}");
+}
+else if (paymentResult.IsFailed())
+{
+    Console.WriteLine($"Error: {paymentResult.ErrorMessage}");
+    Console.WriteLine($"Stack trace available: {!string.IsNullOrEmpty(paymentResult.StackTrace)}");
+}
+
+// Access timing information
+Console.WriteLine($"Execution started: {paymentResult.StartTime:O}");
+Console.WriteLine($"Execution ended: {paymentResult.EndTime?.ToString("O") ?? "not completed"}");
+Console.WriteLine($"Duration: {paymentResult.ExecutionDurationMs}ms");
+
+// Access metadata
+Console.WriteLine($"Retry policy: {paymentResult.Metadata.GetValueOrDefault("retryPolicy")}");
+
+// Helper method for demo
+static bool ProcessPayment(string orderId, decimal amount)
+{
+    // Simulate payment processing
+    return true;
+}
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
