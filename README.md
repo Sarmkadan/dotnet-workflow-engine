@@ -1228,6 +1228,72 @@ Console.WriteLine($"Image processed: {results.Value.Results.ImageResult}");
 Console.WriteLine($"Report generated: {results.Value.Results.ReportResult}");
 ```
 
+## ApprovalChainExample
+
+The `ApprovalChainExample` class demonstrates a multi-level document approval workflow that requires sequential approval from manager, director, and optionally CFO (for amounts over $10,000). This example showcases conditional workflow routing, state management across multiple approval stages, and notification activities for approval/rejection outcomes.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var workflowService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+
+// Create the approval chain example instance
+var approvalExample = new ApprovalChainExample(workflowService, executionService);
+
+// Initialize the workflow definition
+var initResult = await approvalExample.InitializeWorkflow();
+Console.WriteLine($"Workflow initialized: {initResult.Value}");
+
+// Submit a document for approval
+var submissionResult = await approvalExample.SubmitForApproval(new DocumentSubmission
+{
+    DocumentId = "DOC-2024-001",
+    Title = "Q3 Marketing Budget Approval",
+    Amount = 15000.00m,
+    SubmittedBy = "john.doe@company.com"
+});
+
+Console.WriteLine($"Document submitted: {submissionResult.Value.instanceId}");
+
+// Manager approves the document
+var managerApproval = await approvalExample.ApproveDocument(submissionResult.Value.instanceId, new ApprovalDecision
+{
+    ApprovedBy = "manager@company.com",
+    Comments = "Budget approved within department limits"
+});
+
+Console.WriteLine(managerApproval.Value.message);
+
+// Director approves the document
+var directorApproval = await approvalExample.ApproveDocument(submissionResult.Value.instanceId, new ApprovalDecision
+{
+    ApprovedBy = "director@company.com",
+    Comments = "Budget approved for Q3"
+});
+
+Console.WriteLine(directorApproval.Value.message);
+
+// CFO approves the document (required for amounts > $10,000)
+var cfoApproval = await approvalExample.ApproveDocument(submissionResult.Value.instanceId, new ApprovalDecision
+{
+    ApprovedBy = "cfo@company.com",
+    Comments = "Executive approval for large budget"
+});
+
+Console.WriteLine(cfoApproval.Value.message);
+
+// Document is now fully approved and will be archived
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
