@@ -1130,6 +1130,143 @@ Console.WriteLine($"Memory usage: {resourceUsage.Value.memory.workingSetMb} MB")
 Console.WriteLine($"CPU time: {resourceUsage.Value.cpu.totalProcessorTime}s");
 ```
 
+## WorkflowDefinitionService
+
+The `WorkflowDefinitionService` is responsible for managing workflow definitions throughout their lifecycle. It provides methods to create, retrieve, update, validate, and publish workflow definitions, as well as manage activities and transitions within those workflows. This service is typically used during workflow design time to define the structure of workflows before they are executed.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using System;
+using System.Collections.Generic;
+
+// Create workflow definition service (typically via DI)
+var workflowDefinitionService = new WorkflowDefinitionService();
+
+// Create a new workflow definition
+var workflow = workflowDefinitionService.CreateWorkflow(
+    id: "order-processing-workflow",
+    name: "Order Processing Workflow",
+    description: "Processes customer orders through validation, inventory check, and payment"
+);
+
+// Add activities to the workflow
+workflowDefinitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "validate-order",
+    Name = "Validate Order",
+    Type = "Validation",
+    TimeoutSeconds = 30,
+    MaxRetries = 3
+});
+
+workflowDefinitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "check-inventory",
+    Name = "Check Inventory",
+    Type = "InventoryCheck",
+    TimeoutSeconds = 60,
+    MaxRetries = 2
+});
+
+workflowDefinitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "process-payment",
+    Name = "Process Payment",
+    Type = "PaymentProcessing",
+    TimeoutSeconds = 45,
+    MaxRetries = 3
+});
+
+workflowDefinitionService.AddActivity(workflow.Id, new Activity
+{
+    Id = "fulfill-order",
+    Name = "Fulfill Order",
+    Type = "Fulfillment",
+    TimeoutSeconds = 120,
+    MaxRetries = 1
+});
+
+// Set start and end activities
+workflowDefinitionService.SetStartActivity(workflow.Id, "validate-order");
+workflowDefinitionService.SetEndActivity(workflow.Id, "fulfill-order");
+
+// Add transitions between activities
+workflowDefinitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "validate-to-inventory",
+    FromActivityId = "validate-order",
+    ToActivityId = "check-inventory",
+    IsDefault = true
+});
+
+workflowDefinitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "inventory-to-payment",
+    FromActivityId = "check-inventory",
+    ToActivityId = "process-payment",
+    IsDefault = true
+});
+
+workflowDefinitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "payment-to-fulfill",
+    FromActivityId = "process-payment",
+    ToActivityId = "fulfill-order",
+    IsDefault = true
+});
+
+// Get all workflows
+var allWorkflows = workflowDefinitionService.GetAllWorkflows();
+Console.WriteLine($"Total workflows: {allWorkflows.Count}");
+
+// Get a specific workflow
+var retrievedWorkflow = workflowDefinitionService.GetWorkflow("order-processing-workflow");
+if (retrievedWorkflow != null)
+{
+    Console.WriteLine($"Retrieved workflow: {retrievedWorkflow.Name}");
+}
+
+// Get activities for a workflow
+var activities = workflowDefinitionService.GetActivities("order-processing-workflow");
+Console.WriteLine($"Activities in workflow: {activities.Count}");
+
+// Get a specific activity
+var validateActivity = workflowDefinitionService.GetActivity("order-processing-workflow", "validate-order");
+if (validateActivity != null)
+{
+    Console.WriteLine($"Found activity: {validateActivity.Name}");
+}
+
+// Validate the workflow
+var isValid = workflowDefinitionService.ValidateWorkflow(workflow.Id, out var validationErrors);
+if (isValid)
+{
+    Console.WriteLine("Workflow is valid!");
+}
+else
+{
+    Console.WriteLine("Validation errors:");
+    foreach (var error in validationErrors)
+    {
+        Console.WriteLine($" - {error}");
+    }
+}
+
+// Publish the workflow to make it available for execution
+workflowDefinitionService.PublishWorkflow(workflow.Id);
+Console.WriteLine("Workflow published successfully");
+
+// Clone a workflow for modification
+var clonedWorkflow = workflowDefinitionService.CloneWorkflow(workflow.Id, "order-processing-workflow-v2");
+Console.WriteLine($"Cloned workflow: {clonedWorkflow.Name}");
+
+// Delete a workflow (if needed)
+// workflowDefinitionService.DeleteWorkflow(workflow.Id);
+```
+
 ## ErrorHandlingMiddleware
 
 The `ErrorHandlingMiddleware` class provides global exception handling for ASP.NET Core applications that use the workflow engine. It catches all unhandled exceptions and converts them to standardized JSON error responses with consistent structure, ensuring consistent error handling across all API endpoints.
