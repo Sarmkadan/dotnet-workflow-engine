@@ -561,6 +561,69 @@ Console.WriteLine($"Error: {failedInstance.ErrorMessage}");
 Console.WriteLine($"Status: {failedInstance.Status}");
 ```
 
+## Transition
+
+The `Transition` class represents a directed edge connecting two activities in a workflow definition. Transitions define the flow of execution between activities and support both default (unconditional) and conditional routing based on expressions. Transitions can be prioritized and labeled for better workflow organization and debugging.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using System;
+
+// Create a default transition between two activities
+var defaultTransition = new Transition
+{
+    Id = "validate_to_process_payment",
+    FromActivityId = "validate-order",
+    ToActivityId = "process-payment",
+    IsDefault = true,
+    Priority = 1,
+    Label = "Default payment path"
+};
+
+// Create a conditional transition with an expression
+var conditionalTransition = new Transition
+{
+    Id = "high_value_to_approval",
+    FromActivityId = "validate-order",
+    ToActivityId = "require-approval",
+    ConditionExpression = "context.GetVariable<decimal>(\"orderTotal\") > 1000",
+    Label = "High value order requires approval",
+    Priority = 2
+};
+
+// Use factory methods for common scenarios
+var defaultTransition2 = Transition.CreateDefault("check-inventory", "process-payment");
+var conditionalTransition2 = Transition.CreateConditional(
+    "validate-order",
+    "reject-order",
+    "!context.GetVariable<bool>(\"isValid\")"
+);
+
+// Validate transition configuration
+if (defaultTransition.Validate(out var errors))
+{
+    Console.WriteLine("Transition is valid!");
+}
+else
+{
+    Console.WriteLine("Validation errors:");
+    foreach (var error in errors)
+    {
+        Console.WriteLine($" - {error}");
+    }
+}
+
+// Access transition properties
+Console.WriteLine($"Transition: {defaultTransition.Id}");
+Console.WriteLine($"From: {defaultTransition.FromActivityId}");
+Console.WriteLine($"To: {defaultTransition.ToActivityId}");
+Console.WriteLine($"Is default: {defaultTransition.IsDefault}");
+Console.WriteLine($"Priority: {defaultTransition.Priority}");
+Console.WriteLine($"Created at: {defaultTransition.CreatedAt:O}");
+```
+
 ## Workflow
 
 The `Workflow` class represents a workflow definition as a directed graph of activities connected by transitions. It provides methods to validate the workflow structure, navigate the activity graph, and publish the workflow for execution.
