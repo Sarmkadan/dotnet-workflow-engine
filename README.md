@@ -82,6 +82,117 @@ var activeInstances = executionService.GetActiveInstances();
 Console.WriteLine($"Active instances: {activeInstances.Count}");
 ```
 
+## ICacheService
+
+The `ICacheService` interface provides a unified abstraction for caching operations across different cache implementations. It supports both in-memory and distributed caching strategies, allowing the workflow engine to adapt to various deployment scenarios without changing application code.
+
+The interface includes methods for basic CRUD operations (`GetAsync`, `SetAsync`, `RemoveAsync`, `ExistsAsync`) and a convenience method (`GetOrLoadAsync`) that combines retrieval with fallback loading for efficient data access patterns.
+
+Example usage with MemoryCacheService:
+
+```csharp
+using DotNetWorkflowEngine.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+
+// Setup services with in-memory caching (default)
+var services = new ServiceCollection();
+services.AddWorkflowServices(); // Uses MemoryCacheService by default
+var serviceProvider = services.BuildServiceProvider();
+
+// Resolve the cache service
+var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+// Get a cached value (returns null if not found)
+var cachedData = await cacheService.GetAsync<string>("user-session-123");
+Console.WriteLine($"Cached data: {cachedData ?? "null"}");
+
+// Check if a key exists in cache
+bool exists = await cacheService.ExistsAsync("user-session-123");
+Console.WriteLine($"Key exists: {exists}");
+
+// Set a value in cache with expiration
+await cacheService.SetAsync(
+  "user-session-123",
+  "user-data-456",
+  TimeSpan.FromMinutes(30)
+);
+Console.WriteLine("Value cached successfully");
+
+// Remove a value from cache
+await cacheService.RemoveAsync("user-session-123");
+Console.WriteLine("Value removed from cache");
+
+// Get or load with fallback - efficient pattern for expensive operations
+var workflowData = await cacheService.GetOrLoadAsync(
+  "workflow-definition-789",
+  async () => {
+    Console.WriteLine("Loading workflow from database...");
+    await Task.Delay(50); // Simulate database call
+    return "workflow-definition-content";
+  },
+  TimeSpan.FromHours(1)
+);
+Console.WriteLine($"Workflow data: {workflowData}");
+
+// Set multiple values
+foreach (var item in new[] { "item1", "item2", "item3" })
+{
+  await cacheService.SetAsync($"key-{item}", item, TimeSpan.FromMinutes(10));
+}
+Console.WriteLine("Multiple values cached");
+
+// Check existence of multiple keys
+foreach (var item in new[] { "key-item1", "key-item2", "key-item4" })
+{
+  bool keyExists = await cacheService.ExistsAsync(item);
+  Console.WriteLine($"Key {item} exists: {keyExists}");
+}
+```
+
+Example usage with DistributedCacheService:
+
+```csharp
+using DotNetWorkflowEngine.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+
+// Setup services with distributed caching (e.g., Redis)
+var services = new ServiceCollection();
+services.AddWorkflowServices(cacheProvider: "Redis");
+services.AddStackExchangeRedisCache(options =>
+{
+  options.Configuration = "localhost:6379";
+});
+var serviceProvider = services.BuildServiceProvider();
+
+// Resolve the distributed cache service
+var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+// Get a cached value from distributed cache
+var cachedConfig = await cacheService.GetAsync<WorkflowConfig>("app-config-v2");
+Console.WriteLine($"Config from distributed cache: {cachedConfig?.Version}");
+
+// Set a configuration value with expiration
+var newConfig = new WorkflowConfig { Version = "2.0", Settings = "..." };
+await cacheService.SetAsync("app-config-v2", newConfig, TimeSpan.FromHours(24));
+Console.WriteLine("Config cached in distributed cache");
+
+// Use GetOrLoadAsync with distributed cache for shared data
+var sharedData = await cacheService.GetOrLoadAsync(
+  "shared-workflow-state",
+  async () => {
+    Console.WriteLine("Fetching shared state from API...");
+    await Task.Delay(100);
+    return new SharedWorkflowState { State = "Running", Timestamp = DateTime.UtcNow };
+  },
+  TimeSpan.FromMinutes(5)
+);
+Console.WriteLine($"Shared state: {sharedData.State}");
+```
+
 ## ActivityService
 
 The `ActivityService` manages the execution of workflow activities, including activity handler registration, conditional execution, retry policies, and validation. It serves as the central service for executing activities within workflows, supporting both standard activities and gateway activities (fork/join points).
@@ -333,6 +444,117 @@ var result = await cacheService.GetOrLoadAsync(
     TimeSpan.FromMinutes(5)
 );
 Console.WriteLine($"Result: {result}"); // "actual-data"
+```
+
+## ICacheService
+
+The `ICacheService` interface provides a unified abstraction for caching operations across different cache implementations. It supports both in-memory and distributed caching strategies, allowing the workflow engine to adapt to various deployment scenarios without changing application code.
+
+The interface includes methods for basic CRUD operations (`GetAsync`, `SetAsync`, `RemoveAsync`, `ExistsAsync`) and a convenience method (`GetOrLoadAsync`) that combines retrieval with fallback loading for efficient data access patterns.
+
+Example usage with MemoryCacheService:
+
+```csharp
+using DotNetWorkflowEngine.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+
+// Setup services with in-memory caching (default)
+var services = new ServiceCollection();
+services.AddWorkflowServices(); // Uses MemoryCacheService by default
+var serviceProvider = services.BuildServiceProvider();
+
+// Resolve the cache service
+var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+// Get a cached value (returns null if not found)
+var cachedData = await cacheService.GetAsync<string>("user-session-123");
+Console.WriteLine($"Cached data: {cachedData ?? "null"}");
+
+// Check if a key exists in cache
+bool exists = await cacheService.ExistsAsync("user-session-123");
+Console.WriteLine($"Key exists: {exists}");
+
+// Set a value in cache with expiration
+await cacheService.SetAsync(
+  "user-session-123",
+  "user-data-456",
+  TimeSpan.FromMinutes(30)
+);
+Console.WriteLine("Value cached successfully");
+
+// Remove a value from cache
+await cacheService.RemoveAsync("user-session-123");
+Console.WriteLine("Value removed from cache");
+
+// Get or load with fallback - efficient pattern for expensive operations
+var workflowData = await cacheService.GetOrLoadAsync(
+  "workflow-definition-789",
+  async () => {
+    Console.WriteLine("Loading workflow from database...");
+    await Task.Delay(50); // Simulate database call
+    return "workflow-definition-content";
+  },
+  TimeSpan.FromHours(1)
+);
+Console.WriteLine($"Workflow data: {workflowData}");
+
+// Set multiple values
+foreach (var item in new[] { "item1", "item2", "item3" })
+{
+  await cacheService.SetAsync($"key-{item}", item, TimeSpan.FromMinutes(10));
+}
+Console.WriteLine("Multiple values cached");
+
+// Check existence of multiple keys
+foreach (var item in new[] { "key-item1", "key-item2", "key-item4" })
+{
+  bool keyExists = await cacheService.ExistsAsync(item);
+  Console.WriteLine($"Key {item} exists: {keyExists}");
+}
+```
+
+Example usage with DistributedCacheService:
+
+```csharp
+using DotNetWorkflowEngine.Caching;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+
+// Setup services with distributed caching (e.g., Redis)
+var services = new ServiceCollection();
+services.AddWorkflowServices(cacheProvider: "Redis");
+services.AddStackExchangeRedisCache(options =>
+{
+  options.Configuration = "localhost:6379";
+});
+var serviceProvider = services.BuildServiceProvider();
+
+// Resolve the distributed cache service
+var cacheService = serviceProvider.GetRequiredService<ICacheService>();
+
+// Get a cached value from distributed cache
+var cachedConfig = await cacheService.GetAsync<WorkflowConfig>("app-config-v2");
+Console.WriteLine($"Config from distributed cache: {cachedConfig?.Version}");
+
+// Set a configuration value with expiration
+var newConfig = new WorkflowConfig { Version = "2.0", Settings = "..." };
+await cacheService.SetAsync("app-config-v2", newConfig, TimeSpan.FromHours(24));
+Console.WriteLine("Config cached in distributed cache");
+
+// Use GetOrLoadAsync with distributed cache for shared data
+var sharedData = await cacheService.GetOrLoadAsync(
+  "shared-workflow-state",
+  async () => {
+    Console.WriteLine("Fetching shared state from API...");
+    await Task.Delay(100);
+    return new SharedWorkflowState { State = "Running", Timestamp = DateTime.UtcNow };
+  },
+  TimeSpan.FromMinutes(5)
+);
+Console.WriteLine($"Shared state: {sharedData.State}");
 ```
 
 ## Activity
