@@ -239,6 +239,71 @@ validatorTests.ValidateTransition_ToActivityNotFound_ReturnsError();
 
 These calls execute the underlying assertions (via FluentAssertions) and will throw if any validation rule fails, making them useful for ad‑hoc verification during development.
 
+## ValidationFilter
+
+The `ValidationFilter` is an action filter that validates model state using DataAnnotations validation attributes. It automatically validates incoming request data against validation attributes on model classes and returns a structured error response when validation fails. The filter integrates with ASP.NET Core's validation pipeline and can be applied to controller actions or Razor Pages.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Filters;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+
+public class CreateWorkflowRequest
+{
+    [Required(ErrorMessage = "Workflow name is required")]
+    [StringLength(100, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 100 characters")]
+    public string? Name { get; set; }
+
+    [Range(1, 365, ErrorMessage = "Timeout must be between 1 and 365 days")]
+    public int TimeoutDays { get; set; }
+
+    [AllowedValues("Draft", "Active", "Completed", "Archived", ErrorMessage = "Status must be one of: Draft, Active, Completed, Archived")]
+    public string? Status { get; set; }
+}
+
+public class WorkflowController : ControllerBase
+{
+    [HttpPost("workflows")]
+    [ValidationFilter]
+    public async Task<IActionResult> CreateWorkflow([FromBody] CreateWorkflowRequest request)
+    {
+        // If we reach here, model validation passed
+        return Ok(new { message = "Workflow created successfully", workflowId = Guid.NewGuid() });
+    }
+}
+
+// Example of handling validation errors
+public class CustomValidationFilter : ValidationFilter
+{
+    public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        if (!context.ModelState.IsValid)
+        {
+            var errors = context.ModelState
+                .Where(kvp => kvp.Value?.Errors.Count > 0)
+                .Select(kvp => new KeyValuePair<string, string[]>
+                (
+                    kvp.Key,
+                    kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>()
+                ))
+                .ToList();
+
+            context.Result = new BadRequestObjectResult(new
+            {
+                message = "Validation failed",
+                errors = errors,
+                timestamp = DateTime.UtcNow
+            });
+            return;
+        }
+
+        await base.OnActionExecutionAsync(context, next);
+    }
+}
+```
+
 ## AuditServiceTests
 
 The `AuditServiceTests` class contains unit tests that verify the audit logging functionality of the workflow engine. It tests instance creation logging, activity tracking, and comprehensive filtering capabilities for retrieving audit logs by instance ID, activity ID, event type, severity, date range, actor, and pagination.
