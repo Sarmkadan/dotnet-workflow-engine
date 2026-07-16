@@ -899,6 +899,105 @@ static bool ProcessPayment(string orderId, decimal amount)
 }
 ```
 
+## Activity
+
+The `Activity` class represents a single unit of work within a workflow definition. It encapsulates all configuration needed to execute a task, including timeouts, retry policies, input/output mappings, and execution modes. Activities can represent tasks, events, or gateways (fork/join points) and support conditional execution through expressions.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Enums;
+using System;
+using System.Collections.Generic;
+
+// Create a payment processing activity with retry policy
+var paymentActivity = new Activity
+{
+    Id = "process-payment",
+    Name = "Process Payment",
+    Description = "Processes customer payment using configured payment gateway",
+    Type = "PaymentProcessing",
+    ExecutionMode = ExecutionMode.Sequential,
+    HandlerType = "DotNetWorkflowEngine.Handlers.PaymentHandler",
+    
+    // Configuration
+    TimeoutSeconds = 45,
+    MaxRetries = 3,
+    RetryPolicy = RetryPolicy.ExponentialBackoff,
+    
+    // Input parameters for the handler
+    InputParameters = new Dictionary<string, object?>
+    {
+        { "orderId", "ORD-12345" },
+        { "amount", 299.99m },
+        { "customerId", "CUST-67890" },
+        { "paymentMethod", "credit-card" }
+    },
+    
+    // Output mapping to workflow context
+    OutputMapping = new Dictionary<string, string>
+    {
+        { "transactionId", "paymentTransactionId" },
+        { "status", "paymentStatus" }
+    },
+    
+    // Conditional execution
+    ConditionExpression = "context.GetVariable<bool>(\"isPaymentEnabled\")",
+    IsOptional = false,
+    
+    // Message correlation (for event-based activities)
+    MessageName = "PaymentProcessed",
+    CorrelationProperty = "orderId",
+    
+    // Custom metadata
+    Metadata = new Dictionary<string, object?>
+    {
+        { "category", "financial" },
+        { "priority", "high" },
+        { "createdBy", "payment-service" }
+    }
+};
+
+// Set additional input parameters dynamically
+paymentActivity.SetInputParameter("retryCount", 0);
+paymentActivity.SetInputParameter("timeoutOverride", 60);
+
+// Access input parameters
+var orderId = paymentActivity.GetInputParameter("orderId") as string;
+var amount = paymentActivity.GetInputParameter("amount") as decimal?;
+
+// Add output mappings dynamically
+paymentActivity.AddOutputMapping("gatewayResponse", "paymentGatewayResponse");
+
+// Validate the activity configuration
+if (paymentActivity.Validate(out var errors))
+{
+    Console.WriteLine("Activity configuration is valid!");
+}
+else
+{
+    Console.WriteLine("Validation errors:");
+    foreach (var error in errors)
+    {
+        Console.WriteLine($" - {error}");
+    }
+}
+
+// Check activity type
+if (paymentActivity.IsGateway())
+{
+    Console.WriteLine("This is a gateway activity");
+}
+
+if (paymentActivity.RequiresHandler())
+{
+    Console.WriteLine("This activity requires a handler implementation");
+}
+
+Console.WriteLine($"Activity created at: {paymentActivity.CreatedAt:O}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
