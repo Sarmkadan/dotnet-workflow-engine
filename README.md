@@ -283,3 +283,119 @@ Console.WriteLine($"Total workflow count: {totalCount}");
 ## Activity
 
 The `Activity` class represents a single unit of work within a workflow definition. It encapsulates all configuration needed to execute a task, including timeouts, retry policies, input/output mappings, and execution modes. Activities can represent tasks, events, or gateways (fork/join points) and support conditional execution through expressions.
+
+## AuditRepository
+
+The `AuditRepository` class provides data access methods for audit log persistence and querying. It serves as the primary interface for storing, retrieving, updating, and deleting audit log entries that track all workflow events including activity executions, state changes, errors, and completions. The repository supports comprehensive querying capabilities including filtering by workflow instance, activity, event type, severity level, date ranges, and pagination.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Data.Repositories;
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create repository instance (typically via dependency injection)
+var repository = new AuditRepository();
+
+// Add a new audit entry
+var newEntry = new AuditLogEntry
+{
+    Id = Guid.NewGuid().ToString(),
+    WorkflowInstanceId = "wf-order-processing-001",
+    ActivityId = "validate-order",
+    EventType = "ActivityStarted",
+    Description = "Starting order validation activity",
+    Severity = "Information",
+    Actor = "order-service@company.com",
+    Timestamp = DateTime.UtcNow,
+    Metadata = new Dictionary<string, object?> { { "orderId", "order-2024-001" } }
+};
+
+await repository.AddAsync(newEntry);
+Console.WriteLine($"Added audit entry: {newEntry.Id}");
+
+// Get an audit entry by ID
+var entryById = await repository.GetByIdAsync(newEntry.Id);
+if (entryById != null)
+{
+    Console.WriteLine($"Retrieved entry: {entryById.Description}");
+}
+
+// Check if an audit entry exists
+bool exists = await repository.ExistsAsync(newEntry.Id);
+Console.WriteLine($"Entry exists: {exists}");
+
+// Get all audit entries
+var allEntries = await repository.GetAllAsync();
+Console.WriteLine($"Total audit entries: {allEntries.Count}");
+
+// Get audit entries for a specific workflow instance
+var instanceEntries = await repository.GetByInstanceIdAsync("wf-order-processing-001");
+Console.WriteLine($"Entries for instance: {instanceEntries.Count}");
+
+// Get audit entries by event type
+var startedEntries = await repository.GetByEventTypeAsync("ActivityStarted");
+Console.WriteLine($"ActivityStarted events: {startedEntries.Count}");
+
+// Get audit entries by severity level
+var errorEntries = await repository.GetBySeverityAsync("Error");
+Console.WriteLine($"Error events: {errorEntries.Count}");
+
+// Get error audit entries
+var errors = await repository.GetErrorsAsync();
+Console.WriteLine($"Total errors: {errors.Count}");
+
+// Get audit entries within a date range
+var recentEntries = await repository.GetByDateRangeAsync(
+    DateTime.UtcNow.AddHours(-1),
+    DateTime.UtcNow
+);
+Console.WriteLine($"Recent entries: {recentEntries.Count}");
+
+// Get recent audit entries for an instance
+var recentForInstance = await repository.GetRecentForInstanceAsync("wf-order-processing-001", 5);
+Console.WriteLine($"Recent entries for instance: {recentForInstance.Count}");
+
+// Get audit entries by activity ID
+var activityEntries = await repository.GetByActivityIdAsync("validate-order");
+Console.WriteLine($"Entries for activity: {activityEntries.Count}");
+
+// Get audit entries with pagination
+var pagedResult = await repository.GetPagedAsync(page: 1, pageSize: 20);
+Console.WriteLine($"Page 1: {pagedResult.Items.Count} entries, Total: {pagedResult.Total} entries");
+
+// Count total audit entries
+var totalCount = await repository.CountAsync();
+Console.WriteLine($"Total audit count: {totalCount}");
+
+// Get filtered and paginated audit entries
+var filteredResult = await repository.GetFilteredAndPagedAsync(
+    workflowId: "order-processing",
+    instanceId: "wf-order-processing-001",
+    eventType: "ActivityStarted",
+    severity: "Information",
+    fromDate: DateTime.UtcNow.AddDays(-1),
+    take: 50
+);
+Console.WriteLine($"Filtered entries: {filteredResult.Items.Count} of {filteredResult.Total}");
+
+// Update an audit entry (typically immutable, but supported for metadata updates)
+if (entryById != null)
+{
+    entryById.Description = "Updated description";
+    await repository.UpdateAsync(entryById);
+    Console.WriteLine("Audit entry updated");
+}
+
+// Delete an audit entry
+// await repository.DeleteAsync(newEntry.Id);
+
+// Clear audit log for a specific instance
+// await repository.ClearInstanceAsync("wf-order-processing-001");
+
+// Clear all audit logs (use with caution!)
+// await repository.ClearAsync();
+```
