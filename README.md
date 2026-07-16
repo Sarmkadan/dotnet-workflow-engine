@@ -2353,6 +2353,135 @@ Console.WriteLine(csvData);
 await auditService.ClearAuditLog("wf-inst-order-processing-001");
 ```
 
+## DatabaseContext
+
+The `DatabaseContext` class serves as the central data access layer for the workflow engine, providing repository access to workflow definitions, instances, and audit logs. It manages database connections, transactions, and provides methods for workflow persistence, statistics retrieval, and database initialization.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Data.Context;
+using DotNetWorkflowEngine.Repositories;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create database context with connection string
+var connectionString = "Host=localhost;Database=workflow-engine;Username=user;Password=pass";
+
+var options = new DbContextOptionsBuilder<DatabaseContext>()
+    .UseNpgsql(connectionString)
+    .Options;
+
+var databaseContext = new DatabaseContext(options);
+
+// Access repositories for workflow data access
+var workflowsRepository = databaseContext.Workflows;
+var instancesRepository = databaseContext.Instances;
+var auditLogsRepository = databaseContext.AuditLogs;
+
+// Initialize database schema
+await databaseContext.InitializeAsync();
+
+// Create a new workflow definition
+var workflow = new Workflow
+{
+    Id = "order-processing-workflow",
+    Name = "Order Processing Workflow",
+    Description = "Processes customer orders through validation, inventory check, and payment",
+    Version = 1,
+    Status = WorkflowStatus.Draft,
+    CreatedAt = DateTime.UtcNow,
+    ModifiedAt = DateTime.UtcNow,
+    CreatedBy = "admin@company.com",
+    ModifiedBy = "admin@company.com"
+};
+
+// Add workflow to database
+workflowsRepository.Add(workflow);
+await databaseContext.SaveChangesAsync();
+
+// Create and save a workflow instance
+var workflowInstance = new WorkflowInstance
+{
+    Id = "wf-inst-order-processing-001",
+    WorkflowId = workflow.Id,
+    Status = WorkflowStatus.Created,
+    CurrentActivityId = null,
+    ExecutedActivities = new List<string>(),
+    ActiveActivities = new List<string>(),
+    Context = new Dictionary<string, object?>
+    {
+        { "customerId", "CUST-12345" },
+        { "orderTotal", 299.99 }
+    },
+    CreatedAt = DateTime.UtcNow,
+    CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc",
+    InitiatedBy = "order-service@company.com"
+};
+
+instancesRepository.Add(workflowInstance);
+await databaseContext.SaveChangesAsync();
+
+// Start the workflow instance
+workflowInstance.Start();
+
+// Begin a database transaction for multiple operations
+await using var transaction = await databaseContext.BeginTransactionAsync();
+
+try
+{
+    // Update workflow status
+    workflow.Status = WorkflowStatus.Active;
+    workflow.ModifiedAt = DateTime.UtcNow;
+    
+    // Add audit log entry
+    var auditLog = new AuditLogEntry(
+        workflowInstance.Id,
+        "WorkflowStarted",
+        "Workflow instance started execution"
+    );
+    auditLogsRepository.Add(auditLog);
+    
+    await databaseContext.SaveChangesAsync();
+    await transaction.CommitAsync();
+}
+catch (Exception)
+{
+    await transaction.RollbackAsync();
+    throw;
+}
+
+// Get workflow statistics
+var statistics = await databaseContext.GetStatisticsAsync();
+Console.WriteLine($"Total workflows: {statistics["TotalWorkflows"]}");
+Console.WriteLine($"Active workflows: {statistics["ActiveWorkflows"]}");
+Console.WriteLine($"Total instances: {statistics["TotalInstances"]}");
+Console.WriteLine($"Completed instances: {statistics["CompletedInstances"]}");
+
+// Get a specific workflow
+var retrievedWorkflow = await workflowsRepository.GetByIdAsync(workflow.Id);
+if (retrievedWorkflow != null)
+{
+    Console.WriteLine($"Retrieved workflow: {retrievedWorkflow.Name}");
+}
+
+// Get workflow instances by workflow ID
+var instances = await instancesRepository.GetByWorkflowIdAsync(workflow.Id);
+Console.WriteLine($"Found {instances.Count} instances for workflow: {workflow.Id}");
+
+// Get audit logs for a workflow instance
+var auditLogs = await auditLogsRepository.GetByInstanceIdAsync(workflowInstance.Id);
+Console.WriteLine($"Found {auditLogs.Count} audit logs for instance: {workflowInstance.Id}");
+
+// Clean up - clear all data (use with caution in production)
+await databaseContext.ClearAllAsync();
+
+// Dispose the context when done
+await databaseContext.DisposeAsync();
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
