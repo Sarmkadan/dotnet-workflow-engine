@@ -69,6 +69,68 @@ Console.WriteLine(merged.Name); // Updated Activity
 Console.WriteLine(merged.MaxRetries); // 5
 ```
 
+## IWebhookHandler
+
+The `IWebhookHandler` interface defines the contract for handling webhook events from external services. It provides properties to configure webhook endpoints, event subscriptions, authentication, and custom headers, along with methods to process incoming webhook payloads and track delivery attempts.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Integration;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create a webhook handler for workflow events
+var webhookHandler = new WebhookHandler
+{
+    Id = "wh-7f3b9c2e",
+    Url = "https://api.example.com/webhooks/workflow-events",
+    Events = new List<string> { "WorkflowStarted", "WorkflowCompleted", "WorkflowFailed" },
+    Secret = "my-webhook-secret-key",
+    CustomHeaders = new Dictionary<string, string>
+    {
+        { "X-Custom-Header", "custom-value" },
+        { "Authorization", "Bearer token-here" }
+    },
+    Active = true,
+    EventType = "WorkflowEvent",
+    WorkflowId = "wf-order-processing",
+    Timestamp = DateTime.UtcNow
+};
+
+// Process a webhook event
+var webhookEvent = new WebhookEvent
+{
+    Id = "evt-12345",
+    WebhookId = webhookHandler.Id,
+    EventType = "WorkflowStarted",
+    AttemptedAt = DateTime.UtcNow,
+    Data = new Dictionary<string, object>
+    {
+        { "workflowId", "wf-order-processing" },
+        { "instanceId", "inst-abc123" },
+        { "timestamp", DateTime.UtcNow.ToString("o") }
+    }
+};
+
+// Track webhook delivery attempt
+var deliveryAttempt = new WebhookDeliveryAttempt
+{
+    Id = "att-98765",
+    WebhookId = webhookHandler.Id,
+    EventType = "WorkflowStarted",
+    AttemptedAt = DateTime.UtcNow,
+    StatusCode = 200,
+    Success = true,
+    ErrorMessage = null
+};
+
+Console.WriteLine($"Webhook configured for events: {string.Join(", ", webhookHandler.Events)}");
+Console.WriteLine($"Webhook active: {webhookHandler.Active}");
+Console.WriteLine($"Last delivery status: {(deliveryAttempt.Success ? "Success" : "Failed")}");
+```
+
 ## WorkflowValidatorTests
 
 `WorkflowValidatorTests` provides a suite of unit tests that verify the correctness of the workflow validation logic. Each public method exercises a specific validation rule, ensuring that workflows, activities, and transitions are checked for required fields, consistency, and logical correctness.
