@@ -1061,6 +1061,60 @@ if (paymentActivity.RequiresHandler())
 Console.WriteLine($"Activity created at: {paymentActivity.CreatedAt:O}");
 ```
 
+## ErrorHandlingExample
+
+The `ErrorHandlingExample` class demonstrates comprehensive error handling patterns in workflow execution, including retry policies, fallback activities, and graceful degradation. This example shows how to build resilient workflows that can recover from transient failures and provide meaningful error information.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var workflowService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var executionService = serviceProvider.GetRequiredService<IWorkflowExecutionService>();
+var retryService = serviceProvider.GetRequiredService<IRetryPolicyService>();
+
+// Create error handling example instance
+var errorHandlingExample = new ErrorHandlingExample(
+    workflowService, 
+    executionService, 
+    retryService
+);
+
+// Initialize workflow with error handling configuration
+var initResult = await errorHandlingExample.InitializeWorkflow();
+Console.WriteLine($"Workflow initialized: {initResult.Value}");
+
+// Process data with comprehensive error handling
+var processResult = await errorHandlingExample.ProcessData(new ProcessingRequest
+{
+    DataSourceUrl = "https://api.example.com/data",
+    ProcessingRules = new Dictionary<string, object>
+    {
+        { "timeout", 30 },
+        { "retryPolicy", "exponential" },
+        { "validationStrict", true }
+    }
+});
+
+Console.WriteLine($"Processing started: {processResult.Value}");
+
+// Get error handling details after execution
+var instanceId = processResult.Value.InstanceId;
+var errorInfo = await errorHandlingExample.GetErrorInfo(instanceId);
+
+Console.WriteLine($"Status: {errorInfo.Value.status}");
+Console.WriteLine($"Retry attempts: {errorInfo.Value.retryCount}");
+Console.WriteLine($"Fallback used: {errorInfo.Value.fallbackUsed}");
+```
+
 ## CustomActivityExample
 
 The `CustomActivityExample` class demonstrates how to create and use custom activity implementations for domain-specific workflow logic. It provides examples of three custom activities: `CustomSmsActivity` for sending SMS notifications, `CustomImageProcessingActivity` for image processing tasks, and `CustomReportGenerationActivity` for generating reports.
