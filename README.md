@@ -1410,6 +1410,39 @@ Console.WriteLine(cfoApproval.Value.message);
 // Document is now fully approved and will be archived
 ```
 
+## ConcurrentExecutionBenchmarks
+
+The `ConcurrentExecutionBenchmarks` class provides performance benchmarks for concurrent workflow execution scenarios. It measures the workflow engine's scalability, thread safety, and performance under load by executing multiple workflow instances simultaneously. These benchmarks help identify bottlenecks in workflow execution, activity handling, and state management when processing high volumes of concurrent workflows.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Benchmarks.Benchmarks;
+using BenchmarkDotNet.Running;
+
+// Run benchmarks to measure concurrent workflow execution performance
+var summary = BenchmarkRunner.Run<ConcurrentExecutionBenchmarks>();
+
+// Or run specific benchmarks programmatically
+var benchmarks = new ConcurrentExecutionBenchmarks();
+
+// Setup the benchmark environment
+benchmarks.Setup();
+
+// Execute benchmarks for different concurrency levels
+var smallLoadResult = await benchmarks.Execute_10_Concurrent_Workflows();
+var mediumLoadResult = await benchmarks.Execute_50_Concurrent_Workflows();
+var largeLoadResult = await benchmarks.Execute_100_Concurrent_Workflows();
+
+// Get statistics for 1000 workflow instances
+var statsResult = await benchmarks.Get_Statistics_With_1000_Instances();
+
+// Access benchmark results (via BenchmarkDotNet)
+Console.WriteLine($"10 workflows completed in: {smallLoadResult.TotalTime}");
+Console.WriteLine($"50 workflows completed in: {mediumLoadResult.TotalTime}");
+Console.WriteLine($"100 workflows completed in: {largeLoadResult.TotalTime}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
