@@ -728,6 +728,89 @@ Console.WriteLine($"State Change Log: {stateChangeEntry.Description}");
 Console.WriteLine($"Error Log: {errorEntry.Description}");
 ```
 
+## BranchingResult
+
+The `BranchingResult` class describes the outcome of conditional branch resolution for a single activity. It is produced by `ConditionalBranchingService.ResolveBranchesAsync` after evaluating all outgoing transition expressions from a completed activity. This result helps determine which path(s) the workflow should follow based on the evaluation of transition conditions.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+
+// Simulate a completed activity with conditional transitions
+var activity = new Activity
+{
+    Id = "order-validation",
+    Name = "Validate Order",
+    Type = "Validation"
+};
+
+// Create a branching result for the completed activity
+var branchingResult = new BranchingResult
+{
+    ActivityId = activity.Id,
+    AnyConditionMatched = true,
+    UsedDefaultTransition = false,
+    SelectedTransitions = new List<Transition>
+    {
+        new Transition
+        {
+            Id = "trans-valid-order",
+            FromActivityId = activity.Id,
+            ToActivityId = "process-payment",
+            Condition = "context.GetVariable<bool>(\"isValid\")"
+        }
+    },
+    SkippedTransitions = new List<Transition>
+    {
+        new Transition
+        {
+            Id = "trans-invalid-order",
+            FromActivityId = activity.Id,
+            ToActivityId = "reject-order",
+            Condition = "!context.GetVariable<bool>(\"isValid\")"
+        }
+    },
+    EvaluationErrors = new List<TransitionEvaluationError>()
+};
+
+// Check which transitions were selected
+Console.WriteLine($"Activity '{branchingResult.ActivityId}' completed with {branchingResult.SelectedTransitions.Count} selected branches");
+Console.WriteLine($"Skipped {branchingResult.SkippedTransitions.Count} branches due to condition mismatch");
+
+if (branchingResult.AnyConditionMatched)
+{
+    Console.WriteLine("At least one conditional expression matched");
+}
+
+if (branchingResult.UsedDefaultTransition)
+{
+    Console.WriteLine("Default transition was used");
+}
+
+// Access the selected transition IDs
+foreach (var transition in branchingResult.SelectedTransitions)
+{
+    Console.WriteLine($"Following transition: {transition.Id} -> {transition.ToActivityId}");
+}
+
+// Check for evaluation errors
+if (branchingResult.HasEvaluationErrors)
+{
+    Console.WriteLine("Errors occurred during evaluation:");
+    foreach (var error in branchingResult.EvaluationErrors)
+    {
+        Console.WriteLine($"  Transition '{error.TransitionId}': {error.ErrorMessage}");
+    }
+}
+
+// Create an empty result for activities with no outgoing transitions
+var emptyResult = BranchingResult.Empty("standalone-activity");
+Console.WriteLine($"Empty result for activity with no transitions: {emptyResult.ActivityId}");
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
