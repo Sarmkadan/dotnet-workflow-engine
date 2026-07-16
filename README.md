@@ -1463,6 +1463,75 @@ var output = await benchmarks.ExecuteAsync(activity, context);
 Console.WriteLine($"Activity output: {output.Count} items");
 ```
 
+## ExpressionEvaluationBenchmarks
+
+The `ExpressionEvaluationBenchmarks` class provides performance benchmarks for measuring expression evaluation and conditional logic execution within workflows. It benchmarks the evaluation of simple boolean conditions (`true`/`false`), variable references, and complex expressions involving multiple variables and logical operators. These benchmarks help measure the workflow engine's performance characteristics for condition evaluation, which is critical for conditional workflow routing and activity execution.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Benchmarks.Benchmarks;
+using DotNetWorkflowEngine.Models;
+using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
+
+// Create benchmark instance
+var benchmarks = new ExpressionEvaluationBenchmarks();
+
+// Setup the benchmark environment
+benchmarks.Setup();
+
+// Benchmark execution of activity with true condition
+var trueResult = await benchmarks.Execute_Activity_With_True_Condition();
+Console.WriteLine($"True condition activity executed successfully");
+
+// Benchmark execution of activity with false condition
+var falseResult = await benchmarks.Execute_Activity_With_False_Condition();
+Console.WriteLine($"False condition activity executed successfully");
+
+// Benchmark execution of activity with complex condition expression
+var complexResult = await benchmarks.Execute_Activity_With_Complex_Condition();
+Console.WriteLine($"Complex condition activity executed successfully");
+
+// Benchmark simple condition evaluation returning true
+var simpleTrueResult = benchmarks.Evaluate_Simple_True_Condition();
+Console.WriteLine($"Simple true condition evaluated: {simpleTrueResult}");
+
+// Benchmark simple condition evaluation returning false
+var simpleFalseResult = benchmarks.Evaluate_Simple_False_Condition();
+Console.WriteLine($"Simple false condition evaluated: {simpleFalseResult}");
+
+// Benchmark variable reference condition evaluation
+var variableResult = benchmarks.Evaluate_Variable_Reference_Condition();
+Console.WriteLine($"Variable reference condition evaluated: {variableResult}");
+
+// Benchmark complex expression evaluation
+var complexExprResult = benchmarks.Evaluate_Complex_Expression();
+Console.WriteLine($"Complex expression evaluated: {complexExprResult}");
+
+// Execute activity and get output dictionary
+var activity = new Activity
+{
+    Id = "test-activity",
+    Name = "Test Activity",
+    ConditionExpression = "${orderAmount} > 1000",
+    HandlerType = "Simple",
+    Type = "TestActivity"
+};
+
+var context = new ExecutionContext
+{
+    WorkflowInstanceId = Guid.NewGuid().ToString(),
+    ActivityId = "test-activity",
+    Variables = new Dictionary<string, object?>
+    {
+        { "orderAmount", 1500 }
+    }
+};
+
+var output = await benchmarks.ExecuteAsync(activity, context);
+Console.WriteLine($"Activity output: {output.Count} items");
+```
+
 ## ConcurrentExecutionBenchmarks
 
 The `ConcurrentExecutionBenchmarks` class provides performance benchmarks for concurrent workflow execution scenarios. It measures the workflow engine's scalability, thread safety, and performance under load by executing multiple workflow instances simultaneously. These benchmarks help identify bottlenecks in workflow execution, activity handling, and state management when processing high volumes of concurrent workflows.
