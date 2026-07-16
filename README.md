@@ -1130,6 +1130,44 @@ Console.WriteLine($"Memory usage: {resourceUsage.Value.memory.workingSetMb} MB")
 Console.WriteLine($"CPU time: {resourceUsage.Value.cpu.totalProcessorTime}s");
 ```
 
+## ErrorHandlingMiddleware
+
+The `ErrorHandlingMiddleware` class provides global exception handling for ASP.NET Core applications that use the workflow engine. It catches all unhandled exceptions and converts them to standardized JSON error responses with consistent structure, ensuring consistent error handling across all API endpoints.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddWorkflowServices();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+// Add the error handling middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+```
+
 ## ErrorHandlingExample
 
 The `ErrorHandlingExample` class demonstrates comprehensive error handling patterns in workflow execution, including retry policies, fallback activities, and graceful degradation. This example shows how to build resilient workflows that can recover from transient failures and provide meaningful error information.
