@@ -1384,6 +1384,76 @@ app.MapControllers();
 app.Run();
 ```
 
+## RetryPolicyService
+
+The `RetryPolicyService` provides centralized management and calculation of retry policies for workflow activities. It supports creating, storing, and retrieving retry configurations including exponential backoff, fixed delay, and no-retry policies. The service enables resilient workflow execution by handling transient failures with configurable retry strategies and exception filtering.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Enums;
+using System;
+using System.Collections.Generic;
+
+// Create retry policy service (typically via dependency injection)
+var retryPolicyService = new RetryPolicyService();
+
+// Create and register different retry policies
+var exponentialPolicy = retryPolicyService.CreateExponentialBackoffPolicy(maxRetries: 5);
+exponentialPolicy.PolicyType = RetryPolicy.ExponentialBackoff;
+exponentialPolicy.BackoffMultiplier = 2.0;
+exponentialPolicy.RetryableExceptionTypes = new List<string> { "TimeoutException", "HttpRequestException", "SqlException" };
+retryPolicyService.CreatePolicy("exponential-backoff", exponentialPolicy);
+
+var fixedDelayPolicy = retryPolicyService.CreateFixedDelayPolicy(maxRetries: 3, delayMs: 2000);
+fixedDelayPolicy.PolicyType = RetryPolicy.FixedDelay;
+retryPolicyService.CreatePolicy("fixed-delay", fixedDelayPolicy);
+
+var noRetryPolicy = retryPolicyService.CreateNoRetryPolicy();
+retryPolicyService.CreatePolicy("no-retry", noRetryPolicy);
+
+// Use the policy service to calculate retry delays
+Console.WriteLine("Exponential backoff delays:");
+for (int attempt = 1; attempt <= 5; attempt++)
+{
+    int delayMs = retryPolicyService.CalculateRetryDelay("exponential-backoff", attempt);
+    Console.WriteLine($"  Attempt {attempt}: {delayMs}ms");
+}
+
+// Check if retry should be attempted for specific exceptions
+bool shouldRetryTimeout = retryPolicyService.ShouldRetry("exponential-backoff", 2, "TimeoutException");
+bool shouldRetryArgument = retryPolicyService.ShouldRetry("exponential-backoff", 2, "ArgumentException");
+Console.WriteLine($"Should retry TimeoutException: {shouldRetryTimeout}");
+Console.WriteLine($"Should retry ArgumentException: {shouldRetryArgument}");
+
+// Simulate retry delays for analysis
+var simulatedDelays = retryPolicyService.SimulateRetryDelays("exponential-backoff", 5);
+Console.WriteLine($"Simulated delays: [{string.Join(", ", simulatedDelays)}]");
+
+// Get total estimated retry time
+long totalRetryTime = retryPolicyService.GetTotalRetryTimeMs("exponential-backoff");
+Console.WriteLine($"Total retry time for all attempts: {totalRetryTime}ms");
+
+// Register additional retryable exceptions
+retryPolicyService.RegisterRetryableException("exponential-backoff", "NetworkException");
+
+// Validate a policy configuration
+bool isValid = retryPolicyService.ValidatePolicy(exponentialPolicy, out var validationErrors);
+if (!isValid)
+{
+    Console.WriteLine("Policy validation errors:");
+    foreach (var error in validationErrors)
+    {
+        Console.WriteLine($"  - {error}");
+    }
+}
+
+// Clear all policies when no longer needed
+retryPolicyService.ClearPolicies();
+```
+
 ## ErrorHandlingExample
 
 The `ErrorHandlingExample` class demonstrates comprehensive error handling patterns in workflow execution, including retry policies, fallback activities, and graceful degradation. This example shows how to build resilient workflows that can recover from transient failures and provide meaningful error information.
