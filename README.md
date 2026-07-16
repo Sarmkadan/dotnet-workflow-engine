@@ -697,6 +697,45 @@ string kebabWorkflow = pascalWorkflow.ToKebabCase(); // "process-order-workflow"
 bool isValid = kebabWorkflow.IsValidUrl(); // false
 ```
 
+## DateTimeExtensions
+
+The `DateTimeExtensions` class provides extension methods for DateTime operations commonly used in workflow processing. It includes formatting, duration calculation, temporal comparisons, and utility methods for working with dates and times.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Utilities;
+using System;
+
+// Format DateTime to ISO 8601 string
+string iso8601 = DateTime.UtcNow.ToIso8601();
+
+// Check if a DateTime is in the past or future
+bool isPast = DateTime.UtcNow.AddDays(-1).IsPast();
+bool isFuture = DateTime.UtcNow.AddDays(1).IsFuture();
+
+// Check if a DateTime is within a range
+bool isBetween = DateTime.UtcNow.IsBetween(
+    DateTime.UtcNow.AddHours(-1),
+    DateTime.UtcNow.AddHours(1)
+);
+
+// Calculate duration between two dates
+string duration = DateTime.UtcNow.AddHours(-2).DurationToString(DateTime.UtcNow);
+
+// Get start/end of day, month, or week
+DateTime startOfDay = DateTime.UtcNow.StartOfDay();
+DateTime endOfMonth = DateTime.UtcNow.EndOfMonth();
+DateTime startOfWeek = DateTime.UtcNow.StartOfWeek();
+
+// Convert to/from Unix timestamp
+long timestamp = DateTime.UtcNow.ToUnixTimestamp();
+DateTime fromTimestamp = DateTimeExtensions.FromUnixTimestamp(timestamp);
+
+// Get friendly relative time description
+string relativeTime = DateTime.UtcNow.AddHours(-3).ToRelativeTime(); // "3 hours ago"
+```
+
 ## SerializationHelper
 
 The `SerializationHelper` class provides a comprehensive set of utilities for JSON serialization and deserialization operations. It standardizes JSON handling across the application with consistent options for property naming, null handling, and type conversion. The helper includes methods for converting objects to JSON strings, parsing JSON back to objects, deep cloning, merging objects, and validating JSON content.
