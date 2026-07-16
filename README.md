@@ -505,6 +505,112 @@ Console.WriteLine($"Error: {failedInstance.ErrorMessage}");
 Console.WriteLine($"Status: {failedInstance.Status}");
 ```
 
+## Workflow
+
+The `Workflow` class represents a workflow definition as a directed graph of activities connected by transitions. It provides methods to validate the workflow structure, navigate the activity graph, and publish the workflow for execution.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Enums;
+using System;
+using System.Collections.Generic;
+
+// Create a workflow definition
+var workflow = new Workflow
+{
+    Id = "order-processing-workflow",
+    Name = "Order Processing Workflow",
+    Description = "Processes customer orders through validation, inventory check, and payment",
+    Version = 1,
+    Status = WorkflowStatus.Draft,
+    CreatedAt = DateTime.UtcNow,
+    ModifiedAt = DateTime.UtcNow,
+    CreatedBy = "admin@company.com",
+    ModifiedBy = "admin@company.com",
+    
+    // Define activities
+    Activities = new List<Activity>
+    {
+        new Activity
+        {
+            Id = "validate-order",
+            Name = "Validate Order",
+            Type = "Validation",
+            TimeoutSeconds = 30,
+            MaxRetries = 3
+        },
+        new Activity
+        {
+            Id = "check-inventory",
+            Name = "Check Inventory",
+            Type = "InventoryCheck",
+            TimeoutSeconds = 60,
+            MaxRetries = 2
+        },
+        new Activity
+        {
+            Id = "process-payment",
+            Name = "Process Payment",
+            Type = "PaymentProcessing",
+            TimeoutSeconds = 45,
+            MaxRetries = 3
+        },
+        new Activity
+        {
+            Id = "fulfill-order",
+            Name = "Fulfill Order",
+            Type = "Fulfillment",
+            TimeoutSeconds = 120,
+            MaxRetries = 1
+        }
+    },
+    
+    // Define transitions between activities
+    Transitions = new List<Transition>
+    {
+        new Transition { FromActivityId = "validate-order", ToActivityId = "check-inventory" },
+        new Transition { FromActivityId = "check-inventory", ToActivityId = "process-payment" },
+        new Transition { FromActivityId = "process-payment", ToActivityId = "fulfill-order" }
+    },
+    
+    StartActivityId = "validate-order",
+    EndActivityId = "fulfill-order"
+};
+
+// Validate the workflow definition
+if (workflow.Validate(out var errors))
+{
+    Console.WriteLine("Workflow is valid!");
+    
+    // Publish the workflow to make it available for execution
+    workflow.Publish();
+    Console.WriteLine($"Workflow published with status: {workflow.Status}");
+}
+else
+{
+    Console.WriteLine("Workflow validation failed:");
+    foreach (var error in errors)
+    {
+        Console.WriteLine($"  - {error}");
+    }
+}
+
+// Navigate the workflow graph
+var nextActivities = workflow.GetNextActivities("validate-order");
+Console.WriteLine($"Activities after 'validate-order': {nextActivities.Count}");
+
+var previousActivities = workflow.GetPreviousActivities("process-payment");
+Console.WriteLine($"Activities before 'process-payment': {previousActivities.Count}");
+
+// Check if workflow is published
+if (workflow.IsPublished)
+{
+    Console.WriteLine("Workflow is ready for execution!");
+}
+```
+
 ## CommandContext
 
 `CommandContext` provides runtime information about a CLI command execution, including the command name, arguments, options, output format preferences, and execution context. It is used by CLI handlers to access command-line parameters and user-specific settings during workflow engine operations.
