@@ -60,4 +60,41 @@ Console.WriteLine(merged.Name); // Updated Activity
 Console.WriteLine(merged.MaxRetries); // 5
 ```
 
-The above snippets illustrate the most common public members of `SerializationHelper` used throughout the test suite, ensuring that developers can quickly understand how to serialize, deserialize, clone, and merge workflow objects in production code.
+## WorkflowValidatorTests
+
+`WorkflowValidatorTests` provides a suite of unit tests that verify the correctness of the workflow validation logic. Each public method exercises a specific validation rule, ensuring that workflows, activities, and transitions are checked for required fields, consistency, and logical correctness.
+
+Typical usage involves creating an instance of the test class and invoking the desired test methods directly (for example, when debugging or running tests programmatically):
+
+```csharp
+using DotNetWorkflowEngine.Tests;
+
+// Create the test class instance
+var validatorTests = new WorkflowValidatorTests();
+
+// Run a selection of validation scenarios
+validatorTests.ValidateWorkflow_ValidWorkflow_ReturnsValid();
+validatorTests.ValidateWorkflow_MissingId_ReturnsError();
+validatorTests.ValidateWorkflow_MissingName_ReturnsError();
+validatorTests.ValidateWorkflow_NoActivities_ReturnsError();
+validatorTests.ValidateWorkflow_InvalidActivity_ReturnsError();
+validatorTests.ValidateWorkflow_StartActivityNotFound_ReturnsError();
+validatorTests.ValidateWorkflow_EndActivityNotFound_ReturnsError();
+validatorTests.ValidateWorkflow_NoStartActivity_ReturnsWarning();
+validatorTests.ValidateWorkflow_InvalidTransition_ReturnsError();
+
+validatorTests.ValidateActivity_ValidActivity_ReturnsValid();
+validatorTests.ValidateActivity_MissingId_ReturnsError();
+validatorTests.ValidateActivity_MissingName_ReturnsError();
+validatorTests.ValidateActivity_InvalidTimeout_ReturnsError();
+validatorTests.ValidateActivity_NegativeRetries_ReturnsError();
+validatorTests.ValidateActivity_RetriesWithoutPolicy_ReturnsWarning();
+
+validatorTests.ValidateTransition_ValidTransition_ReturnsValid();
+validatorTests.ValidateTransition_MissingFromActivity_ReturnsError();
+validatorTests.ValidateTransition_MissingToActivity_ReturnsError();
+validatorTests.ValidateTransition_FromActivityNotFound_ReturnsError();
+validatorTests.ValidateTransition_ToActivityNotFound_ReturnsError();
+```
+
+These calls execute the underlying assertions (via FluentAssertions) and will throw if any validation rule fails, making them useful for ad‑hoc verification during development.
