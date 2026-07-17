@@ -557,6 +557,70 @@ var sharedData = await cacheService.GetOrLoadAsync(
 Console.WriteLine($"Shared state: {sharedData.State}");
 ```
 
+## WorkflowBuilder
+
+The `WorkflowBuilder` class provides a fluent interface for programmatically constructing workflow definitions. It enables clean, readable code for creating workflows with activities, transitions, and configuration options. The builder supports both manual construction and convenience methods for common patterns like serial workflows.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Utilities;
+using System;
+using System.Threading.Tasks;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+var definitionService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+
+// Create a workflow using the builder
+var workflowBuilder = new WorkflowBuilder("order-processing", "Order Processing Workflow", definitionService)
+    .WithDescription("Processes customer orders through validation and fulfillment")
+    .AddTaskActivity("validate-order", "Validate Order", "ValidationHandler")
+    .AddTaskActivity("check-inventory", "Check Inventory", "InventoryHandler")
+    .AddTaskActivity("process-payment", "Process Payment", "PaymentHandler")
+    .AddTaskActivity("fulfill-order", "Fulfill Order", "FulfillmentHandler")
+    .AddTransition("validate-order", "check-inventory")
+    .AddTransition("check-inventory", "process-payment", "HasInventory")
+    .AddTransition("process-payment", "fulfill-order", "PaymentSuccessful")
+    .WithStartActivity("validate-order")
+    .WithEndActivity("fulfill-order");
+
+// Build the workflow definition
+var workflow = workflowBuilder.Build();
+Console.WriteLine($"Created workflow: {workflow.Name} with {workflow.Activities.Count} activities");
+
+// Build and register the workflow with the service
+var registeredWorkflow = workflowBuilder.BuildAndRegister();
+Console.WriteLine($"Workflow registered: {registeredWorkflow.Id}");
+
+// Create a serial workflow (convenience method)
+var serialBuilder = WorkflowBuilder.CreateSerial(
+    "simple-workflow", 
+    "Simple Serial Workflow", 
+    definitionService,
+    "Start", "Validate", "Process", "Complete"
+);
+
+var serialWorkflow = serialBuilder.BuildAndRegister();
+Console.WriteLine($"Serial workflow created with {serialWorkflow.Activities.Count} activities");
+
+// Add a message catch event for external communication
+var messageBuilder = new WorkflowBuilder("event-driven-workflow", "Event Driven Workflow", definitionService)
+    .AddMessageCatchEvent("wait-payment", "Wait for Payment Confirmation", "PaymentConfirmed", "orderId")
+    .AddTaskActivity("process-payment", "Process Payment")
+    .AddTransition("wait-payment", "process-payment")
+    .WithStartActivity("wait-payment")
+    .WithEndActivity("process-payment");
+
+var messageWorkflow = messageBuilder.BuildAndRegister();
+Console.WriteLine($"Message workflow created with message event: {messageWorkflow.Activities[0].MessageName}");
+```
+
 ## CollectionExtensions
 
 The `CollectionExtensions` class provides a set of extension methods for working with collections, lists, dictionaries, and enumerables. These methods offer safe access to collection elements, filtering capabilities, transformation utilities, and common operations that help prevent null reference exceptions and simplify collection manipulation.
