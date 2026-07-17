@@ -35,9 +35,7 @@ public static class AuditLogEntryJsonExtensions
 
         var options = indented
             ? new JsonSerializerOptions(_jsonSerializerOptions)
-            {
-                WriteIndented = true
-            }
+            { WriteIndented = true }
             : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -47,20 +45,14 @@ public static class AuditLogEntryJsonExtensions
     /// Deserializes a JSON string into an <see cref="AuditLogEntry"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized audit log entry, or null if the JSON is invalid.</returns>
+    /// <returns>The deserialized audit log entry if successful; otherwise, null.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <exception cref="JsonException">Thrown when the JSON is malformed and cannot be deserialized.</exception>
     public static AuditLogEntry? FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
 
-        try
-        {
-            return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonSerializerOptions);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonSerializerOptions);
     }
 
     /// <summary>
