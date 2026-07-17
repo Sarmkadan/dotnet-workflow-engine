@@ -7,6 +7,7 @@
 // =============================================================================
 
 using System.Globalization;
+using System.Text.RegularExpressions;
 using DotNetWorkflowEngine.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,33 +38,48 @@ public static class ParallelExecutionExampleExtensions
             return new BadRequestObjectResult(new { error = "OrderId is required" });
         }
 
-        if (orderData.Items == null || orderData.Items.Count == 0)
+        if (orderData.Items is not { Count: > 0 })
         {
             return new BadRequestObjectResult(new { error = "At least one order item is required" });
         }
 
-        if (string.IsNullOrWhiteSpace(orderData.ShippingAddress))
-        {
-            return new BadRequestObjectResult(new { error = "ShippingAddress is required" });
-        }
+        ArgumentException.ThrowIfNullOrEmpty(orderData.ShippingAddress, nameof(orderData.ShippingAddress));
+        ArgumentException.ThrowIfNullOrEmpty(orderData.PaymentMethod, nameof(orderData.PaymentMethod));
+        ArgumentException.ThrowIfNullOrEmpty(orderData.CustomerEmail, nameof(orderData.CustomerEmail));
 
-        if (string.IsNullOrWhiteSpace(orderData.PaymentMethod))
-        {
-            return new BadRequestObjectResult(new { error = "PaymentMethod is required" });
-        }
-
-        if (string.IsNullOrWhiteSpace(orderData.CustomerEmail))
-        {
-            return new BadRequestObjectResult(new { error = "CustomerEmail is required" });
-        }
-
-        // Validate email format
-        if (!orderData.CustomerEmail.Contains('@') || !orderData.CustomerEmail.Contains('.'))
+        if (!IsValidEmail(orderData.CustomerEmail))
         {
             return new BadRequestObjectResult(new { error = "CustomerEmail must be a valid email address" });
         }
 
         return new OkResult();
+    }
+
+    /// <summary>
+    /// Validates an email address format.
+    /// </summary>
+    /// <param name="email">The email address to validate.</param>
+    /// <returns>True if the email is valid; otherwise, false.</returns>
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return false;
+        }
+
+        try
+        {
+            // More robust email validation using regex
+            var emailRegex = new Regex(
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
+                TimeSpan.FromMilliseconds(250));
+            return emailRegex.IsMatch(email);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -73,6 +89,7 @@ public static class ParallelExecutionExampleExtensions
     /// <param name="orderData">The order data containing items.</param>
     /// <returns>The total order value as decimal.</returns>
     /// <exception cref="ArgumentNullException">Thrown when orderData is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when orderData.Items is null.</exception>
     public static decimal CalculateOrderTotal(
         this ParallelExecutionExample example,
         OrderData orderData)
@@ -80,7 +97,7 @@ public static class ParallelExecutionExampleExtensions
         ArgumentNullException.ThrowIfNull(orderData);
         ArgumentNullException.ThrowIfNull(orderData.Items);
 
-        return orderData.Items.Sum(item => item.Quantity * item.Price);
+        return orderData.Items.Sum(static item => item.Quantity * item.Price);
     }
 
     /// <summary>
@@ -90,11 +107,13 @@ public static class ParallelExecutionExampleExtensions
     /// <param name="orderData">The order data containing order information.</param>
     /// <returns>A standardized order ID string.</returns>
     /// <exception cref="ArgumentNullException">Thrown when orderData is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when CustomerEmail is null or empty.</exception>
     public static string CreateStandardizedOrderId(
         this ParallelExecutionExample example,
         OrderData orderData)
     {
         ArgumentNullException.ThrowIfNull(orderData);
+        ArgumentException.ThrowIfNullOrEmpty(orderData.CustomerEmail, nameof(orderData.CustomerEmail));
 
         // Create a standardized order ID: ORDER-{timestamp}-{customerEmailHash}
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
@@ -119,16 +138,16 @@ public static class ParallelExecutionExampleExtensions
 
         var shippingAddress = results.ShippingAddress ?? "N/A";
         var orderId = results.OrderId ?? "Unknown";
-        var shippingCost = results.ShippingCost?.ToString("C", CultureInfo.InvariantCulture) ?? "$0.00";
+        var shippingCost = results.ShippingCost?.ToString("F2", CultureInfo.InvariantCulture) ?? "$0.00";
 
-        return $"""
-SHIPPING LABEL
+        return $$
+"""SHIPPING LABEL
 ========================================
-Order ID: {orderId}
-Shipping To: {shippingAddress}
-Shipping Cost: {shippingCost}
-Status: {results.ProcessingStatus}
-Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}
+Order ID: {{orderId}}
+Shipping To: {{shippingAddress}}
+Shipping Cost: {{shippingCost}}
+Status: {{results.ProcessingStatus}}
+Generated: {{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}}
 ========================================
 """;
     }
@@ -137,7 +156,7 @@ Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}
 /// <summary>
 /// Container for parallel execution results from ParallelExecutionExample.
 /// </summary>
-public class ParallelExecutionResults
+public sealed class ParallelExecutionResults
 {
     public string? OrderId { get; set; }
     public bool? InventoryValid { get; set; }
