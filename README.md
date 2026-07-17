@@ -720,6 +720,126 @@ public class Person
 }
 ```
 
+## WorkflowValidator
+
+The `WorkflowValidator` class provides comprehensive validation utilities for workflow definitions, activities, and transitions. It performs static analysis to detect configuration errors, missing references, and structural issues before workflow execution. The validator checks for required fields, validates activity configurations, verifies transition integrity, and analyzes workflow connectivity to ensure all activities are reachable from the start activity.
+
+The validator produces detailed reports with both errors (blocking issues) and warnings (potential problems), making it an essential tool for catching configuration issues during development and testing.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Utilities;
+using System;
+using System.Collections.Generic;
+
+// Create a sample workflow for validation
+var workflow = new Workflow
+{
+    Id = "order-processing-workflow",
+    Name = "Order Processing Workflow",
+    Description = "Processes customer orders through validation and fulfillment",
+    Version = 1,
+    Status = WorkflowStatus.Draft,
+    CreatedAt = DateTime.UtcNow,
+    ModifiedAt = DateTime.UtcNow,
+    CreatedBy = "admin@company.com",
+    ModifiedBy = "admin@company.com",
+    Activities = new List<Activity>
+    {
+        new Activity
+        {
+            Id = "validate-order",
+            Name = "Validate Order",
+            Type = "Validation",
+            HandlerType = "ValidationHandler",
+            TimeoutSeconds = 30,
+            MaxRetries = 3,
+            RetryPolicy = RetryPolicy.ExponentialBackoff
+        },
+        new Activity
+        {
+            Id = "check-inventory",
+            Name = "Check Inventory",
+            Type = "ServiceTask",
+            HandlerType = "InventoryHandler",
+            TimeoutSeconds = 60,
+            MaxRetries = 2,
+            RetryPolicy = RetryPolicy.LinearBackoff
+        },
+        new Activity
+        {
+            Id = "process-payment",
+            Name = "Process Payment",
+            Type = "ServiceTask",
+            HandlerType = "PaymentHandler",
+            TimeoutSeconds = 45,
+            MaxRetries = 3,
+            RetryPolicy = RetryPolicy.ExponentialBackoff
+        }
+    },
+    Transitions = new List<Transition>
+    {
+        new Transition
+        {
+            Id = "transition-1",
+            FromActivityId = "validate-order",
+            ToActivityId = "check-inventory"
+        },
+        new Transition
+        {
+            Id = "transition-2",
+            FromActivityId = "check-inventory",
+            ToActivityId = "process-payment"
+        }
+    },
+    StartActivityId = "validate-order",
+    EndActivityId = "process-payment"
+};
+
+// Validate the complete workflow
+var workflowValidation = WorkflowValidator.ValidateWorkflow(workflow);
+Console.WriteLine(workflowValidation.GetReport());
+
+if (workflowValidation.IsValid)
+{
+    Console.WriteLine("Workflow is valid and ready for execution");
+}
+else
+{
+    Console.WriteLine("Workflow has validation errors that must be fixed");
+}
+
+// Validate individual activities
+foreach (var activity in workflow.Activities)
+{
+    var activityValidation = WorkflowValidator.ValidateActivity(activity);
+    if (!activityValidation.IsValid)
+    {
+        Console.WriteLine($"Activity '{activity.Id}' has issues:");
+        Console.WriteLine(activityValidation.GetReport());
+    }
+}
+
+// Validate transitions
+foreach (var transition in workflow.Transitions)
+{
+    var transitionValidation = WorkflowValidator.ValidateTransition(transition, workflow);
+    if (!transitionValidation.IsValid)
+    {
+        Console.WriteLine($"Transition '{transition.Id}' has issues:");
+        Console.WriteLine(transitionValidation.GetReport());
+    }
+}
+
+// Add custom validation errors or warnings
+var customValidator = new WorkflowValidator.ValidationResult();
+customValidator.AddError("Custom validation error: workflow name too long");
+customValidator.AddWarning("Consider adding timeout configuration for better reliability");
+Console.WriteLine(customValidator.GetReport());
+```
+
 ## StringExtensions
 
 The `StringExtensions` class provides a comprehensive set of extension methods for common string manipulation operations used throughout the workflow engine. It includes utilities for case conversion (PascalCase, snake_case, kebab-case), validation (email, URL), text processing (truncation, whitespace handling, repetition), and specialized parsing (substring extraction, smart splitting).
