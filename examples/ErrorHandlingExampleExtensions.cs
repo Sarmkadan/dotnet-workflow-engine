@@ -32,7 +32,7 @@ public static class ErrorHandlingExampleExtensions
         ArgumentNullException.ThrowIfNull(request);
 
         return !string.IsNullOrWhiteSpace(request.DataSourceUrl) &&
-               request.ProcessingRules?.Count > 0;
+               request.ProcessingRules?.Any() == true;
     }
 
     /// <summary>
@@ -44,6 +44,7 @@ public static class ErrorHandlingExampleExtensions
     /// <param name="retryCount">The number of retry attempts made.</param>
     /// <returns>An <see cref="ActionResult"/> representing the error response.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="example"/> or <paramref name="errorMessage"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is <see cref="Guid.Empty"/>.</exception>
     public static ActionResult CreateErrorResponse(
         this ErrorHandlingExample example,
         Guid instanceId,
@@ -52,15 +53,18 @@ public static class ErrorHandlingExampleExtensions
     {
         ArgumentNullException.ThrowIfNull(example);
         ArgumentNullException.ThrowIfNull(errorMessage);
+        ArgumentException.ThrowIfDefault(instanceId);
 
-        return new BadRequestObjectResult(new
+        var errorResponse = new
         {
-            instanceId,
-            error = errorMessage,
-            timestamp = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
-            retryAttempts = retryCount,
-            recoverySuggested = retryCount < 3 ? "Retry with exponential backoff" : "Use fallback path"
-        });
+            InstanceId = instanceId,
+            Error = errorMessage,
+            Timestamp = DateTime.UtcNow,
+            RetryAttempts = retryCount,
+            RecoverySuggested = retryCount < 3 ? "Retry with exponential backoff" : "Use fallback path"
+        };
+
+        return new BadRequestObjectResult(errorResponse);
     }
 
     /// <summary>
@@ -109,7 +113,7 @@ public static class ErrorHandlingExampleExtensions
             }
         }
 
-        return retryInfo.AsReadOnly();
+        return retryInfo;
     }
 
     /// <summary>
