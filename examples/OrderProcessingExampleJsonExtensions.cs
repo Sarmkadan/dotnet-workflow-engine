@@ -14,6 +14,12 @@ namespace DotNetWorkflowEngine.Examples;
 /// </summary>
 public static class OrderProcessingExampleJsonExtensions
 {
+    /// <summary>
+    /// Renames the inconsistent method to match the pattern used by TryFromJson.
+    /// </summary>
+    [Obsolete("Use TryFromJson instead. This method will be removed in a future version.")]
+    public static bool TryFromJsonToOrderItem(string? json, out OrderItem? value) =>
+        TryFromJson(json, out value);
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -34,10 +40,7 @@ public static class OrderProcessingExampleJsonExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -48,8 +51,9 @@ public static class OrderProcessingExampleJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized order request, or null if the JSON is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
-    public static OrderRequest? FromJson(string json)
+    public static OrderRequest? FromJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -65,7 +69,8 @@ public static class OrderProcessingExampleJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized order request if successful.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
-    public static bool TryFromJson(string json, out OrderRequest? value)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
+    public static bool TryFromJson(string? json, out OrderRequest? value)
     {
         value = null;
 
@@ -97,10 +102,7 @@ public static class OrderProcessingExampleJsonExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -111,8 +113,9 @@ public static class OrderProcessingExampleJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized order item, or null if the JSON is null or empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
-    public static OrderItem? FromJson(string json)
+    public static OrderItem? FromJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -128,7 +131,8 @@ public static class OrderProcessingExampleJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized order item if successful.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
-    public static bool TryFromJsonToOrderItem(string json, out OrderItem? value)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
+    public static bool TryFromJsonToOrderItem(string? json, out OrderItem? value)
     {
         value = null;
 
