@@ -16,7 +16,7 @@ public static class WorkflowControllerJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the <see cref="WorkflowController"/> instance to a JSON string.
+    /// Serializes the <see cref="WorkflowController"/> instance to a JSON string using camelCase property naming.
     /// </summary>
     /// <param name="value">The controller instance to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
