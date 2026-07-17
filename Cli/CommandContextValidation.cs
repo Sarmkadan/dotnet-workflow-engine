@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
 namespace DotNetWorkflowEngine.Cli;
 
@@ -24,7 +23,7 @@ public static class CommandContextValidation
     /// </summary>
     /// <param name="value">The command context to validate.</param>
     /// <returns>List of validation problems; empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if value is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this CommandContext value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -124,7 +123,7 @@ public static class CommandContextValidation
     /// </summary>
     /// <param name="value">The command context to check.</param>
     /// <returns>True if valid; false otherwise.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if value is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this CommandContext value)
     {
         return value.Validate().Count == 0;
@@ -135,8 +134,8 @@ public static class CommandContextValidation
     /// with a detailed message listing all validation problems if invalid.
     /// </summary>
     /// <param name="value">The command context to validate.</param>
-    /// <exception cref="ArgumentNullException">Thrown if value is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if value is invalid with detailed problems.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is invalid with detailed problems.</exception>
     public static void EnsureValid(this CommandContext value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -148,9 +147,6 @@ public static class CommandContextValidation
             return;
         }
 
-        throw new ArgumentException(
-            $"CommandContext is invalid. Problems: {problems.Count}. Details:\n- {
-                string.Join("\n- ", problems)
-            }");
+        throw new ArgumentException($"CommandContext is invalid. Problems: {problems.Count}. Details:\n- {string.Join("\n- ", problems)}");
     }
 }
