@@ -22,11 +22,12 @@ public static class WorkflowDefinitionServiceExtensions
     /// <param name="name">The workflow name.</param>
     /// <param name="description">Optional workflow description.</param>
     /// <returns>The created workflow.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when name is null.</exception>
-    /// <exception cref="ValidationException">Thrown when name is empty or invalid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is empty or contains only whitespace.</exception>
     public static Workflow CreateWorkflowFromName(this WorkflowDefinitionService service, string name, string? description = null)
     {
         ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
 
         // Generate a normalized workflow ID from the name
         var normalizedName = name.Trim()
@@ -64,7 +65,7 @@ public static class WorkflowDefinitionServiceExtensions
     /// <param name="service">The workflow definition service.</param>
     /// <param name="name">The workflow name to search for.</param>
     /// <returns>The found workflow or null if not found.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when name is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is null.</exception>
     public static Workflow? GetWorkflowByName(this WorkflowDefinitionService service, string name)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -79,12 +80,12 @@ public static class WorkflowDefinitionServiceExtensions
     /// <param name="service">The workflow definition service.</param>
     /// <param name="name">The workflow name to check.</param>
     /// <returns>True if workflow exists; otherwise false.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when name is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is null.</exception>
     public static bool WorkflowExists(this WorkflowDefinitionService service, string name)
     {
         ArgumentNullException.ThrowIfNull(name);
 
-        return service.GetWorkflowByName(name) != null;
+        return service.GetWorkflowByName(name) is not null;
     }
 
     /// <summary>
@@ -93,7 +94,7 @@ public static class WorkflowDefinitionServiceExtensions
     /// <param name="service">The workflow definition service.</param>
     /// <param name="namePattern">The search pattern (e.g., "approval-*", "*process*", "order-fulfillment").</param>
     /// <returns>Filtered collection of workflows.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when namePattern is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="namePattern"/> is null.</exception>
     public static IReadOnlyList<Workflow> GetWorkflowsByPattern(this WorkflowDefinitionService service, string namePattern)
     {
         ArgumentNullException.ThrowIfNull(namePattern);
@@ -106,12 +107,11 @@ public static class WorkflowDefinitionServiceExtensions
         }
 
         // Convert simple wildcard pattern to regex
-        var regexPattern = namePattern
-            .Replace(".", "\\.")  // Escape dots
-            .Replace("*", ".*")  // * becomes .*
-            .Replace("?", ".?"); // ? becomes .?
+        var regexPattern = Regex.Escape(namePattern)
+            .Replace("*", ".*")
+            .Replace("?", ".?");
 
-        var regex = new System.Text.RegularExpressions.Regex(regexPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var regex = new Regex(regexPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         var matches = allWorkflows.Where(w => regex.IsMatch(w.Name)).ToList();
         return matches.AsReadOnly();
