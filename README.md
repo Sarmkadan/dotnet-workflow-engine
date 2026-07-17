@@ -193,17 +193,11 @@ var sharedData = await cacheService.GetOrLoadAsync(
 Console.WriteLine($"Shared state: {sharedData.State}");
 ```
 
-## ActivityService
+## ActivityServiceExtensions
 
-The `ActivityService` manages the execution of workflow activities, including activity handler registration, conditional execution, retry policies, and validation. It serves as the central service for executing activities within workflows, supporting both standard activities and gateway activities (fork/join points).
+The `ActivityServiceExtensions` class provides extension methods for the `ActivityService` that add convenient functionality for activity creation, validation, and batch execution. These extensions simplify common workflow patterns by providing fluent APIs for activity handling and comprehensive validation capabilities.
 
-The service handles:
-
-- Registration and lookup of activity handlers by type
-- Execution of activities with configurable retry policies (exponential backoff, fixed delay, linear backoff, or no retry)
-- Conditional activity execution based on expressions
-- Activity validation before execution
-- Gateway activity handling (fork/join patterns)
+The extension methods include activity creation helpers, handler validation across all registered types, batch execution support for parallel workflows, and runtime statistics about registered handlers.
 
 Example usage:
 
@@ -291,6 +285,81 @@ public class CustomActivityHandler : ActivityService.IActivityHandler
         await Task.Delay(100); // Simulate work
         return output;
     }
+}
+```
+
+Example usage with ActivityServiceExtensions:
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Setup services (typically via DI)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+var serviceProvider = services.BuildServiceProvider();
+
+// Get the activity service
+var activityService = serviceProvider.GetRequiredService<IActivityService>();
+
+// Example 1: Validate all registered handlers
+var validationResults = activityService.ValidateAllHandlers();
+Console.WriteLine($"Handler validation results:");
+foreach (var kvp in validationResults)
+{
+    Console.WriteLine($"  {kvp.Key}: {(kvp.Value ? "Valid" : "Invalid")}");
+}
+
+// Example 2: Get handler count
+var handlerCount = activityService.GetHandlerCount();
+Console.WriteLine($"Total registered handlers: {handlerCount}");
+
+// Example 3: Create an activity
+var validationActivity = activityService.CreateActivity("Validation", new { OrderId = "ORD-12345" });
+Console.WriteLine($"Created activity: {validationActivity.Id} with handler: {validationActivity.HandlerType}");
+
+// Example 4: Execute multiple activities in parallel
+var parallelActivities = new List<(string HandlerType, object Input)> {
+    ("Validation", new { OrderId = "ORD-12345", ValidatePayment = true }),
+    ("InventoryCheck", new { OrderId = "ORD-12345", Items = new[] { "PROD-001", "PROD-002" } }),
+    ("ShippingCalculation", new { OrderId = "ORD-12345", Destination = "US-NY-10001" })
+};
+
+var context = new ExecutionContext {
+    WorkflowInstanceId = "wf-order-processing-001",
+    CorrelationId = "corr-7f3b9c2e-4567-89ab-cdef-123456789abc",
+    Variables = new Dictionary<string, object> { { "isPriority", true } }
+};
+
+var results = await activityService.ExecuteActivitiesAsync(parallelActivities, context);
+Console.WriteLine($"Executed {results.Count} activities in parallel");
+
+foreach (var result in results)
+{
+    if (result.IsSuccess())
+    {
+        Console.WriteLine($"Activity {result.ActivityId} completed successfully in {result.ExecutionDurationMs}ms");
+    }
+    else
+    {
+        Console.WriteLine($"Activity {result.ActivityId} failed: {result.ErrorMessage}");
+    }
+}
+
+// Example 5: Execute a single activity with simplified API
+var singleResult = await activityService.ExecuteActivityAsync(
+    "Notification",
+    new { Message = "Order processed successfully", Recipient = "admin@company.com" },
+    context
+);
+
+if (singleResult.IsSuccess())
+{
+    Console.WriteLine($"Notification sent successfully");
 }
 ```
 
