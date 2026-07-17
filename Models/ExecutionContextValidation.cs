@@ -28,7 +28,7 @@ public static class ExecutionContextValidation
             problems.Add("WorkflowInstanceId must not be null or whitespace.");
         }
 
-        // Validate ActivityId (optional)
+        // Validate ActivityId (optional but must be valid if set)
         if (value.ActivityId is not null && string.IsNullOrWhiteSpace(value.ActivityId))
         {
             problems.Add("ActivityId must not be empty if set.");
@@ -91,7 +91,7 @@ public static class ExecutionContextValidation
             }
         }
 
-        // Validate IsActive consistency
+        // Validate IsActive consistency with EndTime
         if (value.EndTime.HasValue && value.IsActive)
         {
             problems.Add("IsActive must be false when EndTime is set.");
@@ -116,8 +116,10 @@ public static class ExecutionContextValidation
     /// </summary>
     /// <param name="value">The execution context to check.</param>
     /// <returns>True if the context is valid; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this ExecutionContext value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         return value.Validate().Count == 0;
     }
 
