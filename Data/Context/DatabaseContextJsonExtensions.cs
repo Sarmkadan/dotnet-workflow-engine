@@ -10,7 +10,7 @@ using System.Text.Json.Serialization.Metadata;
 namespace DotNetWorkflowEngine.Data.Context;
 
 /// <summary>
-/// Provides System.Text.Json serialization and deserialization extensions for DatabaseContext.
+/// Provides System.Text.Json serialization and deserialization extensions for <see cref="DatabaseContext"/>.
 /// </summary>
 public static class DatabaseContextJsonExtensions
 {
@@ -35,9 +35,7 @@ public static class DatabaseContextJsonExtensions
 
         var options = indented
             ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -47,10 +45,13 @@ public static class DatabaseContextJsonExtensions
     /// Deserializes a JSON string to a DatabaseContext instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>A DatabaseContext instance, or null if the JSON is null or empty.</returns>
+    /// <returns>A DatabaseContext instance if deserialization succeeds; otherwise, null if the JSON is null, empty, or whitespace.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static DatabaseContext? FromJson(string json)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
