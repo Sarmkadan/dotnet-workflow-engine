@@ -36,9 +36,7 @@ public static class ActivityExecutionBenchmarksJsonExtensions
 
         var options = indented
             ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -48,16 +46,16 @@ public static class ActivityExecutionBenchmarksJsonExtensions
     /// Parses an <see cref="ActivityExecutionBenchmarks"/> instance from a JSON string.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized activity execution benchmarks, or null if the JSON is null or empty.</returns>
+    /// <returns>The deserialized activity execution benchmarks, or null if the JSON is null, empty, or whitespace.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
-    public static ActivityExecutionBenchmarks? FromJson(string json)
+    public static ActivityExecutionBenchmarks? FromJson(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(json);
 
-        return JsonSerializer.Deserialize<ActivityExecutionBenchmarks>(json, _jsonOptions);
+        return string.IsNullOrWhiteSpace(json)
+            ? null
+            : JsonSerializer.Deserialize<ActivityExecutionBenchmarks>(json, _jsonOptions);
     }
 
     /// <summary>
@@ -66,7 +64,7 @@ public static class ActivityExecutionBenchmarksJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized activity execution benchmarks if successful.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
-    public static bool TryFromJson(string json, out ActivityExecutionBenchmarks? value)
+    public static bool TryFromJson(string? json, out ActivityExecutionBenchmarks? value)
     {
         value = null;
 
