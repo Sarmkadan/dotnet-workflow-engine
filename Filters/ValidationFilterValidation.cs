@@ -9,7 +9,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 
 namespace DotNetWorkflowEngine.Filters;
 
@@ -106,7 +105,7 @@ public static class ValidationFilterValidation
         if (problems.Count > 0)
         {
             throw new ArgumentException(
-                $"ValidationErrorResponse is not valid. Problems: {string.Join(" ", problems)}",
+                $"ValidationErrorResponse is not valid. Problems: {string.Join("; ", problems)}",
                 nameof(value));
         }
     }
@@ -168,7 +167,7 @@ public static class ValidationFilterValidation
         if (problems.Count > 0)
         {
             throw new ArgumentException(
-                $"AllowedValuesAttribute is not valid. Problems: {string.Join(" ", problems)}",
+                $"AllowedValuesAttribute is not valid. Problems: {string.Join("; ", problems)}",
                 nameof(attribute));
         }
     }
