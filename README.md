@@ -557,6 +557,101 @@ var sharedData = await cacheService.GetOrLoadAsync(
 Console.WriteLine($"Shared state: {sharedData.State}");
 ```
 
+## WorkflowController
+
+The `WorkflowController` class provides a REST API controller for managing workflow definitions through HTTP endpoints. It exposes CRUD operations for workflow definitions, allowing clients to create, read, update, and delete workflows via standard REST conventions. The controller integrates with the workflow engine's services to provide complete workflow lifecycle management through a web interface.
+
+The controller supports operations for managing workflow definitions including listing all workflows, retrieving specific workflows by ID, creating new workflow definitions, updating existing ones, and deleting workflows that are no longer needed.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Controllers;
+using DotNetWorkflowEngine.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Setup services (typically via DI in ASP.NET Core)
+var services = new ServiceCollection();
+services.AddWorkflowServices();
+services.AddControllers();
+var serviceProvider = services.BuildServiceProvider();
+
+// Create controller instance with required services
+var workflowDefinitionService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
+var workflowRepository = serviceProvider.GetRequiredService<IWorkflowRepository>();
+var controller = new WorkflowController(workflowDefinitionService, workflowRepository);
+
+// Example: Get all workflows
+var allWorkflowsResult = await controller.GetAllWorkflows();
+if (allWorkflowsResult is OkObjectResult okResult)
+{
+    var workflows = okResult.Value as List<Workflow>;
+    Console.WriteLine($"Found {workflows?.Count} workflows");
+}
+
+// Example: Get a specific workflow by ID
+var workflowResult = await controller.GetWorkflow("order-processing-workflow");
+if (workflowResult is OkObjectResult okWorkflowResult)
+{
+    var workflow = okWorkflowResult.Value as Workflow;
+    Console.WriteLine($"Retrieved workflow: {workflow?.Name}");
+}
+
+// Example: Create a new workflow
+var newWorkflow = new Workflow
+{
+    Id = "new-order-workflow",
+    Name = "New Order Processing Workflow",
+    Description = "Handles new order processing workflow",
+    Version = 1,
+    Status = WorkflowStatus.Draft,
+    CreatedAt = DateTime.UtcNow,
+    ModifiedAt = DateTime.UtcNow,
+    CreatedBy = "admin@company.com",
+    ModifiedBy = "admin@company.com"
+};
+
+var createResult = await controller.CreateWorkflow(newWorkflow);
+if (createResult is CreatedAtActionResult createdResult)
+{
+    var createdWorkflow = createdResult.Value as Workflow;
+    Console.WriteLine($"Created workflow: {createdWorkflow?.Id}");
+}
+
+// Example: Update an existing workflow
+if (workflowResult is OkObjectResult okUpdateResult)
+{
+    var existingWorkflow = okUpdateResult.Value as Workflow;
+    existingWorkflow.Status = WorkflowStatus.Published;
+    existingWorkflow.ModifiedAt = DateTime.UtcNow;
+    
+    var updateResult = await controller.UpdateWorkflow(existingWorkflow.Id, existingWorkflow);
+    if (updateResult is NoContentResult)
+    {
+        Console.WriteLine("Workflow updated successfully");
+    }
+}
+
+// Example: Delete a workflow
+// var deleteResult = await controller.DeleteWorkflow("temp-workflow-id");
+// if (deleteResult is NoContentResult)
+// {
+//     Console.WriteLine("Workflow deleted successfully");
+// }
+
+// Example: Validate a workflow definition
+var validationResult = await controller.ValidateWorkflow("order-processing-workflow");
+if (validationResult is OkObjectResult validationOkResult)
+{
+    var validationReport = validationOkResult.Value as string;
+    Console.WriteLine($"Validation report:\n{validationReport}");
+}
+```
+
 ## WorkflowBuilder
 
 The `WorkflowBuilder` class provides a fluent interface for programmatically constructing workflow definitions. It enables clean, readable code for creating workflows with activities, transitions, and configuration options. The builder supports both manual construction and convenience methods for common patterns like serial workflows.
