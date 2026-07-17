@@ -798,6 +798,75 @@ if (OrderItemExtensions.TryFromJsonToOrderItem(itemJson, out var safeParsedItem)
 }
 ```
 
+## ParallelExecutionExampleExtensions
+
+The `ParallelExecutionExampleExtensions` static class provides extension methods for the `ParallelExecutionExample` class to enhance parallel workflow execution with order processing utilities. It includes methods for validating order data, calculating totals, creating standardized order IDs, and generating shipping labels from parallel execution results.
+
+This extension class is particularly useful for implementing parallel order processing workflows where multiple validation and calculation steps need to be executed concurrently before finalizing order fulfillment.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Models;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create a ParallelExecutionExample instance
+var parallelExample = new ParallelExecutionExample();
+
+// Example 1: Validate order data before parallel execution
+var orderData = new OrderData
+{
+  OrderId = "ORD-2024-001",
+  CustomerEmail = "customer@example.com",
+  ShippingAddress = "123 Main St, City, Country",
+  PaymentMethod = "credit-card",
+  Items = new List<OrderItem>
+  {
+    new OrderItem { ProductId = "PROD-001", Quantity = 2, Price = 19.99m },
+    new OrderItem { ProductId = "PROD-002", Quantity = 1, Price = 49.99m }
+  }
+};
+
+var validationResult = await parallelExample.ValidateOrderDataAsync(orderData);
+if (validationResult is OkResult)
+{
+  Console.WriteLine("Order data validation passed");
+}
+else if (validationResult is BadRequestObjectResult badRequest)
+{
+  Console.WriteLine($"Validation failed: {badRequest.Value}");
+}
+
+// Example 2: Calculate order total
+var orderTotal = parallelExample.CalculateOrderTotal(orderData);
+Console.WriteLine($"Order total: {orderTotal:C}"); // $89.97
+
+// Example 3: Create standardized order ID
+var standardizedOrderId = parallelExample.CreateStandardizedOrderId(orderData);
+Console.WriteLine($"Standardized order ID: {standardizedOrderId}");
+
+// Example 4: Generate shipping label from parallel execution results
+var executionResults = new ParallelExecutionResults
+{
+  OrderId = standardizedOrderId,
+  InventoryValid = true,
+  PaymentValid = true,
+  ShippingCost = 9.99m,
+  AppliedPromotion = "SUMMER2024",
+  FinalTotal = orderTotal - 5.00m,
+  ProcessingStatus = "Completed",
+  ShippingAddress = orderData.ShippingAddress
+};
+
+var shippingLabel = parallelExample.GenerateShippingLabel(executionResults);
+Console.WriteLine("Shipping Label:");
+Console.WriteLine(shippingLabel);
+```
+
 ## ErrorHandlingExampleExtensions
 
 The `ErrorHandlingExampleExtensions` static class provides extension methods for the `ErrorHandlingExample` class to enhance error handling workflows. It includes methods for validating processing requests, creating standardized error responses, extracting retry policy information, generating comprehensive error reports, and validating workflow instance status with recovery actions.
