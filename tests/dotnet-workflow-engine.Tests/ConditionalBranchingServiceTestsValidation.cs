@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Models;
@@ -31,7 +31,7 @@ public static class ConditionalBranchingServiceTestsValidation
         var problems = new List<string>();
 
         // ConditionalBranchingService only has a logger dependency which is validated in constructor
-        // No additional validation needed beyond null check
+        // No additional validation needed beyond null check for the service instance itself
 
         return problems.AsReadOnly();
     }
@@ -44,9 +44,7 @@ public static class ConditionalBranchingServiceTestsValidation
     /// <see langword="true"/> when the instance is valid; otherwise, <see langword="false"/>.
     /// </returns>
     public static bool IsValid(this ConditionalBranchingService value)
-    {
-        return value?.Validate().Count == 0;
-    }
+        => value?.Validate().Count == 0;
 
     /// <summary>
     /// Ensures that a <see cref="ConditionalBranchingService"/> instance is valid,
@@ -68,7 +66,8 @@ public static class ConditionalBranchingServiceTestsValidation
         {
             throw new ArgumentException(
                 $"ConditionalBranchingService is invalid:{Environment.NewLine}" +
-                string.Join(Environment.NewLine, problems.Select(p => $"  - {p}")));
+                string.Join(Environment.NewLine, problems.Select(p => $" - {p}")),
+                nameof(value));
         }
     }
 }
