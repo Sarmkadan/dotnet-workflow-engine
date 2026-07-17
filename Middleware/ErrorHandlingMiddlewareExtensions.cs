@@ -4,7 +4,7 @@
 //
 // Extension methods for ErrorHandlingMiddleware providing additional functionality
 // for error handling and response generation scenarios.
-// =============================================================================
+// =====================================================================
 
 using System;
 using System.Collections.Generic;
@@ -26,43 +26,28 @@ public static class ErrorHandlingMiddlewareExtensions
     /// </summary>
     /// <param name="exception">The exception to convert to an error response.</param>
     /// <returns>A tuple containing the error code, message, details (if any), and timestamp.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when exception is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="exception"/> is null.</exception>
     public static (string ErrorCode, string Message, string? Details, DateTime Timestamp)
-        ToErrorResponse(this Exception exception)
+    ToErrorResponse(this Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
-        string errorCode = "INTERNAL_SERVER_ERROR";
-        string message = "An unexpected error occurred";
-        string? details = null;
-        DateTime timestamp = DateTime.UtcNow;
-
-        switch (exception)
+        return exception switch
         {
-            case DotNetWorkflowEngine.Exceptions.ValidationException ex:
-                errorCode = "VALIDATION_ERROR";
-                message = ex.Message;
-                break;
+            DotNetWorkflowEngine.Exceptions.ValidationException ex =>
+                ("VALIDATION_ERROR", ex.Message, null, DateTime.UtcNow),
 
-            case DotNetWorkflowEngine.Exceptions.StateException ex:
-                errorCode = "INVALID_STATE";
-                message = ex.Message;
-                break;
+            DotNetWorkflowEngine.Exceptions.StateException ex =>
+                ("INVALID_STATE", ex.Message, null, DateTime.UtcNow),
 
-            case DotNetWorkflowEngine.Exceptions.ActivityException ex:
-                errorCode = "ACTIVITY_ERROR";
-                message = ex.Message;
-                details = ex.ActivityId;
-                break;
+            DotNetWorkflowEngine.Exceptions.ActivityException ex =>
+                ("ACTIVITY_ERROR", ex.Message, ex.ActivityId, DateTime.UtcNow),
 
-            case DotNetWorkflowEngine.Exceptions.WorkflowException ex:
-                errorCode = ex.ErrorCode ?? "WORKFLOW_ERROR";
-                message = ex.Message;
-                details = ex.CorrelationId;
-                break;
-        }
+            DotNetWorkflowEngine.Exceptions.WorkflowException ex =>
+                (ex.ErrorCode ?? "WORKFLOW_ERROR", ex.Message, ex.CorrelationId, DateTime.UtcNow),
 
-        return (errorCode, message, details, timestamp);
+            _ => ("INTERNAL_SERVER_ERROR", "An unexpected error occurred", null, DateTime.UtcNow)
+        };
     }
 
     /// <summary>
@@ -73,13 +58,16 @@ public static class ErrorHandlingMiddlewareExtensions
     /// <param name="errorResponse">The error response tuple from ToErrorResponse.</param>
     /// <param name="statusCode">Optional HTTP status code to use (defaults to 500).</param>
     /// <returns>A Task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when context or errorResponse is invalid.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="context"/> or <paramref name="errorResponse"/> is null.
+    /// </exception>
     public static async Task WriteErrorResponseAsync(
         this HttpContext context,
         (string ErrorCode, string Message, string? Details, DateTime Timestamp) errorResponse,
         int statusCode = StatusCodes.Status500InternalServerError)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(errorResponse);
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
@@ -103,14 +91,19 @@ public static class ErrorHandlingMiddlewareExtensions
     /// <param name="context">The HTTP context containing request information.</param>
     /// <param name="exception">The exception to convert to an error response.</param>
     /// <param name="additionalContext">Optional dictionary of additional context to include in the response.</param>
-    /// <returns>A tuple containing the error code, message, details (if any), and timestamp.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when context or exception is null.</exception>
+    /// <returns>
+    /// A tuple containing the error code, message, details (if any), timestamp, and
+    /// a dictionary of additional context information.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="context"/> or <paramref name="exception"/> is null.
+    /// </exception>
     public static (string ErrorCode, string Message, string? Details, DateTime Timestamp,
         IReadOnlyDictionary<string, object> Context)
-        ToErrorResponseWithContext(
-            this HttpContext context,
-            Exception exception,
-            IReadOnlyDictionary<string, object>? additionalContext = null)
+    ToErrorResponseWithContext(
+        this HttpContext context,
+        Exception exception,
+        IReadOnlyDictionary<string, object>? additionalContext = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(exception);
