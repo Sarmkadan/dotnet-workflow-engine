@@ -1,6 +1,18 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 // =============================================================================
 
 using System.Text.Json;
@@ -8,7 +20,10 @@ using System.Text.Json.Serialization;
 
 namespace DotNetWorkflowEngine.Tests;
 
-public static class StringExtensionsTestsJsonExtensions
+/// <summary>
+/// Provides JSON serialization and deserialization extension methods for the <see cref="StringExtensionsTests"/> class.
+/// </summary>
+public static class StringExtensionsJsonExtensions
 {
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new(JsonSerializerDefaults.Web)
     {
@@ -42,11 +57,14 @@ public static class StringExtensionsTestsJsonExtensions
     /// Deserializes a JSON string to a <see cref="StringExtensionsTests"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized instance, or null if the JSON is null or empty.</returns>
+    /// <returns>The deserialized instance, or null if the JSON is null or whitespace.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static StringExtensionsTests? FromJson(string json)
     {
-        if (string.IsNullOrEmpty(json))
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (string.IsNullOrWhiteSpace(json))
         {
             return null;
         }
@@ -60,11 +78,14 @@ public static class StringExtensionsTestsJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized instance if successful.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out StringExtensionsTests? value)
     {
         value = null;
 
-        if (string.IsNullOrEmpty(json))
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (string.IsNullOrWhiteSpace(json))
         {
             return false;
         }
