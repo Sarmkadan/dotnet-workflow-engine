@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetWorkflowEngine.Models;
@@ -10,7 +11,7 @@ using DotNetWorkflowEngine.Models;
 namespace DotNetWorkflowEngine.Data.Context
 {
     /// <summary>
-    /// Extension methods that add convenient, higher‑level operations to <see cref="DatabaseContext"/>.
+    /// Provides extension methods that add convenient, higher-level operations to <see cref="DatabaseContext"/>.
     /// </summary>
     public static class DatabaseContextExtensions
     {
@@ -18,7 +19,7 @@ namespace DotNetWorkflowEngine.Data.Context
         /// Retrieves all <see cref="Workflow"/> entities from the underlying repository.
         /// </summary>
         /// <param name="context">The database context.</param>
-        /// <returns>A read‑only list containing every workflow stored in the context.</returns>
+        /// <returns>A read-only list containing every workflow stored in the context.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
         public static async Task<IReadOnlyList<Workflow>> GetAllWorkflowsAsync(this DatabaseContext context)
         {
@@ -29,7 +30,7 @@ namespace DotNetWorkflowEngine.Data.Context
                 .GetPagedAsync(pageNumber: 1, pageSize: int.MaxValue)
                 .ConfigureAwait(false);
 
-            return items;
+            return items.AsReadOnly();
         }
 
         /// <summary>
@@ -37,7 +38,7 @@ namespace DotNetWorkflowEngine.Data.Context
         /// </summary>
         /// <param name="context">The database context.</param>
         /// <param name="eventType">The event type to filter by.</param>
-        /// <returns>A read‑only list of <see cref="AuditLogEntry"/> objects with the given event type.</returns>
+        /// <returns>A read-only list of <see cref="AuditLogEntry"/> objects with the given event type.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> or <paramref name="eventType"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">Thrown when <paramref name="eventType"/> is an empty string.</exception>
         public static async Task<IReadOnlyList<AuditLogEntry>> GetAuditLogsByEventTypeAsync(this DatabaseContext context, string eventType)
@@ -49,7 +50,7 @@ namespace DotNetWorkflowEngine.Data.Context
                 .GetByEventTypeAsync(eventType)
                 .ConfigureAwait(false);
 
-            return logs;
+            return logs.AsReadOnly();
         }
 
         /// <summary>
@@ -66,10 +67,10 @@ namespace DotNetWorkflowEngine.Data.Context
         }
 
         /// <summary>
-        /// Returns a human‑readable report of the statistics returned by <see cref="DatabaseContext.GetStatisticsAsync"/>.
+        /// Returns a human-readable report of the statistics returned by <see cref="DatabaseContext.GetStatisticsAsync"/>.
         /// </summary>
         /// <param name="context">The database context.</param>
-        /// <returns>A multi‑line string where each line contains a statistic name and its integer value.</returns>
+        /// <returns>A multi-line string where each line contains a statistic name and its integer value.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
         public static async Task<string> GetStatisticsReportAsync(this DatabaseContext context)
         {
@@ -80,7 +81,7 @@ namespace DotNetWorkflowEngine.Data.Context
             // Use invariant culture for deterministic formatting.
             return string.Join(
                 Environment.NewLine,
-                stats.Select(kv => $"{kv.Key}: {kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"));
+                stats.Select(kv => $"{kv.Key}: {kv.Value.ToString(CultureInfo.InvariantCulture)}"));
         }
     }
 }
