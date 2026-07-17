@@ -81,10 +81,7 @@ public static class WorkflowValidation
     /// <param name="value">The workflow instance to check.</param>
     /// <returns><c>true</c> if the workflow is valid; otherwise <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
-    public static bool IsValid(this Workflow value)
-    {
-        return Validate(value).Count == 0;
-    }
+    public static bool IsValid(this Workflow value) => Validate(value).Count == 0;
 
     /// <summary>
     /// Ensures that a workflow instance is valid, throwing an exception if it is not.
@@ -112,8 +109,11 @@ public static class WorkflowValidation
     /// <param name="value">The string value to validate.</param>
     /// <param name="propertyName">The name of the property being validated.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateRequiredString(string value, string propertyName, List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(errors);
+
         if (string.IsNullOrWhiteSpace(value))
         {
             errors.Add($"{propertyName} is required and cannot be null, empty, or whitespace");
@@ -126,9 +126,12 @@ public static class WorkflowValidation
     /// <param name="value">The string value to validate.</param>
     /// <param name="propertyName">The name of the property being validated.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateOptionalString(string? value, string propertyName, List<string> errors)
     {
-        if (!string.IsNullOrWhiteSpace(value) && string.IsNullOrWhiteSpace(value))
+        ArgumentNullException.ThrowIfNull(errors);
+
+        if (value != null && string.IsNullOrWhiteSpace(value))
         {
             errors.Add($"{propertyName} cannot be empty or whitespace when provided");
         }
@@ -139,8 +142,11 @@ public static class WorkflowValidation
     /// </summary>
     /// <param name="status">The workflow status to validate.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateStatusConstraints(WorkflowStatus status, List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(errors);
+
         // No specific constraints on status values themselves
         // The status enum has valid values by design
     }
@@ -150,8 +156,11 @@ public static class WorkflowValidation
     /// </summary>
     /// <param name="activities">The activities collection to validate.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateActivitiesCollection(List<Activity> activities, List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(errors);
+
         if (activities == null)
         {
             errors.Add("Activities collection cannot be null");
@@ -186,8 +195,11 @@ public static class WorkflowValidation
     /// </summary>
     /// <param name="transitions">The transitions collection to validate.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateTransitionsCollection(List<Transition> transitions, List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(errors);
+
         if (transitions == null)
         {
             errors.Add("Transitions collection cannot be null");
@@ -217,8 +229,11 @@ public static class WorkflowValidation
     /// </summary>
     /// <param name="workflow">The workflow to validate.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateActivityReferences(Workflow workflow, List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(errors);
+
         // Validate StartActivityId references existing activity
         if (!string.IsNullOrWhiteSpace(workflow.StartActivityId))
         {
@@ -266,8 +281,11 @@ public static class WorkflowValidation
     /// <param name="createdAt">The creation timestamp.</param>
     /// <param name="modifiedAt">The modification timestamp.</param>
     /// <param name="errors">The collection to add error messages to.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="errors"/> is null.</exception>
     private static void ValidateDateTimeFields(DateTime createdAt, DateTime modifiedAt, List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(errors);
+
         // Validate that dates are not default (MinValue)
         if (createdAt == default)
         {
