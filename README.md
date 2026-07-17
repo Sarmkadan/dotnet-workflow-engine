@@ -603,6 +603,62 @@ var dateProblems = invalidDate.Validate("expirationDate");
 Console.WriteLine($"DateTime validation problems: {dateProblems.Count}");
 ```
 
+## ErrorHandlingExampleValidation
+
+The `ErrorHandlingExampleValidation` static class provides validation helpers for error handling workflow data models. It offers extension methods to validate `ProcessingRequest` instances and their processing rules, ensuring data integrity before workflow execution.
+
+This validation utility is useful for validating processing requests with configurable constraints, checking rule types, and validating positive integer values within processing rules.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using System;
+using System.Collections.Generic;
+
+// Create a valid processing request
+var request = new ProcessingRequest
+{
+    DataSourceUrl = "https://api.example.com/data",
+    ProcessingRules = new Dictionary<string, object>
+    {
+        { "timeout", 30 },
+        { "maxRetries", "3" },
+        { "batchSize", 100 }
+    }
+};
+
+// Validate the request - returns list of problems (empty if valid)
+var problems = request.Validate();
+Console.WriteLine($"Validation problems: {problems.Count}"); // 0
+
+// Check if valid using IsValid extension method
+bool isValid = request.IsValid();
+Console.WriteLine($"Is valid: {isValid}"); // True
+
+// Use EnsureValid to throw if invalid
+request.EnsureValid(); // No exception thrown
+
+// Validate with length and count constraints
+var constrainedProblems = request.Validate(
+    maxDataSourceUrlLength: 200,
+    maxProcessingRulesCount: 10
+);
+Console.WriteLine($"Constrained validation problems: {constrainedProblems.Count}"); // 0
+
+// Validate processing rules specifically
+var ruleProblems = request.ValidateProcessingRules();
+Console.WriteLine($"Rule validation problems: {ruleProblems.Count}"); // 0
+
+// Validate a specific rule type
+var typeProblems = request.ProcessingRules.ValidateRuleType("timeout", typeof(int));
+Console.WriteLine($"Type validation problems: {typeProblems.Count}"); // 0
+
+// Validate a positive integer rule with minimum value
+var positiveIntProblems = request.ProcessingRules.ValidatePositiveIntegerRule("batchSize", minValue: 1);
+Console.WriteLine($"Positive integer validation problems: {positiveIntProblems.Count}"); // 0
+```
+
 ## HealthController
 
 The `HealthController` provides health monitoring endpoints for the workflow engine, implementing liveness and readiness probes suitable for container orchestration systems like Kubernetes. It exposes three endpoints for monitoring application health:
