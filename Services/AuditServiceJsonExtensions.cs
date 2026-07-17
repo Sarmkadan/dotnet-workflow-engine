@@ -4,12 +4,12 @@
 // ===================================================================
 
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
+using DotNetWorkflowEngine.Models;
 
 namespace DotNetWorkflowEngine.Services;
 
 /// <summary>
-/// Provides System.Text.Json serialization and deserialization extensions for AuditService.
+/// Provides System.Text.Json serialization and deserialization extensions for audit-related models.
 /// </summary>
 public static class AuditServiceJsonExtensions
 {
@@ -20,13 +20,13 @@ public static class AuditServiceJsonExtensions
     };
 
     /// <summary>
-    /// Serializes the AuditService instance to a JSON string.
+    /// Serializes an AuditLogEntry to a JSON string.
     /// </summary>
-    /// <param name="value">The AuditService instance to serialize.</param>
+    /// <param name="value">The AuditLogEntry to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
-    /// <returns>A JSON string representation of the AuditService.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when the AuditService instance is null.</exception>
-    public static string ToJson(this AuditService value, bool indented = false)
+    /// <returns>A JSON string representation of the AuditLogEntry.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when the AuditLogEntry is null.</exception>
+    public static string ToJson(this AuditLogEntry value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -38,13 +38,13 @@ public static class AuditServiceJsonExtensions
     }
 
     /// <summary>
-    /// Deserializes a JSON string to an AuditService instance.
+    /// Deserializes a JSON string to an AuditLogEntry instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>An AuditService instance, or null if the JSON is empty or whitespace.</returns>
+    /// <returns>An AuditLogEntry instance, or null if the JSON is empty or whitespace.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
-    public static AuditService? FromJson(string json)
+    public static AuditLogEntry? FromJsonToAuditLogEntry(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
 
@@ -53,17 +53,17 @@ public static class AuditServiceJsonExtensions
             return null;
         }
 
-        return JsonSerializer.Deserialize<AuditService>(json, _jsonOptions);
+        return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptions);
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string to an AuditService instance.
+    /// Attempts to deserialize a JSON string to an AuditLogEntry instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">Receives the deserialized AuditService instance, or null on failure.</param>
+    /// <param name="value">Receives the deserialized AuditLogEntry instance, or null on failure.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
-    public static bool TryFromJson(string json, out AuditService? value)
+    public static bool TryFromJsonToAuditLogEntry(string json, out AuditLogEntry? value)
     {
         ArgumentNullException.ThrowIfNull(json);
 
@@ -76,7 +76,74 @@ public static class AuditServiceJsonExtensions
 
         try
         {
-            value = JsonSerializer.Deserialize<AuditService>(json, _jsonOptions);
+            value = JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptions);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Serializes a collection of AuditLogEntry objects to a JSON string.
+    /// </summary>
+    /// <param name="values">The collection of AuditLogEntry objects to serialize.</param>
+    /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
+    /// <returns>A JSON string representation of the AuditLogEntry collection.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when the collection is null.</exception>
+    public static string ToJson(this IEnumerable<AuditLogEntry> values, bool indented = false)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        var options = indented
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
+            : _jsonOptions;
+
+        return JsonSerializer.Serialize(values, options);
+    }
+
+    /// <summary>
+    /// Deserializes a JSON string to a collection of AuditLogEntry instances.
+    /// </summary>
+    /// <param name="json">The JSON string to deserialize.</param>
+    /// <returns>A collection of AuditLogEntry instances, or empty collection if JSON is empty.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
+    /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
+    public static IReadOnlyList<AuditLogEntry> FromJsonToAuditLogEntries(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (string.IsNullOrWhiteSpace(json) || json.Trim() == "[]")
+        {
+            return Array.Empty<AuditLogEntry>();
+        }
+
+        return JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptions) ?? Array.Empty<AuditLogEntry>();
+    }
+
+    /// <summary>
+    /// Attempts to deserialize a JSON string to a collection of AuditLogEntry instances.
+    /// </summary>
+    /// <param name="json">The JSON string to deserialize.</param>
+    /// <param name="values">Receives the deserialized AuditLogEntry collection, or empty collection on failure.</param>
+    /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
+    public static bool TryFromJsonToAuditLogEntries(string json, out IReadOnlyList<AuditLogEntry> values)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+
+        values = Array.Empty<AuditLogEntry>();
+
+        if (string.IsNullOrWhiteSpace(json) || json.Trim() == "[]")
+        {
+            return true;
+        }
+
+        try
+        {
+            var result = JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptions);
+            values = result ?? Array.Empty<AuditLogEntry>();
             return true;
         }
         catch (JsonException)
