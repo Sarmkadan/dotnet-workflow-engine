@@ -24,7 +24,9 @@ public static class MonitoringExampleJsonExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         // If indentation is requested, clone the cached options and enable WriteIndented.
-        var options = indented ? new JsonSerializerOptions(_options) { WriteIndented = true } : _options;
+        var options = indented
+ ? new JsonSerializerOptions(_options) { WriteIndented = true }
+ : _options;
         return JsonSerializer.Serialize(value, options);
     }
 
@@ -32,7 +34,7 @@ public static class MonitoringExampleJsonExtensions
     /// Deserializes a JSON string into a <see cref="MonitoringExample"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized <see cref="MonitoringExample"/> instance, or <c>null</c> if the JSON represents a null value.</returns>
+    /// <returns>The deserialized <see cref="MonitoringExample"/> instance, or <c>null</c> if deserialization returns <c>null</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is <c>null</c>.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized into <see cref="MonitoringExample"/>.</exception>
     public static MonitoringExample? FromJson(string json)
@@ -46,7 +48,7 @@ public static class MonitoringExampleJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">
-    /// When this method returns, contains the deserialized <see cref="MonitoringExample"/> if the operation succeeded;
+    /// When this method returns, contains the deserialized <see cref="MonitoringExample"/> if deserialization succeeded;
     /// otherwise, <c>null</c>.
     /// </param>
     /// <returns><c>true</c> if deserialization succeeded; otherwise, <c>false</c>.</returns>
@@ -57,7 +59,7 @@ public static class MonitoringExampleJsonExtensions
         try
         {
             value = JsonSerializer.Deserialize<MonitoringExample>(json, _options);
-            return true;
+            return value is not null;
         }
         catch (JsonException)
         {
