@@ -45,17 +45,14 @@ namespace DotNetWorkflowEngine.Exceptions
         /// <param name="value">The exception to check.</param>
         /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/></exception>
-        public static bool IsValid(this StateException value)
-        {
-            return value.Validate().Count == 0;
-        }
+        public static bool IsValid(this StateException value) => value.Validate().Count == 0;
 
         /// <summary>
         /// Ensures that the specified <see cref="StateException"/> instance is valid, throwing an <see cref="ArgumentException"/> if it is not.
         /// </summary>
         /// <param name="value">The exception to validate.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/></exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is invalid; the message lists all validation problems.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="value"/> is invalid; the message lists all validation problems.</exception>
         public static void EnsureValid(this StateException value)
         {
             ArgumentNullException.ThrowIfNull(value);
