@@ -13,7 +13,7 @@ namespace DotNetWorkflowEngine.Examples;
 /// <summary>
 /// Provides validation helpers for error handling workflow data models.
 /// </summary>
-public static class ErrorHandlingExampleValidation
+public sealed class ErrorHandlingExampleValidation
 {
     /// <summary>
     /// Validates a <see cref="ProcessingRequest"/> instance.
@@ -55,10 +55,7 @@ public static class ErrorHandlingExampleValidation
     /// </summary>
     /// <param name="value">The processing request to check.</param>
     /// <returns>True if the request is valid; otherwise, false.</returns>
-    public static bool IsValid(this ProcessingRequest value)
-    {
-        return value?.Validate().Count == 0;
-    }
+    public bool IsValid(this ProcessingRequest value) => value?.Validate().Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="ProcessingRequest"/> is valid.
