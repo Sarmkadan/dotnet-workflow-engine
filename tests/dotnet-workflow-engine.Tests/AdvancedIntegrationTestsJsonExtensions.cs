@@ -25,10 +25,10 @@ public static class AdvancedIntegrationTestsJsonExtensions
     };
 
     /// <summary>
-    /// Converts the <see cref="AdvancedIntegrationTests"/> instance to a JSON string.
+    /// Serializes an <see cref="AdvancedIntegrationTests"/> instance to a JSON string.
     /// </summary>
-    /// <param name="value">The instance to serialize.</param>
-    /// <param name="indented">Whether to format the JSON with indentation.</param>
+    /// <param name="value">The instance to serialize. Cannot be null.</param>
+    /// <param name="indented">Whether to format the JSON with indentation for better readability.</param>
     /// <returns>A JSON string representation of the instance.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static string ToJson(this AdvancedIntegrationTests value, bool indented = false)
@@ -48,10 +48,10 @@ public static class AdvancedIntegrationTestsJsonExtensions
     /// <summary>
     /// Deserializes a JSON string to an <see cref="AdvancedIntegrationTests"/> instance.
     /// </summary>
-    /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>An <see cref="AdvancedIntegrationTests"/> instance, or null if the JSON is empty.</returns>
+    /// <param name="json">The JSON string to deserialize. Cannot be null.</param>
+    /// <returns>An <see cref="AdvancedIntegrationTests"/> instance, or null if the JSON is empty or whitespace.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
-    /// <exception cref="JsonException">Thrown when the JSON is invalid.</exception>
+    /// <exception cref="JsonException">Thrown when the JSON is invalid and cannot be deserialized.</exception>
     public static AdvancedIntegrationTests? FromJson(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
@@ -67,7 +67,7 @@ public static class AdvancedIntegrationTestsJsonExtensions
     /// <summary>
     /// Attempts to deserialize a JSON string to an <see cref="AdvancedIntegrationTests"/> instance.
     /// </summary>
-    /// <param name="json">The JSON string to deserialize.</param>
+    /// <param name="json">The JSON string to deserialize. Cannot be null.</param>
     /// <param name="value">Receives the deserialized instance, or null on failure.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
