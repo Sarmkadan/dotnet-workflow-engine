@@ -540,6 +540,69 @@ Example usage:
 
 ```csharp
 
+## ValidationFilterValidation
+
+The `ValidationFilterValidation` static class provides comprehensive validation extension methods for `ValidationErrorResponse` and validation-related types. It helps validate filter responses, validation attributes, and common .NET types like strings and DateTime values, ensuring data integrity throughout the workflow engine.
+
+This validation utility is particularly useful for API controllers and filter middleware that need to validate incoming data and provide detailed error responses to clients.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Filters;
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+
+// Create a validation error response
+var validationResponse = new ValidationErrorResponse
+{
+    Message = "Validation failed",
+    Errors = new List<KeyValuePair<string, string[]>>
+    {
+        new KeyValuePair<string, string[]>("email", new[] { "Email is required" }),
+        new KeyValuePair<string, string[]>("age", new[] { "Age must be at least 18" })
+    },
+    Timestamp = DateTime.UtcNow
+};
+
+// Validate the response
+var validationProblems = validationResponse.Validate();
+
+if (validationProblems.Count > 0)
+{
+    Console.WriteLine("Validation problems found:");
+    foreach (var problem in validationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// Check if valid using the IsValid extension method
+bool isValid = validationResponse.IsValid();
+Console.WriteLine($"Is valid: {isValid}");
+
+// Use EnsureValid to throw an exception if invalid
+try
+{
+    validationResponse.EnsureValid();
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+// Validate a string value
+string? userInput = "   ";
+var stringProblems = userInput.Validate("userInput");
+Console.WriteLine($"String validation problems: {stringProblems.Count}");
+
+// Validate a DateTime value
+DateTime invalidDate = default;
+var dateProblems = invalidDate.Validate("expirationDate");
+Console.WriteLine($"DateTime validation problems: {dateProblems.Count}");
+```
+
 ## HealthController
 
 The `HealthController` provides health monitoring endpoints for the workflow engine, implementing liveness and readiness probes suitable for container orchestration systems like Kubernetes. It exposes three endpoints for monitoring application health:
@@ -708,6 +771,69 @@ The controller supports operations for managing workflow definitions including l
 Example usage:
 
 ```csharp
+
+## ValidationFilterValidation
+
+The `ValidationFilterValidation` static class provides comprehensive validation extension methods for `ValidationErrorResponse` and validation-related types. It helps validate filter responses, validation attributes, and common .NET types like strings and DateTime values, ensuring data integrity throughout the workflow engine.
+
+This validation utility is particularly useful for API controllers and filter middleware that need to validate incoming data and provide detailed error responses to clients.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Filters;
+using DotNetWorkflowEngine.Models;
+using System;
+using System.Collections.Generic;
+
+// Create a validation error response
+var validationResponse = new ValidationErrorResponse
+{
+    Message = "Validation failed",
+    Errors = new List<KeyValuePair<string, string[]>>
+    {
+        new KeyValuePair<string, string[]>("email", new[] { "Email is required" }),
+        new KeyValuePair<string, string[]>("age", new[] { "Age must be at least 18" })
+    },
+    Timestamp = DateTime.UtcNow
+};
+
+// Validate the response
+var validationProblems = validationResponse.Validate();
+
+if (validationProblems.Count > 0)
+{
+    Console.WriteLine("Validation problems found:");
+    foreach (var problem in validationProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// Check if valid using the IsValid extension method
+bool isValid = validationResponse.IsValid();
+Console.WriteLine($"Is valid: {isValid}");
+
+// Use EnsureValid to throw an exception if invalid
+try
+{
+    validationResponse.EnsureValid();
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+// Validate a string value
+string? userInput = "   ";
+var stringProblems = userInput.Validate("userInput");
+Console.WriteLine($"String validation problems: {stringProblems.Count}");
+
+// Validate a DateTime value
+DateTime invalidDate = default;
+var dateProblems = invalidDate.Validate("expirationDate");
+Console.WriteLine($"DateTime validation problems: {dateProblems.Count}");
+```
 
 ## HealthController
 
