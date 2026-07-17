@@ -61,7 +61,7 @@ namespace DotNetWorkflowEngine.Services
             };
 
             // Set input parameters if provided
-            if (input != null)
+            if (input is not null)
             {
                 activity.InputParameters["input"] = input;
             }
@@ -96,9 +96,12 @@ namespace DotNetWorkflowEngine.Services
                     var isValid = service.ValidateActivity(activity, out _);
                     results[handlerType] = isValid;
                 }
-                catch
+                catch (Exception ex)
                 {
                     results[handlerType] = false;
+                    // Log validation error using standard error handling
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Validation failed for handler '{handlerType}': {ex.Message}");
                 }
             }
 
@@ -123,8 +126,9 @@ namespace DotNetWorkflowEngine.Services
         /// </summary>
         /// <param name="service">The activity service instance.</param>
         /// <param name="activities">Collection of activity executions to perform.</param>
+        /// <param name="context">The execution context.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of activity results.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="service"/> or <paramref name="activities"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="service"/>, <paramref name="activities"/>, or <paramref name="context"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="activities"/> contains null elements.</exception>
         public static async Task<IReadOnlyList<ActivityResult>> ExecuteActivitiesAsync(
             this ActivityService service,
@@ -177,7 +181,7 @@ namespace DotNetWorkflowEngine.Services
             };
 
             // Set input parameters if provided
-            if (input != null)
+            if (input is not null)
             {
                 activity.InputParameters["input"] = input;
             }
