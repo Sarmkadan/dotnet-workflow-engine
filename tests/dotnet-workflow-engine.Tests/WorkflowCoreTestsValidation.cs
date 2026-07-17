@@ -22,12 +22,9 @@ public static class WorkflowCoreTestsValidation
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        var problems = new List<string>();
-
         // WorkflowCoreTests is a test class with no instance state to validate
         // All validation is compile-time (the class itself is always valid)
-
-        return problems.AsReadOnly();
+        return Array.Empty<string>();
     }
 
     /// <summary>
@@ -35,6 +32,7 @@ public static class WorkflowCoreTestsValidation
     /// </summary>
     /// <param name="value">The instance to check.</param>
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this WorkflowCoreTests? value)
     {
         return value is not null && Validate(value).Count == 0;
@@ -51,13 +49,11 @@ public static class WorkflowCoreTestsValidation
         ArgumentNullException.ThrowIfNull(value);
 
         var problems = Validate(value);
-        if (problems.Count == 0)
+        if (problems.Count > 0)
         {
-            return;
+            throw new ArgumentException(
+                $"WorkflowCoreTests instance is invalid. Problems: {string.Join("; ", problems)}",
+                nameof(value));
         }
-
-        throw new ArgumentException(
-            $"WorkflowCoreTests instance is invalid. Problems: {string.Join("; ", problems)}",
-            nameof(value));
     }
 }
