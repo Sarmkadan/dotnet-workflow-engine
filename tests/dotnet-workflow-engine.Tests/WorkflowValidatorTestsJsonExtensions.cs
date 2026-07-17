@@ -26,33 +26,23 @@ public static class WorkflowValidatorTestsJsonExtensions
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
     /// <returns>A JSON string representation of the instance.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
-    public static string ToJson(this WorkflowValidatorTests value, bool indented = false)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-
-        var options = indented
-            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
-            : _jsonOptions;
-
-        return JsonSerializer.Serialize(value, options);
-    }
+    public static string ToJson(this WorkflowValidatorTests value, bool indented = false) =>
+        JsonSerializer.Serialize(value, indented ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true } : _jsonOptions);
 
     /// <summary>
     /// Deserializes a JSON string to a <see cref="WorkflowValidatorTests"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized instance, or <see langword="null"/> if the JSON is empty or whitespace.</returns>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is <see langword="null"/>, empty, or whitespace.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static WorkflowValidatorTests? FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
 
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<WorkflowValidatorTests>(json, _jsonOptions);
+        return string.IsNullOrWhiteSpace(json)
+            ? null
+            : JsonSerializer.Deserialize<WorkflowValidatorTests>(json, _jsonOptions);
     }
 
     /// <summary>
@@ -61,6 +51,7 @@ public static class WorkflowValidatorTestsJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized instance if successful.</param>
     /// <returns><see langword="true"/> if deserialization succeeds; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="json"/> is <see langword="null"/> or empty.</exception>
     public static bool TryFromJson(string json, out WorkflowValidatorTests? value)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
