@@ -798,6 +798,47 @@ if (OrderItemExtensions.TryFromJsonToOrderItem(itemJson, out var safeParsedItem)
 }
 ```
 
+## RateLimitConfig
+
+The `RateLimitConfig` class represents the configuration for rate limiting middleware in the workflow engine. It defines the maximum number of requests allowed within a specified time window, along with the retry delay when the limit is exceeded. This configuration is used by the `RateLimitingMiddleware` to enforce request rate limits and provide appropriate HTTP 429 responses with `Retry-After` headers.
+
+The class includes static helper methods for JSON serialization and deserialization, making it easy to store and load rate limit configurations from configuration files or databases.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Middleware;
+using System;
+
+// Create a rate limit configuration for 100 requests per minute with 30 seconds retry delay
+var config = new RateLimitingMiddlewareJsonExtensions.RateLimitConfig
+{
+    MaxRequests = 100,
+    WindowSeconds = 60,
+    RetryAfterSeconds = 30
+};
+
+// Serialize to compact JSON
+string jsonCompact = config.ToJson();
+Console.WriteLine("Rate limit config (compact):");
+Console.WriteLine(jsonCompact);
+
+// Serialize to indented JSON for readability
+string jsonIndented = config.ToJson(indented: true);
+Console.WriteLine("\nRate limit config (indented):");
+Console.WriteLine(jsonIndented);
+
+// Parse from JSON (returns null for invalid input)
+var parsedConfig = RateLimitingMiddlewareJsonExtensions.RateLimitConfig.FromJson(jsonCompact);
+Console.WriteLine($"\nParsed max requests: {parsedConfig?.MaxRequests}");
+
+// Try parse from JSON (safe parsing)
+if (RateLimitingMiddlewareJsonExtensions.RateLimitConfig.TryFromJson(jsonCompact, out var safeParsedConfig))
+{
+    Console.WriteLine($"Safe parsed window seconds: {safeParsedConfig?.WindowSeconds}");
+}
+```
+
 ## ParallelExecutionExampleExtensions
 
 The `ParallelExecutionExampleExtensions` static class provides extension methods for the `ParallelExecutionExample` class to enhance parallel workflow execution with order processing utilities. It includes methods for validating order data, calculating totals, creating standardized order IDs, and generating shipping labels from parallel execution results.
