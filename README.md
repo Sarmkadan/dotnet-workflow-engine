@@ -43,9 +43,9 @@ var auditService = serviceProvider.GetRequiredService<IAuditService>();
 
 // Create a new workflow instance
 var workflowInstance = executionService.CreateInstance(
-workflowId: "order-processing-workflow",
-correlationId: "order-2024-001",
-initiatedBy: "order-service@company.com"
+    workflowId: "order-processing-workflow",
+    correlationId: "order-2024-001",
+    initiatedBy: "order-service@company.com"
 );
 
 Console.WriteLine($"Created workflow instance: {workflowInstance.Id}");
@@ -114,9 +114,9 @@ Console.WriteLine($"Key exists: {exists}");
 
 // Set a value in cache with expiration
 await cacheService.SetAsync(
-  "user-session-123",
-  "user-data-456",
-  TimeSpan.FromMinutes(30)
+    "user-session-123",
+    "user-data-456",
+    TimeSpan.FromMinutes(30)
 );
 Console.WriteLine("Value cached successfully");
 
@@ -126,28 +126,28 @@ Console.WriteLine("Value removed from cache");
 
 // Get or load with fallback - efficient pattern for expensive operations
 var workflowData = await cacheService.GetOrLoadAsync(
-  "workflow-definition-789",
-  async () => {
-    Console.WriteLine("Loading workflow from database...");
-    await Task.Delay(50); // Simulate database call
-    return "workflow-definition-content";
-  },
-  TimeSpan.FromHours(1)
+    "workflow-definition-789",
+    async () => {
+        Console.WriteLine("Loading workflow from database...");
+        await Task.Delay(50); // Simulate database call
+        return "workflow-definition-content";
+    },
+    TimeSpan.FromHours(1)
 );
 Console.WriteLine($"Workflow data: {workflowData}");
 
 // Set multiple values
 foreach (var item in new[] { "item1", "item2", "item3" })
 {
-  await cacheService.SetAsync($"key-{item}", item, TimeSpan.FromMinutes(10));
+    await cacheService.SetAsync(`key-{item}`, item, TimeSpan.FromMinutes(10));
 }
 Console.WriteLine("Multiple values cached");
 
 // Check existence of multiple keys
 foreach (var item in new[] { "key-item1", "key-item2", "key-item4" })
 {
-  bool keyExists = await cacheService.ExistsAsync(item);
-  Console.WriteLine($"Key {item} exists: {keyExists}");
+    bool keyExists = await cacheService.ExistsAsync(item);
+    Console.WriteLine($"Key {item} exists: {keyExists}");
 }
 ```
 
@@ -162,9 +162,9 @@ using System.Threading.Tasks;
 // Setup services with distributed caching (e.g., Redis)
 var services = new ServiceCollection();
 services.AddWorkflowServices(cacheProvider: "Redis");
-services.AddStackExchangeRedisCache(options =>
+services.AddStackExchangeRedisCache(options => 
 {
-  options.Configuration = "localhost:6379";
+    options.Configuration = "localhost:6379";
 });
 var serviceProvider = services.BuildServiceProvider();
 
@@ -182,13 +182,13 @@ Console.WriteLine("Config cached in distributed cache");
 
 // Use GetOrLoadAsync with distributed cache for shared data
 var sharedData = await cacheService.GetOrLoadAsync(
-  "shared-workflow-state",
-  async () => {
-    Console.WriteLine("Fetching shared state from API...");
-    await Task.Delay(100);
-    return new SharedWorkflowState { State = "Running", Timestamp = DateTime.UtcNow };
-  },
-  TimeSpan.FromMinutes(5)
+    "shared-workflow-state",
+    async () => {
+        Console.WriteLine("Fetching shared state from API...");
+        await Task.Delay(100);
+        return new SharedWorkflowState { State = "Running", Timestamp = DateTime.UtcNow };
+    },
+    TimeSpan.FromMinutes(5)
 );
 Console.WriteLine($"Shared state: {sharedData.State}");
 ```
@@ -446,122 +446,11 @@ var result = await cacheService.GetOrLoadAsync(
 Console.WriteLine($"Result: {result}"); // "actual-data"
 ```
 
-## ICacheService
+## WorkflowInstanceController
 
-The `ICacheService` interface provides a unified abstraction for caching operations across different cache implementations. It supports both in-memory and distributed caching strategies, allowing the workflow engine to adapt to various deployment scenarios without changing application code.
+The `WorkflowInstanceController` class provides REST API endpoints for managing workflow instances through HTTP endpoints. It handles execution, state transitions, retry logic, and instance lifecycle operations including creation, retrieval, listing, retrying, terminating, and retrieving execution history for workflow instances. All endpoints require authentication and audit-log mutations.
 
-The interface includes methods for basic CRUD operations (`GetAsync`, `SetAsync`, `RemoveAsync`, `ExistsAsync`) and a convenience method (`GetOrLoadAsync`) that combines retrieval with fallback loading for efficient data access patterns.
-
-Example usage with MemoryCacheService:
-
-```csharp
-using DotNetWorkflowEngine.Caching;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Threading.Tasks;
-
-// Setup services with in-memory caching (default)
-var services = new ServiceCollection();
-services.AddWorkflowServices(); // Uses MemoryCacheService by default
-var serviceProvider = services.BuildServiceProvider();
-
-// Resolve the cache service
-var cacheService = serviceProvider.GetRequiredService<ICacheService>();
-
-// Get a cached value (returns null if not found)
-var cachedData = await cacheService.GetAsync<string>("user-session-123");
-Console.WriteLine($"Cached data: {cachedData ?? "null"}");
-
-// Check if a key exists in cache
-bool exists = await cacheService.ExistsAsync("user-session-123");
-Console.WriteLine($"Key exists: {exists}");
-
-// Set a value in cache with expiration
-await cacheService.SetAsync(
-  "user-session-123",
-  "user-data-456",
-  TimeSpan.FromMinutes(30)
-);
-Console.WriteLine("Value cached successfully");
-
-// Remove a value from cache
-await cacheService.RemoveAsync("user-session-123");
-Console.WriteLine("Value removed from cache");
-
-// Get or load with fallback - efficient pattern for expensive operations
-var workflowData = await cacheService.GetOrLoadAsync(
-  "workflow-definition-789",
-  async () => {
-    Console.WriteLine("Loading workflow from database...");
-    await Task.Delay(50); // Simulate database call
-    return "workflow-definition-content";
-  },
-  TimeSpan.FromHours(1)
-);
-Console.WriteLine($"Workflow data: {workflowData}");
-
-// Set multiple values
-foreach (var item in new[] { "item1", "item2", "item3" })
-{
-  await cacheService.SetAsync($"key-{item}", item, TimeSpan.FromMinutes(10));
-}
-Console.WriteLine("Multiple values cached");
-
-// Check existence of multiple keys
-foreach (var item in new[] { "key-item1", "key-item2", "key-item4" })
-{
-  bool keyExists = await cacheService.ExistsAsync(item);
-  Console.WriteLine($"Key {item} exists: {keyExists}");
-}
-```
-
-Example usage with DistributedCacheService:
-
-```csharp
-using DotNetWorkflowEngine.Caching;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Threading.Tasks;
-
-// Setup services with distributed caching (e.g., Redis)
-var services = new ServiceCollection();
-services.AddWorkflowServices(cacheProvider: "Redis");
-services.AddStackExchangeRedisCache(options =>
-{
-  options.Configuration = "localhost:6379";
-});
-var serviceProvider = services.BuildServiceProvider();
-
-// Resolve the distributed cache service
-var cacheService = serviceProvider.GetRequiredService<ICacheService>();
-
-// Get a cached value from distributed cache
-var cachedConfig = await cacheService.GetAsync<WorkflowConfig>("app-config-v2");
-Console.WriteLine($"Config from distributed cache: {cachedConfig?.Version}");
-
-// Set a configuration value with expiration
-var newConfig = new WorkflowConfig { Version = "2.0", Settings = "..." };
-await cacheService.SetAsync("app-config-v2", newConfig, TimeSpan.FromHours(24));
-Console.WriteLine("Config cached in distributed cache");
-
-// Use GetOrLoadAsync with distributed cache for shared data
-var sharedData = await cacheService.GetOrLoadAsync(
-  "shared-workflow-state",
-  async () => {
-    Console.WriteLine("Fetching shared state from API...");
-    await Task.Delay(100);
-    return new SharedWorkflowState { State = "Running", Timestamp = DateTime.UtcNow };
-  },
-  TimeSpan.FromMinutes(5)
-);
-Console.WriteLine($"Shared state: {sharedData.State}");
-```
-
-## WorkflowController
-
-The `WorkflowController` class provides a REST API controller for managing workflow definitions through HTTP endpoints. It exposes CRUD operations for workflow definitions, allowing clients to create, read, update, and delete workflows via standard REST conventions. The controller integrates with the workflow engine's services to provide complete workflow lifecycle management through a web interface.
-
-The controller supports operations for managing workflow definitions including listing all workflows, retrieving specific workflows by ID, creating new workflow definitions, updating existing ones, and deleting workflows that are no longer needed.
+The controller exposes endpoints for executing workflows, retrieving instance details, listing instances with filtering and pagination, retrying failed instances, terminating running instances, and retrieving execution history for debugging purposes.
 
 Example usage:
 
@@ -578,947 +467,75 @@ using System.Threading.Tasks;
 var services = new ServiceCollection();
 services.AddWorkflowServices();
 services.AddControllers();
+services.AddLogging();
 var serviceProvider = services.BuildServiceProvider();
 
 // Create controller instance with required services
-var workflowDefinitionService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
-var workflowRepository = serviceProvider.GetRequiredService<IWorkflowRepository>();
-var controller = new WorkflowController(workflowDefinitionService, workflowRepository);
+var executionService = serviceProvider.GetRequiredService<WorkflowExecutionService>();
+var auditService = serviceProvider.GetRequiredService<AuditService>();
+var logger = serviceProvider.GetRequiredService<ILogger<WorkflowInstanceController>>();
+var controller = new WorkflowInstanceController(executionService, auditService, logger);
 
-// Example: Get all workflows
-var allWorkflowsResult = await controller.GetAllWorkflows();
-if (allWorkflowsResult is OkObjectResult okResult)
+// Example: Execute a workflow instance
+var executeResult = await controller.ExecuteWorkflow("order-processing-workflow", 
+    new Dictionary<string, object> { { "orderId", "order-2024-001" }, { "customerId", "cust-12345" } });
+if (executeResult is AcceptedResult acceptedResult)
 {
-    var workflows = okResult.Value as List<Workflow>;
-    Console.WriteLine($"Found {workflows?.Count} workflows");
+    var instanceData = acceptedResult.Value as dynamic;
+    Console.WriteLine($"Workflow instance created: {instanceData?.instanceId}");
+    Console.WriteLine($"Status: {instanceData?.Status}");
 }
 
-// Example: Get a specific workflow by ID
-var workflowResult = await controller.GetWorkflow("order-processing-workflow");
-if (workflowResult is OkObjectResult okWorkflowResult)
+// Example: Get a specific workflow instance
+var instanceResult = await controller.GetInstance("wf-order-processing-001");
+if (instanceResult is OkObjectResult okResult)
 {
-    var workflow = okWorkflowResult.Value as Workflow;
-    Console.WriteLine($"Retrieved workflow: {workflow?.Name}");
+    var instance = okResult.Value as WorkflowInstance;
+    Console.WriteLine($"Retrieved instance: {instance?.Id} - Status: {instance?.Status}");
 }
 
-// Example: Create a new workflow
-var newWorkflow = new Workflow
+// Example: List workflow instances with filtering and pagination
+var listResult = await controller.ListInstances(
+    workflowId: "order-processing-workflow",
+    status: "Active",
+    skip: 0,
+    take: 50);
+if (listResult is OkObjectResult okListResult)
 {
-    Id = "new-order-workflow",
-    Name = "New Order Processing Workflow",
-    Description = "Handles new order processing workflow",
-    Version = 1,
-    Status = WorkflowStatus.Draft,
-    CreatedAt = DateTime.UtcNow,
-    ModifiedAt = DateTime.UtcNow,
-    CreatedBy = "admin@company.com",
-    ModifiedBy = "admin@company.com"
-};
-
-var createResult = await controller.CreateWorkflow(newWorkflow);
-if (createResult is CreatedAtActionResult createdResult)
-{
-    var createdWorkflow = createdResult.Value as Workflow;
-    Console.WriteLine($"Created workflow: {createdWorkflow?.Id}");
+    var instances = okListResult.Value as List<WorkflowInstance>;
+    Console.WriteLine($"Found {instances?.Count} active instances for order-processing-workflow");
 }
 
-// Example: Update an existing workflow
-if (workflowResult is OkObjectResult okUpdateResult)
+// Example: Retry a failed workflow instance
+var retryResult = await controller.RetryInstance("wf-order-processing-failed-001");
+if (retryResult is AcceptedResult acceptedRetryResult)
 {
-    var existingWorkflow = okUpdateResult.Value as Workflow;
-    existingWorkflow.Status = WorkflowStatus.Published;
-    existingWorkflow.ModifiedAt = DateTime.UtcNow;
-    
-    var updateResult = await controller.UpdateWorkflow(existingWorkflow.Id, existingWorkflow);
-    if (updateResult is NoContentResult)
-    {
-        Console.WriteLine("Workflow updated successfully");
-    }
+    var instance = acceptedRetryResult.Value as WorkflowInstance;
+    Console.WriteLine($"Retry initiated for instance: {instance?.Id}");
 }
 
-// Example: Delete a workflow
-// var deleteResult = await controller.DeleteWorkflow("temp-workflow-id");
-// if (deleteResult is NoContentResult)
-// {
-//     Console.WriteLine("Workflow deleted successfully");
-// }
-
-// Example: Validate a workflow definition
-var validationResult = await controller.ValidateWorkflow("order-processing-workflow");
-if (validationResult is OkObjectResult validationOkResult)
+// Example: Terminate a running workflow instance
+var terminateResult = await controller.TerminateInstance("wf-order-processing-long-running-001", "Timeout exceeded");
+if (terminateResult is NoContentResult)
 {
-    var validationReport = validationOkResult.Value as string;
-    Console.WriteLine($"Validation report:\n{validationReport}");
+    Console.WriteLine("Workflow instance terminated successfully");
+}
+
+// Example: Get execution history for a workflow instance
+var historyResult = await controller.GetInstanceHistory("wf-order-processing-001");
+if (historyResult is OkObjectResult okHistoryResult)
+{
+    var history = okHistoryResult.Value as List<ActivityResult>;
+    Console.WriteLine($"Execution history contains {history?.Count} activity results");
 }
 ```
 
-## WorkflowBuilder
+## WorkflowController
 
-The `WorkflowBuilder` class provides a fluent interface for programmatically constructing workflow definitions. It enables clean, readable code for creating workflows with activities, transitions, and configuration options. The builder supports both manual construction and convenience methods for common patterns like serial workflows.
+The `WorkflowController` class provides a REST API controller for managing workflow definitions through HTTP endpoints. It exposes CRUD operations for workflow definitions, allowing clients to create, read, update, and delete workflows via standard REST conventions. The controller integrates with the workflow engine's services to provide complete workflow lifecycle management through a web interface.
+
+The controller supports operations for managing workflow definitions including listing all workflows, retrieving specific workflows by ID, creating new workflow definitions, updating existing ones, and deleting workflows that are no longer needed.
 
 Example usage:
 
 ```csharp
-using DotNetWorkflowEngine.Models;
-using DotNetWorkflowEngine.Services;
-using DotNetWorkflowEngine.Utilities;
-using System;
-using System.Threading.Tasks;
-
-// Setup services (typically via DI)
-var services = new ServiceCollection();
-services.AddWorkflowServices();
-var serviceProvider = services.BuildServiceProvider();
-
-var definitionService = serviceProvider.GetRequiredService<IWorkflowDefinitionService>();
-
-// Create a workflow using the builder
-var workflowBuilder = new WorkflowBuilder("order-processing", "Order Processing Workflow", definitionService)
-    .WithDescription("Processes customer orders through validation and fulfillment")
-    .AddTaskActivity("validate-order", "Validate Order", "ValidationHandler")
-    .AddTaskActivity("check-inventory", "Check Inventory", "InventoryHandler")
-    .AddTaskActivity("process-payment", "Process Payment", "PaymentHandler")
-    .AddTaskActivity("fulfill-order", "Fulfill Order", "FulfillmentHandler")
-    .AddTransition("validate-order", "check-inventory")
-    .AddTransition("check-inventory", "process-payment", "HasInventory")
-    .AddTransition("process-payment", "fulfill-order", "PaymentSuccessful")
-    .WithStartActivity("validate-order")
-    .WithEndActivity("fulfill-order");
-
-// Build the workflow definition
-var workflow = workflowBuilder.Build();
-Console.WriteLine($"Created workflow: {workflow.Name} with {workflow.Activities.Count} activities");
-
-// Build and register the workflow with the service
-var registeredWorkflow = workflowBuilder.BuildAndRegister();
-Console.WriteLine($"Workflow registered: {registeredWorkflow.Id}");
-
-// Create a serial workflow (convenience method)
-var serialBuilder = WorkflowBuilder.CreateSerial(
-    "simple-workflow", 
-    "Simple Serial Workflow", 
-    definitionService,
-    "Start", "Validate", "Process", "Complete"
-);
-
-var serialWorkflow = serialBuilder.BuildAndRegister();
-Console.WriteLine($"Serial workflow created with {serialWorkflow.Activities.Count} activities");
-
-// Add a message catch event for external communication
-var messageBuilder = new WorkflowBuilder("event-driven-workflow", "Event Driven Workflow", definitionService)
-    .AddMessageCatchEvent("wait-payment", "Wait for Payment Confirmation", "PaymentConfirmed", "orderId")
-    .AddTaskActivity("process-payment", "Process Payment")
-    .AddTransition("wait-payment", "process-payment")
-    .WithStartActivity("wait-payment")
-    .WithEndActivity("process-payment");
-
-var messageWorkflow = messageBuilder.BuildAndRegister();
-Console.WriteLine($"Message workflow created with message event: {messageWorkflow.Activities[0].MessageName}");
-```
-
-## CollectionExtensions
-
-The `CollectionExtensions` class provides a set of extension methods for working with collections, lists, dictionaries, and enumerables. These methods offer safe access to collection elements, filtering capabilities, transformation utilities, and common operations that help prevent null reference exceptions and simplify collection manipulation.
-
-Key features include safe first-element retrieval, null filtering, batching, dictionary conversion, and element comparison operations.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-// Create sample data for demonstration
-var numbers = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-var strings = new List<string?> { "hello", null, "world", null, "dotnet", "workflow", null };
-var people = new List<Person> 
-{
-    new Person { Id = 1, Name = "Alice", Age = 30 },
-    new Person { Id = 2, Name = "Bob", Age = 25 },
-    new Person { Id = 3, Name = "Charlie", Age = 35 }
-};
-
-var dict1 = new Dictionary<int, string> { { 1, "one" }, { 2, "two" } };
-var dict2 = new Dictionary<int, string> { { 3, "three" }, { 2, "TWO" } };
-
-// SafeFirst - safely get first element or default
-var firstNumber = numbers.SafeFirst();
-Console.WriteLine($"First number: {firstNumber}"); // 1
-
-var emptyList = new List<int>();
-var firstEmpty = emptyList.SafeFirst(-1);
-Console.WriteLine($"First of empty list: {firstEmpty}"); // -1
-
-// WhereNotNull - filter out null elements
-var nonNullStrings = strings.WhereNotNull().ToList();
-Console.WriteLine($"Non-null strings: {string.Join(", ", nonNullStrings)}"); // hello, world, dotnet, workflow
-
-// IsNullOrEmpty - check if collection is null or empty
-bool isEmpty = emptyList.IsNullOrEmpty();
-Console.WriteLine($"Is empty list null or empty: {isEmpty}"); // True
-
-bool isNull = ((List<int>)null).IsNullOrEmpty();
-Console.WriteLine($"Is null collection null or empty: {isNull}"); // True
-
-// Batch - split collection into chunks
-var batches = numbers.Batch(3).ToList();
-Console.WriteLine($"Batches: {batches.Count}"); // 4 batches: [1,2,3], [4,5,6], [7,8,9], [10]
-
-// ToSafeDictionary - convert collection to dictionary with duplicate key checking
-var peopleDict = people.ToSafeDictionary(p => p.Id);
-Console.WriteLine($"People dictionary count: {peopleDict.Count}"); // 3
-
-// ContainsSameElements - compare collections regardless of order
-var numbers2 = new List<int> { 3, 1, 2 };
-bool sameElements = numbers.Take(3).ContainsSameElements(numbers2);
-Console.WriteLine($"Same elements: {sameElements}"); // True
-
-// TryGetValue - safely get dictionary value without exceptions
-var dict = new Dictionary<int, string> { { 1, "one" }, { 2, "two" } };
-var value = dict.TryGetValue(2, "default");
-Console.WriteLine($"Value for key 2: {value}"); // "two"
-var missingValue = dict.TryGetValue(99, "not-found");
-Console.WriteLine($"Value for missing key: {missingValue}"); // "not-found"
-
-// Merge - combine multiple dictionaries
-var mergedDict = dict1.Merge(dict2);
-Console.WriteLine($"Merged dictionary count: {mergedDict.Count}"); // 3 (key 2 overwritten)
-
-// Flatten - flatten nested collections
-var nested = new List<List<int>> { new List<int> { 1, 2 }, new List<int> { 3, 4 } };
-var flattened = nested.Flatten().ToList();
-Console.WriteLine($"Flattened: {string.Join(", ", flattened)}"); // 1, 2, 3, 4
-
-// DistinctOrdered - remove duplicates while preserving order
-var withDuplicates = new List<int> { 1, 2, 2, 3, 1, 4, 5, 3 };
-var distinct = withDuplicates.DistinctOrdered().ToList();
-Console.WriteLine($"Distinct ordered: {string.Join(", ", distinct)}"); // 1, 2, 3, 4, 5
-
-// AddAndReturn - add item and return collection for chaining
-var list = new List<string>();
-list.AddAndReturn("first").AddAndReturn("second").AddAndReturn("third");
-Console.WriteLine($"Chained adds: {string.Join(", ", list)}"); // first, second, third
-
-// Partition - split collection based on predicate
-var (even, odd) = numbers.Partition(n => n % 2 == 0);
-Console.WriteLine($"Even numbers: {string.Join(", ", even)}"); // 2, 4, 6, 8, 10
-Console.WriteLine($"Odd numbers: {string.Join(", ", odd)}"); // 1, 3, 5, 7, 9
-
-// Example class for demonstration
-public class Person
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public int Age { get; set; }
-}
-```
-
-## WorkflowValidator
-
-The `WorkflowValidator` class provides comprehensive validation utilities for workflow definitions, activities, and transitions. It performs static analysis to detect configuration errors, missing references, and structural issues before workflow execution. The validator checks for required fields, validates activity configurations, verifies transition integrity, and analyzes workflow connectivity to ensure all activities are reachable from the start activity.
-
-The validator produces detailed reports with both errors (blocking issues) and warnings (potential problems), making it an essential tool for catching configuration issues during development and testing.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Models;
-using DotNetWorkflowEngine.Utilities;
-using System;
-using System.Collections.Generic;
-
-// Create a sample workflow for validation
-var workflow = new Workflow
-{
-    Id = "order-processing-workflow",
-    Name = "Order Processing Workflow",
-    Description = "Processes customer orders through validation and fulfillment",
-    Version = 1,
-    Status = WorkflowStatus.Draft,
-    CreatedAt = DateTime.UtcNow,
-    ModifiedAt = DateTime.UtcNow,
-    CreatedBy = "admin@company.com",
-    ModifiedBy = "admin@company.com",
-    Activities = new List<Activity>
-    {
-        new Activity
-        {
-            Id = "validate-order",
-            Name = "Validate Order",
-            Type = "Validation",
-            HandlerType = "ValidationHandler",
-            TimeoutSeconds = 30,
-            MaxRetries = 3,
-            RetryPolicy = RetryPolicy.ExponentialBackoff
-        },
-        new Activity
-        {
-            Id = "check-inventory",
-            Name = "Check Inventory",
-            Type = "ServiceTask",
-            HandlerType = "InventoryHandler",
-            TimeoutSeconds = 60,
-            MaxRetries = 2,
-            RetryPolicy = RetryPolicy.LinearBackoff
-        },
-        new Activity
-        {
-            Id = "process-payment",
-            Name = "Process Payment",
-            Type = "ServiceTask",
-            HandlerType = "PaymentHandler",
-            TimeoutSeconds = 45,
-            MaxRetries = 3,
-            RetryPolicy = RetryPolicy.ExponentialBackoff
-        }
-    },
-    Transitions = new List<Transition>
-    {
-        new Transition
-        {
-            Id = "transition-1",
-            FromActivityId = "validate-order",
-            ToActivityId = "check-inventory"
-        },
-        new Transition
-        {
-            Id = "transition-2",
-            FromActivityId = "check-inventory",
-            ToActivityId = "process-payment"
-        }
-    },
-    StartActivityId = "validate-order",
-    EndActivityId = "process-payment"
-};
-
-// Validate the complete workflow
-var workflowValidation = WorkflowValidator.ValidateWorkflow(workflow);
-Console.WriteLine(workflowValidation.GetReport());
-
-if (workflowValidation.IsValid)
-{
-    Console.WriteLine("Workflow is valid and ready for execution");
-}
-else
-{
-    Console.WriteLine("Workflow has validation errors that must be fixed");
-}
-
-// Validate individual activities
-foreach (var activity in workflow.Activities)
-{
-    var activityValidation = WorkflowValidator.ValidateActivity(activity);
-    if (!activityValidation.IsValid)
-    {
-        Console.WriteLine($"Activity '{activity.Id}' has issues:");
-        Console.WriteLine(activityValidation.GetReport());
-    }
-}
-
-// Validate transitions
-foreach (var transition in workflow.Transitions)
-{
-    var transitionValidation = WorkflowValidator.ValidateTransition(transition, workflow);
-    if (!transitionValidation.IsValid)
-    {
-        Console.WriteLine($"Transition '{transition.Id}' has issues:");
-        Console.WriteLine(transitionValidation.GetReport());
-    }
-}
-
-// Add custom validation errors or warnings
-var customValidator = new WorkflowValidator.ValidationResult();
-customValidator.AddError("Custom validation error: workflow name too long");
-customValidator.AddWarning("Consider adding timeout configuration for better reliability");
-Console.WriteLine(customValidator.GetReport());
-```
-
-## StringExtensions
-
-The `StringExtensions` class provides a comprehensive set of extension methods for common string manipulation operations used throughout the workflow engine. It includes utilities for case conversion (PascalCase, snake_case, kebab-case), validation (email, URL), text processing (truncation, whitespace handling, repetition), and specialized parsing (substring extraction, smart splitting).
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Utilities;
-using System;
-using System.Linq;
-
-// Case conversion examples
-string pascalCase = "hello-world".ToPascalCase(); // "HelloWorld"
-string snakeCase = "HelloWorld".ToSnakeCase(); // "hello_world"
-string kebabCase = "HelloWorld".ToKebabCase(); // "hello-world"
-
-// Validation examples
-bool isValidEmail = "test@example.com".IsValidEmail(); // true
-bool isValidUrl = "https://example.com".IsValidUrl(); // true
-
-// Text processing examples
-string truncated = "Hello World".Truncate(5); // "Hello"
-string withEllipsis = "Hello World".Truncate(5, "..."); // "He..."
-string noWhitespace = "hello world".RemoveWhitespace(); // "helloworld"
-string normalized = "  hello   world  ".NormalizeWhitespace(); // "hello world"
-string repeated = "ab".Repeat(3); // "ababab"
-
-// Safe operations examples
-string safeSubstring = "Hello World".SafeSubstring(6, 5); // "World"
-string? extracted = "prefix[start]middle[end]suffix".ExtractBetween("[", "]"); // "start"
-
-// Smart splitting example
-var parts = "a,b,\"c,d\",e".SmartSplit(","); // ["a", "b", "\"c,d\"", "e"]
-
-// Complex example combining multiple operations
-string workflowName = "process-order-workflow";
-string pascalWorkflow = workflowName.ToPascalCase(); // "ProcessOrderWorkflow"
-string kebabWorkflow = pascalWorkflow.ToKebabCase(); // "process-order-workflow"
-bool isValid = kebabWorkflow.IsValidUrl(); // false
-```
-
-## ReflectionHelper
-
-The `ReflectionHelper` class provides a comprehensive set of static utility methods for working with reflection operations. It simplifies common reflection tasks such as invoking methods, getting/setting property values, creating instances, finding types, checking for attributes, and determining type characteristics. The helper includes robust error handling and supports both static and instance member access.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-
-// Example class for reflection
-public class Order
-{
-    public int Id { get; set; }
-    public string CustomerName { get; set; }
-    public decimal Amount { get; set; }
-    public DateTime CreatedAt { get; set; }
-    
-    public bool Validate() => Amount > 0;
-    
-    public void Process() => Console.WriteLine("Processing order...");
-}
-
-public class PaymentProcessor
-{
-    public string ProcessPayment(decimal amount) => $"Processed: {amount}";
-}
-
-// Create an instance using reflection
-var orderInstance = ReflectionHelper.CreateInstance<Order>();
-Console.WriteLine($"Created instance: {orderInstance != null}");
-
-// Set property values using reflection
-ReflectionHelper.SetPropertyValue(orderInstance, "Id", 123);
-ReflectionHelper.SetPropertyValue(orderInstance, "CustomerName", "John Doe");
-ReflectionHelper.SetPropertyValue(orderInstance, "Amount", 99.99m);
-ReflectionHelper.SetPropertyValue(orderInstance, "CreatedAt", DateTime.UtcNow);
-
-// Get property values using reflection
-var id = ReflectionHelper.GetPropertyValue<int>(orderInstance, "Id");
-var customerName = ReflectionHelper.GetPropertyValue<string>(orderInstance, "CustomerName");
-Console.WriteLine($"Order {id}: {customerName} - {ReflectionHelper.GetPropertyValue<decimal>(orderInstance, "Amount")}");
-
-// Invoke methods using reflection
-var isValid = ReflectionHelper.InvokeMethod<bool>(orderInstance, "Validate");
-Console.WriteLine($"Order is valid: {isValid}");
-
-ReflectionHelper.InvokeMethod(orderInstance, "Process");
-
-// Get all properties and methods
-var properties = ReflectionHelper.GetProperties<Order>();
-Console.WriteLine($"Properties: {string.Join(", ", properties.Select(p => p.Name))}");
-
-var methods = ReflectionHelper.GetMethods<Order>();
-Console.WriteLine($"Methods: {string.Join(", ", methods.Select(m => m.Name))}");
-
-// Find types implementing an interface
-var implementingTypes = ReflectionHelper.FindTypesImplementing<IActivityHandler>();
-Console.WriteLine($"Types implementing IActivityHandler: {implementingTypes.Count()}");
-
-// Check for attributes
-bool hasAttribute = ReflectionHelper.HasAttribute<SerializableAttribute>(typeof(Order));
-Console.WriteLine($"Order has Serializable attribute: {hasAttribute}");
-
-// Type checking utilities
-bool isSimple = ReflectionHelper.IsSimpleType(typeof(int));
-bool isNullable = ReflectionHelper.IsNullable(typeof(int?));
-bool isCollection = ReflectionHelper.IsCollectionType(typeof(List<string>));
-Console.WriteLine($"int is simple: {isSimple}, int? is nullable: {isNullable}, List<string> is collection: {isCollection}");
-
-// Create instance with parameters
-var processor = ReflectionHelper.CreateInstanceWithParameters<PaymentProcessor>(
-    new[] { typeof(decimal) }, 
-    new object[] { 100.50m }
-);
-var result = ReflectionHelper.InvokeMethod<string>(processor, "ProcessPayment", 100.50m);
-Console.WriteLine(result);
-
-// Get collection element type
-var elementType = ReflectionHelper.GetCollectionElementType(typeof(List<Order>));
-Console.WriteLine($"Collection element type: {elementType?.Name}");
-
-// Get underlying type for nullable types
-var underlyingType = ReflectionHelper.GetUnderlyingType(typeof(int?));
-Console.WriteLine($"Underlying type of int?: {underlyingType?.Name}");
-
-// Get custom attributes
-var serializableAttr = ReflectionHelper.GetAttribute<SerializableAttribute>(typeof(Order));
-Console.WriteLine($"Serializable attribute: {serializableAttr != null}");
-
-var obsoleteAttrs = ReflectionHelper.GetAttributes<ObsoleteAttribute>(typeof(Order));
-Console.WriteLine($"Obsolete attributes count: {obsoleteAttrs.Count()}");
-```
-
-## DateTimeExtensions
-
-The `DateTimeExtensions` class provides extension methods for DateTime operations commonly used in workflow processing. It includes formatting, duration calculation, temporal comparisons, and utility methods for working with dates and times.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Utilities;
-using System;
-
-// Format DateTime to ISO 8601 string
-string iso8601 = DateTime.UtcNow.ToIso8601();
-
-// Check if a DateTime is in the past or future
-bool isPast = DateTime.UtcNow.AddDays(-1).IsPast();
-bool isFuture = DateTime.UtcNow.AddDays(1).IsFuture();
-
-// Check if a DateTime is within a range
-bool isBetween = DateTime.UtcNow.IsBetween(
-    DateTime.UtcNow.AddHours(-1),
-    DateTime.UtcNow.AddHours(1)
-);
-
-// Calculate duration between two dates
-string duration = DateTime.UtcNow.AddHours(-2).DurationToString(DateTime.UtcNow);
-
-// Get start/end of day, month, or week
-DateTime startOfDay = DateTime.UtcNow.StartOfDay();
-DateTime endOfMonth = DateTime.UtcNow.EndOfMonth();
-DateTime startOfWeek = DateTime.UtcNow.StartOfWeek();
-
-// Convert to/from Unix timestamp
-long timestamp = DateTime.UtcNow.ToUnixTimestamp();
-DateTime fromTimestamp = DateTimeExtensions.FromUnixTimestamp(timestamp);
-
-// Get friendly relative time description
-string relativeTime = DateTime.UtcNow.AddHours(-3).ToRelativeTime(); // "3 hours ago"
-```
-
-## SerializationHelper
-
-The `SerializationHelper` class provides a comprehensive set of utilities for JSON serialization and deserialization operations. It standardizes JSON handling across the application with consistent options for property naming, null handling, and type conversion. The helper includes methods for converting objects to JSON strings, parsing JSON back to objects, deep cloning, merging objects, and validating JSON content.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-
-// Create sample data for demonstration
-var person = new Person
-{
-    Id = 1,
-    Name = "John Doe",
-    Age = 30,
-    Address = new Address { Street = "123 Main St", City = "New York", ZipCode = "10001" },
-    Tags = new List<string> { "developer", "csharp", "workflow" }
-};
-
-var workflowConfig = new WorkflowConfig
-{
-    Id = "config-001",
-    Name = "Order Processing",
-    Enabled = true,
-    RetryPolicy = new RetryPolicyConfig { MaxRetries = 3, InitialDelaySeconds = 1 },
-    Settings = new Dictionary<string, object> { { "timeout", 30 }, { "retry", true } }
-};
-
-// Serialize an object to JSON string (compact format)
-string jsonCompact = SerializationHelper.ToJson(person);
-Console.WriteLine(jsonCompact);
-
-// Serialize an object to pretty-printed JSON (human-readable)
-string jsonPretty = SerializationHelper.ToJsonPretty(person);
-Console.WriteLine(jsonPretty);
-
-// Deserialize JSON string back to an object
-var deserializedPerson = SerializationHelper.FromJson<Person>(jsonCompact);
-Console.WriteLine($"Deserialized: {deserializedPerson?.Name}");
-
-// Safely deserialize JSON (returns null on error instead of throwing)
-string invalidJson = "{ invalid: json }";
-var safeResult = SerializationHelper.TryFromJson<Person>(invalidJson);
-Console.WriteLine($"Safe deserialization result: {safeResult}"); // null
-
-// Deep clone an object by serializing and deserializing
-var personClone = SerializationHelper.DeepClone(person);
-Console.WriteLine($"Clone equals original: {personClone?.Id == person.Id}"); // True
-
-// Merge two objects (later values override earlier ones)
-var person2 = new Person { Id = 1, Name = "John Updated", Age = 31 };
-var mergedPerson = SerializationHelper.Merge(person, person2);
-Console.WriteLine($"Merged name: {mergedPerson?.Name}"); // "John Updated"
-
-// Convert between JSON element and typed objects
-JsonElement jsonElement = SerializationHelper.ToJsonElement(person);
-var fromElement = SerializationHelper.FromJsonElement<Person>(jsonElement);
-Console.WriteLine($"From element: {fromElement?.Name}");
-
-// Validate JSON content
-bool isValid = SerializationHelper.IsValidJson(jsonCompact);
-Console.WriteLine($"Is valid JSON: {isValid}"); // True
-
-bool isInvalid = SerializationHelper.IsValidJson("not json");
-Console.WriteLine($"Is invalid JSON: {isInvalid}"); // False
-
-// Pretty-print existing JSON string
-string minifiedJson = "{\"name\":\"test\",\"value\":123}";
-string prettyJson = SerializationHelper.PrettyPrintJson(minifiedJson);
-Console.WriteLine(prettyJson);
-
-// Minify JSON string (remove whitespace)
-string prettyJsonInput = "{ \"name\": \"test\", \"value\": 123 }";
-string minified = SerializationHelper.MinifyJson(prettyJsonInput);
-Console.WriteLine(minified);
-
-// Deserialize to dictionary for untyped data
-string dictJson = "{\"key1\":\"value1\",\"key2\":123}";
-var dictionary = SerializationHelper.FromJsonToDict(dictJson);
-Console.WriteLine($"Dictionary count: {dictionary?.Count}"); // 2
-
-// Example classes for demonstration
-public class Person
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public int Age { get; set; }
-    public Address Address { get; set; }
-    public List<string> Tags { get; set; }
-}
-
-public class Address
-{
-    public string Street { get; set; }
-    public string City { get; set; }
-    public string ZipCode { get; set; }
-}
-
-public class WorkflowConfig
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public bool Enabled { get; set; }
-    public RetryPolicyConfig RetryPolicy { get; set; }
-    public Dictionary<string, object> Settings { get; set; }
-}
-
-public class RetryPolicyConfig
-{
-    public int MaxRetries { get; set; }
-    public int InitialDelaySeconds { get; set; }
-}
-```
-
-## IWorkflowMetrics
-
-The `IWorkflowMetrics` interface provides comprehensive metrics and monitoring capabilities for tracking workflow execution statistics. It collects and exposes detailed metrics including workflow execution counts, success/failure rates, durations, activity statistics, error tracking, and snapshot timestamps. This interface is essential for monitoring system health, performance analysis, and capacity planning.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Monitoring;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Threading.Tasks;
-
-// Setup services (typically via DI)
-var services = new ServiceCollection();
-services.AddWorkflowServices();
-var serviceProvider = services.BuildServiceProvider();
-
-// Resolve the metrics service
-var metricsService = serviceProvider.GetRequiredService<IWorkflowMetrics>();
-
-// Record a successful workflow execution
-metricsService.RecordWorkflowExecution(isSuccess: true, durationMs: 1500);
-
-// Record a failed workflow execution
-metricsService.RecordWorkflowExecution(isSuccess: false, durationMs: 800);
-
-// Record a successful activity execution
-metricsService.RecordActivityExecution(isSuccess: true, durationMs: 250);
-
-// Record an activity failure with error details
-metricsService.RecordActivityExecution(isSuccess: false, durationMs: 120);
-metricsService.RecordError("database-connection-failed", "Failed to connect to database: timeout");
-
-// Get current metrics snapshot
-var metrics = await metricsService.GetMetricsAsync();
-
-Console.WriteLine($"Total workflows executed: {metrics.TotalWorkflowsExecuted}");
-Console.WriteLine($"Successful workflows: {metrics.SuccessfulWorkflows}");
-Console.WriteLine($"Failed workflows: {metrics.FailedWorkflows}");
-Console.WriteLine($"Success rate: {metrics.SuccessRate:P2}");
-Console.WriteLine($"Average workflow duration: {metrics.AverageWorkflowDurationMs}ms");
-Console.WriteLine($"Min workflow duration: {metrics.MinWorkflowDurationMs}ms");
-Console.WriteLine($"Max workflow duration: {metrics.MaxWorkflowDurationMs}ms");
-Console.WriteLine($"Total activities executed: {metrics.TotalActivitiesExecuted}");
-Console.WriteLine($"Successful activities: {metrics.SuccessfulActivities}");
-Console.WriteLine($"Failed activities: {metrics.FailedActivities}");
-Console.WriteLine($"Average activity duration: {metrics.AverageActivityDurationMs}ms");
-
-// Display error statistics
-foreach (var error in metrics.ErrorCount.OrderByDescending(kv => kv.Value).Take(5))
-{
-    Console.WriteLine($"Error '{error.Key}': {error.Value} occurrences");
-}
-
-Console.WriteLine($"Last updated: {metrics.LastUpdated}");
-Console.WriteLine($"Snapshot time: {metrics.SnapshotTime}");
-
-// Reset metrics (typically used for testing or when starting fresh)
-metricsService.Reset();
-Console.WriteLine("Metrics reset completed");
-```
-
-## Activity
-
-The `Activity` class represents a single unit of work within a workflow definition. It encapsulates all configuration needed to execute a task, including timeouts, retry policies, input/output mappings, and execution modes. Activities can represent tasks, events, or gateways (fork/join points) and support conditional execution through expressions.
-
-## DotnetWorkflowEngineOptions
-
-The `DotnetWorkflowEngineOptions` class provides configuration options for the dotnet-workflow-engine using the IOptions pattern. It controls core engine behavior, infrastructure settings, caching configuration, middleware options, security parameters, and execution policies. This class is typically configured via dependency injection in your application's startup.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Configuration;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-
-// Configure options in appsettings.json or via code
-var configuration = new ConfigurationBuilder()
-.AddJsonFile("appsettings.json")
-.Build();
-
-// Setup services with configuration
-var services = new ServiceCollection();
-
-services.Configure<DotnetWorkflowEngineOptions>(configuration.GetSection("WorkflowEngine"));
-services.AddWorkflowServices();
-
-var serviceProvider = services.BuildServiceProvider();
-
-// Access configured options
-var options = serviceProvider.GetRequiredService<IOptions<DotnetWorkflowEngineOptions>>().Value;
-
-Console.WriteLine($"Connection String: {options.ConnectionString}");
-Console.WriteLine($"Max Concurrent Workflows: {options.MaxConcurrentWorkflows}");
-Console.WriteLine($"Enable Audit Logging: {options.EnableAuditLogging}");
-Console.WriteLine($"Caching Enabled: {options.CachingEnabled}");
-Console.WriteLine($"Cache Provider: {options.CacheProvider}");
-
-// Configure specific options programmatically
-services.Configure<DotnetWorkflowEngineOptions>(options =>
-{
-    options.ConnectionString = "Host=localhost;Database=workflow_engine;Username=postgres;Password=secret";
-    options.MaxConcurrentWorkflows = 200;
-    options.DefaultActivityTimeoutSeconds = 600;
-    options.EnableMetrics = true;
-    options.EnableCaching = true;
-    options.CacheProvider = "Redis";
-    options.RedisConnectionString = "localhost:6379";
-    options.UseDistributedCache = true;
-    options.EnableAuditLogging = true;
-    options.EnableAuditTrail = true;
-    options.EnableRequestLogging = true;
-    options.EnableRateLimiting = true;
-    options.MaxConcurrentWorkflows = 150;
-    options.DefaultRetryPolicy = new RetryPolicyConfig
-    {
-        MaxRetries = 3,
-        InitialDelaySeconds = 1,
-        MaxDelaySeconds = 30,
-        BackoffType = "Exponential"
-    };
-});
-```
-
-## DependencyInjection
-
-The `DependencyInjection` class provides extension methods for registering workflow engine services in the .NET dependency injection container. It centralizes the configuration of all services, middleware, and filters needed to run the workflow engine. The primary method `AddWorkflowEngine()` registers core services, while additional methods like `AddWorkflowEngineCors()`, `AddWorkflowEngineAuthentication()`, and `UseWorkflowEngine()` configure specific features.
-
-The middleware configuration class `WorkflowEngineMiddlewareOptions` controls request logging, rate limiting, CORS, and other HTTP middleware settings. You can customize these options when calling `UseWorkflowEngine()` to tailor the engine's behavior to your application's needs.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Configuration;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-
-// Setup services in Program.cs
-var builder = WebApplication.CreateBuilder(args);
-
-// Configure workflow engine services with optional settings
-builder.Services.AddWorkflowEngine(options =>
-{
-    options.ConnectionString = "Host=localhost;Database=workflow_engine";
-    options.EnableAuditLogging = true;
-    options.EnableMetrics = true;
-    options.MaxConcurrentWorkflows = 100;
-});
-
-// Add CORS policy
-builder.Services.AddWorkflowEngineCors();
-
-// Add authentication with JWT
-builder.Services.AddWorkflowEngineAuthentication(
-    "your-secret-key-here-at-least-32-characters-long");
-
-var app = builder.Build();
-
-// Configure middleware with custom options
-app.UseWorkflowEngine(new WorkflowEngineMiddlewareOptions
-{
-    EnableRequestLogging = true,
-    LogRequestBody = true,
-    LogResponseBody = false,
-    EnableRateLimiting = true,
-    RateLimit = new RateLimitConfiguration
-    {
-        MaxRequests = 200,
-        WindowSeconds = 30,
-        RetryAfterSeconds = 30
-    },
-    EnableCors = true
-});
-
-Console.WriteLine("Workflow engine services configured successfully");
-```
-
-## AuditRepository
-
-The `AuditRepository` class provides data access methods for audit log persistence and querying. It serves as the primary interface for storing, retrieving, updating, and deleting audit log entries that track all workflow events including activity executions, state changes, errors, and completions. The repository supports comprehensive querying capabilities including filtering by workflow instance, activity, event type, severity level, date ranges, and pagination.
-
-Example usage:
-
-```csharp
-using DotNetWorkflowEngine.Data.Repositories;
-using DotNetWorkflowEngine.Models;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-// Create repository instance (typically via dependency injection)
-var repository = new AuditRepository();
-
-// Add a new audit entry
-var newEntry = new AuditLogEntry
-{
-    Id = Guid.NewGuid().ToString(),
-    WorkflowInstanceId = "wf-order-processing-001",
-    ActivityId = "validate-order",
-    EventType = "ActivityStarted",
-    Description = "Starting order validation activity",
-    Severity = "Information",
-    Actor = "order-service@company.com",
-    Timestamp = DateTime.UtcNow,
-    Metadata = new Dictionary<string, object?> { { "orderId", "order-2024-001" } }
-};
-
-await repository.AddAsync(newEntry);
-Console.WriteLine($"Added audit entry: {newEntry.Id}");
-
-// Get an audit entry by ID
-var entryById = await repository.GetByIdAsync(newEntry.Id);
-if (entryById != null)
-{
-    Console.WriteLine($"Retrieved entry: {entryById.Description}");
-}
-
-// Check if an audit entry exists
-bool exists = await repository.ExistsAsync(newEntry.Id);
-Console.WriteLine($"Entry exists: {exists}");
-
-// Get all audit entries
-var allEntries = await repository.GetAllAsync();
-Console.WriteLine($"Total audit entries: {allEntries.Count}");
-
-// Get audit entries for a specific workflow instance
-var instanceEntries = await repository.GetByInstanceIdAsync("wf-order-processing-001");
-Console.WriteLine($"Entries for instance: {instanceEntries.Count}");
-
-// Get audit entries by event type
-var startedEntries = await repository.GetByEventTypeAsync("ActivityStarted");
-Console.WriteLine($"ActivityStarted events: {startedEntries.Count}");
-
-// Get audit entries by severity level
-var errorEntries = await repository.GetBySeverityAsync("Error");
-Console.WriteLine($"Error events: {errorEntries.Count}");
-
-// Get error audit entries
-var errors = await repository.GetErrorsAsync();
-Console.WriteLine($"Total errors: {errors.Count}");
-
-// Get audit entries within a date range
-var recentEntries = await repository.GetByDateRangeAsync(
-    DateTime.UtcNow.AddHours(-1),
-    DateTime.UtcNow
-);
-Console.WriteLine($"Recent entries: {recentEntries.Count}");
-
-// Get recent audit entries for an instance
-var recentForInstance = await repository.GetRecentForInstanceAsync("wf-order-processing-001", 5);
-Console.WriteLine($"Recent entries for instance: {recentForInstance.Count}");
-
-// Get audit entries by activity ID
-var activityEntries = await repository.GetByActivityIdAsync("validate-order");
-Console.WriteLine($"Entries for activity: {activityEntries.Count}");
-
-// Get audit entries with pagination
-var pagedResult = await repository.GetPagedAsync(page: 1, pageSize: 20);
-Console.WriteLine($"Page 1: {pagedResult.Items.Count} entries, Total: {pagedResult.Total} entries");
-
-// Count total audit entries
-var totalCount = await repository.CountAsync();
-Console.WriteLine($"Total audit count: {totalCount}");
-
-// Get filtered and paginated audit entries
-var filteredResult = await repository.GetFilteredAndPagedAsync(
-    workflowId: "order-processing",
-    instanceId: "wf-order-processing-001",
-    eventType: "ActivityStarted",
-    severity: "Information",
-    fromDate: DateTime.UtcNow.AddDays(-1),
-    take: 50
-);
-Console.WriteLine($"Filtered entries: {filteredResult.Items.Count} of {filteredResult.Total}");
-
-// Update an audit entry (typically immutable, but supported for metadata updates)
-if (entryById != null)
-{
-    entryById.Description = "Updated description";
-    await repository.UpdateAsync(entryById);
-    Console.WriteLine("Audit entry updated");
-}
-
-// Delete an audit entry
-// await repository.DeleteAsync(newEntry.Id);
-
-// Clear audit log for a specific instance
-// await repository.ClearInstanceAsync("wf-order-processing-001");
-
-// Clear all audit logs (use with caution!)
-// await repository.ClearAsync();
-```
