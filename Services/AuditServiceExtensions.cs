@@ -21,7 +21,9 @@ public static class AuditServiceExtensions
     /// <param name="skip">Number of entries to skip for pagination.</param>
     /// <param name="take">Maximum number of entries to return.</param>
     /// <returns>A tuple containing the list of audit entries and the total count.</returns>
-    /// <exception cref="ArgumentException">Thrown when workflow ID is invalid.</exception>
+    /// <exception cref="ArgumentException"><paramref name="workflowId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="skip"/> or <paramref name="take"/> is negative.</exception>
     public static async Task<(IReadOnlyList<AuditLogEntry> Items, int Total)> GetWorkflowAuditLogAsync(
         this AuditService auditService,
         string workflowId,
@@ -29,6 +31,9 @@ public static class AuditServiceExtensions
         int take = 100)
     {
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
+        ArgumentNullException.ThrowIfNull(auditService);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
 
         return await auditService.GetFilteredAuditLogsAsync(
             workflowId: workflowId,
@@ -44,7 +49,9 @@ public static class AuditServiceExtensions
     /// <param name="skip">Number of entries to skip for pagination.</param>
     /// <param name="take">Maximum number of entries to return.</param>
     /// <returns>A tuple containing the list of audit entries and the total count.</returns>
-    /// <exception cref="ArgumentException">Thrown when severity is invalid.</exception>
+    /// <exception cref="ArgumentException"><paramref name="severity"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="skip"/> or <paramref name="take"/> is negative.</exception>
     public static async Task<(IReadOnlyList<AuditLogEntry> Items, int Total)> GetBySeverityAsync(
         this AuditService auditService,
         string severity,
@@ -52,6 +59,9 @@ public static class AuditServiceExtensions
         int take = 100)
     {
         ArgumentException.ThrowIfNullOrEmpty(severity);
+        ArgumentNullException.ThrowIfNull(auditService);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
 
         return await auditService.GetFilteredAuditLogsAsync(
             severity: severity,
@@ -68,6 +78,8 @@ public static class AuditServiceExtensions
     /// <param name="skip">Number of entries to skip for pagination.</param>
     /// <param name="take">Maximum number of entries to return.</param>
     /// <returns>A tuple containing the list of audit entries and the total count.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="skip"/> or <paramref name="take"/> is negative.</exception>
     public static async Task<(IReadOnlyList<AuditLogEntry> Items, int Total)> GetByDateRangeAsync(
         this AuditService auditService,
         DateTime? fromDate = null,
@@ -75,6 +87,10 @@ public static class AuditServiceExtensions
         int skip = 0,
         int take = 100)
     {
+        ArgumentNullException.ThrowIfNull(auditService);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
+
         return await auditService.GetFilteredAuditLogsAsync(
             fromDate: fromDate,
             toDate: toDate,
@@ -90,7 +106,9 @@ public static class AuditServiceExtensions
     /// <param name="skip">Number of entries to skip for pagination.</param>
     /// <param name="take">Maximum number of entries to return.</param>
     /// <returns>A tuple containing the list of audit entries and the total count.</returns>
-    /// <exception cref="ArgumentException">Thrown when activity ID is invalid.</exception>
+    /// <exception cref="ArgumentException"><paramref name="activityId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="skip"/> or <paramref name="take"/> is negative.</exception>
     public static async Task<(IReadOnlyList<AuditLogEntry> Items, int Total)> GetByActivityIdAsync(
         this AuditService auditService,
         string activityId,
@@ -98,6 +116,9 @@ public static class AuditServiceExtensions
         int take = 100)
     {
         ArgumentException.ThrowIfNullOrEmpty(activityId);
+        ArgumentNullException.ThrowIfNull(auditService);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
 
         return await auditService.GetFilteredAuditLogsAsync(
             activityId: activityId,
@@ -111,13 +132,14 @@ public static class AuditServiceExtensions
     /// <param name="auditService">The audit service instance.</param>
     /// <param name="count">Maximum number of entries to return.</param>
     /// <returns>List of the most recent audit entries.</returns>
-    /// <exception cref="ArgumentException">Thrown when count is not positive.</exception>
+    /// <exception cref="ArgumentException"><paramref name="count"/> is not positive.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
     public static async Task<IReadOnlyList<AuditLogEntry>> GetGlobalRecentAuditLogAsync(
         this AuditService auditService,
         int count = 50)
     {
-        if (count <= 0)
-            throw new ArgumentException("Count must be positive", nameof(count));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0);
+        ArgumentNullException.ThrowIfNull(auditService);
 
         var (all, _) = await auditService.GetFilteredAuditLogsAsync(take: count);
         return all.OrderByDescending(e => e.Timestamp).ToList();
@@ -131,7 +153,9 @@ public static class AuditServiceExtensions
     /// <param name="skip">Number of entries to skip for pagination.</param>
     /// <param name="take">Maximum number of entries to return.</param>
     /// <returns>A tuple containing the list of audit entries and the total count.</returns>
-    /// <exception cref="ArgumentException">Thrown when actor is invalid.</exception>
+    /// <exception cref="ArgumentException"><paramref name="actor"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="skip"/> or <paramref name="take"/> is negative.</exception>
     public static async Task<(IReadOnlyList<AuditLogEntry> Items, int Total)> GetByActorAsync(
         this AuditService auditService,
         string actor,
@@ -139,6 +163,9 @@ public static class AuditServiceExtensions
         int take = 100)
     {
         ArgumentException.ThrowIfNullOrEmpty(actor);
+        ArgumentNullException.ThrowIfNull(auditService);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
 
         return await auditService.GetFilteredAuditLogsAsync(
             actor: actor,
@@ -153,13 +180,15 @@ public static class AuditServiceExtensions
     /// <param name="instanceId">The workflow instance ID.</param>
     /// <param name="fields">List of field names to include in CSV (Timestamp, EventType, ActivityId, Severity, Description, Actor, CorrelationId).</param>
     /// <returns>CSV formatted string with selected fields.</returns>
-    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
+    /// <exception cref="ArgumentException"><paramref name="instanceId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
     public static async Task<string> ExportAuditLogAsCsvAsync(
         this AuditService auditService,
         string instanceId,
         IReadOnlyList<string>? fields = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(instanceId);
+        ArgumentNullException.ThrowIfNull(auditService);
 
         var log = await auditService.GetAuditLog(instanceId);
         if (log.Count == 0)
@@ -195,16 +224,18 @@ public static class AuditServiceExtensions
     /// <param name="auditService">The audit service instance.</param>
     /// <param name="instanceId">The workflow instance ID.</param>
     /// <returns>Dictionary mapping event types to their counts.</returns>
-    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
+    /// <exception cref="ArgumentException"><paramref name="instanceId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
     public static async Task<IReadOnlyDictionary<string, int>> GetInstanceStateSummaryAsync(
         this AuditService auditService,
         string instanceId)
     {
         ArgumentException.ThrowIfNullOrEmpty(instanceId);
+        ArgumentNullException.ThrowIfNull(auditService);
 
         var log = await auditService.GetAuditLog(instanceId);
         return log.GroupBy(e => e.EventType)
-                 .ToDictionary(g => g.Key, g => g.Count());
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 
     /// <summary>
@@ -213,12 +244,15 @@ public static class AuditServiceExtensions
     /// <param name="auditService">The audit service instance.</param>
     /// <param name="instanceId">The workflow instance ID.</param>
     /// <returns>Tuple containing start time, end time, and total duration in milliseconds.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when instance has no start/end events.</exception>
+    /// <exception cref="ArgumentException"><paramref name="instanceId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Workflow instance has no start event recorded.</exception>
     public static async Task<(DateTime StartTime, DateTime? EndTime, long DurationMs)> GetWorkflowDurationAsync(
         this AuditService auditService,
         string instanceId)
     {
         ArgumentException.ThrowIfNullOrEmpty(instanceId);
+        ArgumentNullException.ThrowIfNull(auditService);
 
         var log = await auditService.GetAuditLog(instanceId);
 
@@ -259,15 +293,16 @@ public static class AuditServiceExtensions
     /// <param name="activityType">The activity type to analyze.</param>
     /// <param name="timeWindowDays">Number of days to look back for statistics.</param>
     /// <returns>Tuple containing total attempts, failures, and failure rate percentage.</returns>
+    /// <exception cref="ArgumentException"><paramref name="activityType"/> is null or empty, or <paramref name="timeWindowDays"/> is not positive.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="auditService"/> is null.</exception>
     public static async Task<(int TotalAttempts, int Failures, double FailureRate)> GetActivityFailureRateAsync(
         this AuditService auditService,
         string activityType,
         int timeWindowDays = 30)
     {
         ArgumentException.ThrowIfNullOrEmpty(activityType);
-
-        if (timeWindowDays <= 0)
-            throw new ArgumentException("Time window must be positive", nameof(timeWindowDays));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeWindowDays, 0);
+        ArgumentNullException.ThrowIfNull(auditService);
 
         var fromDate = DateTime.UtcNow.AddDays(-timeWindowDays);
         var (all, _) = await auditService.GetFilteredAuditLogsAsync(
