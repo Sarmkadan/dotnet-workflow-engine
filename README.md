@@ -737,6 +737,145 @@ Console.WriteLine($"Instance valid: {isValidInstance}"); // False
 Console.WriteLine($"Recovery action: {recoveryAction}"); // "Review error details and retry"
 ```
 
+## OrderProcessingExampleJsonExtensions
+
+The `OrderProcessingExampleJsonExtensions` static class provides extension methods for serializing and deserializing order processing types (`OrderRequest` and `OrderItem`) to and from JSON using System.Text.Json. It offers both strict and try-based parsing methods, along with configurable serialization options for compact or indented output.
+
+This extension class is particularly useful for workflow applications that need to persist order data or communicate with external systems via JSON APIs.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using System;
+
+// Create sample order data
+var orderRequest = new OrderRequest
+{
+    OrderId = "ORD-2024-001",
+    CustomerId = "CUST-12345",
+    Items = new List<OrderItem>
+    {
+        new OrderItem { ProductId = "PROD-001", Quantity = 2, UnitPrice = 19.99m },
+        new OrderItem { ProductId = "PROD-002", Quantity = 1, UnitPrice = 49.99m }
+    },
+    OrderDate = DateTime.UtcNow,
+    Status = "Pending"
+};
+
+// Serialize to compact JSON
+string jsonCompact = orderRequest.ToJson();
+Console.WriteLine("Compact JSON:");
+Console.WriteLine(jsonCompact);
+
+// Serialize to indented JSON for readability
+string jsonIndented = orderRequest.ToJson(indented: true);
+Console.WriteLine("\nIndented JSON:");
+Console.WriteLine(jsonIndented);
+
+// Parse from JSON (returns null for invalid input)
+var parsedOrder = OrderRequestExtensions.FromJson(jsonCompact);
+Console.WriteLine($"\nParsed order ID: {parsedOrder?.OrderId}");
+
+// Try parse from JSON (safe parsing)
+if (OrderRequestExtensions.TryFromJson(jsonCompact, out var safeParsedOrder))
+{
+    Console.WriteLine($"Safe parsed order ID: {safeParsedOrder?.OrderId}");
+}
+
+// Parse order item
+var orderItem = new OrderItem { ProductId = "PROD-003", Quantity = 3, UnitPrice = 9.99m };
+string itemJson = orderItem.ToJson();
+Console.WriteLine($"\nOrder item JSON: {itemJson}");
+
+var parsedItem = OrderItemExtensions.FromJson(itemJson);
+Console.WriteLine($"Parsed item product ID: {parsedItem?.ProductId}");
+
+// Try parse order item safely
+if (OrderItemExtensions.TryFromJsonToOrderItem(itemJson, out var safeParsedItem))
+{
+    Console.WriteLine($"Safe parsed item quantity: {safeParsedItem?.Quantity}");
+}
+```
+
+## ErrorHandlingExampleExtensions
+
+The `ErrorHandlingExampleExtensions` static class provides extension methods for the `ErrorHandlingExample` class to enhance error handling workflows. It includes methods for validating processing requests, creating standardized error responses, extracting retry policy information, generating comprehensive error reports, and validating workflow instance status with recovery actions.
+
+This extension class is particularly useful for implementing robust error handling strategies in workflow applications, including retry policies, fallback mechanisms, and detailed error reporting.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Models;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create an ErrorHandlingExample instance
+var errorHandlingExample = new ErrorHandlingExample();
+
+// Example 1: Validate a processing request
+var processingRequest = new ProcessingRequest
+{
+    DataSourceUrl = "https://api.example.com/orders",
+    ProcessingRules = new Dictionary<string, object>
+    {
+        { "MaxRetries", 3 },
+        { "RetryDelayMs", 1000 }
+    }
+};
+
+bool isValid = errorHandlingExample.ValidateProcessingRequest(processingRequest);
+Console.WriteLine($"Processing request is valid: {isValid}"); // True
+
+// Example 2: Create a standardized error response
+var errorResponse = errorHandlingExample.CreateErrorResponse(
+    Guid.NewGuid(),
+    "Failed to process order due to network timeout",
+    retryCount: 2
+);
+Console.WriteLine($"Error response type: {errorResponse.GetType().Name}"); // BadRequestObjectResult
+
+// Example 3: Extract retry policy information
+var retryPolicyInfo = errorHandlingExample.GetRetryPolicyInfo(processingRequest.ProcessingRules);
+Console.WriteLine($"Max retries: {retryPolicyInfo["maxRetries"]}");
+Console.WriteLine($"Retry delay: {retryPolicyInfo["retryDelayMs"]}ms");
+
+// Example 4: Create a comprehensive error report
+var executionContext = new ExecutionContext
+{
+    InstanceId = Guid.NewGuid(),
+    WorkflowId = "order-processing-workflow",
+    Status = WorkflowStatus.Failed,
+    Variables = new Dictionary<string, object>
+    {
+        { "RetryAttempts", 2 },
+        { "LastError", "Network timeout after 30 seconds" },
+        { "StartTime", DateTime.UtcNow.AddMinutes(-5) }
+    }
+};
+
+var errorReport = errorHandlingExample.CreateErrorReport(executionContext);
+Console.WriteLine($"Error report contains {errorReport.Count} items");
+Console.WriteLine($"Instance ID: {errorReport["instanceId"]}");
+Console.WriteLine($"Status: {errorReport["status"]}");
+
+// Example 5: Validate workflow instance and get recovery action
+var workflowInstance = new WorkflowInstance
+{
+    Id = Guid.NewGuid().ToString(),
+    WorkflowId = "order-processing-workflow",
+    Status = WorkflowStatus.Failed
+};
+
+var (isValidInstance, recoveryAction) = errorHandlingExample.ValidateWorkflowInstance(workflowInstance);
+Console.WriteLine($"Instance valid: {isValidInstance}"); // False
+Console.WriteLine($"Recovery action: {recoveryAction}"); // "Review error details and retry"
+```
+
 ## HealthController
 
 The `HealthController` provides health monitoring endpoints for the workflow engine, implementing liveness and readiness probes suitable for container orchestration systems like Kubernetes. It exposes three endpoints for monitoring application health:
