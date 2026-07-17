@@ -5,8 +5,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-using DotNetWorkflowEngine.Models;
 
 namespace DotNetWorkflowEngine.Data.Repositories;
 
@@ -19,7 +17,7 @@ public static class AuditRepositoryJsonExtensions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
-        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
@@ -59,11 +57,18 @@ public static class AuditRepositoryJsonExtensions
     /// Attempts to deserialize a JSON string to an <see cref="AuditRepository"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">Receives the deserialized <see cref="AuditRepository"/> instance, or null if deserialization fails.</param>
-    /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <param name="value">Receives the deserialized <see cref="AuditRepository"/> instance if successful; otherwise, null.</param>
+    /// <returns><c>true</c> if deserialization succeeds; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out AuditRepository? value)
     {
         ArgumentNullException.ThrowIfNull(json);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            value = null;
+            return false;
+        }
 
         try
         {
