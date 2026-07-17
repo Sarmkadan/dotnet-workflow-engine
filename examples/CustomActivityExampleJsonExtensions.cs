@@ -9,7 +9,7 @@ using System.Text.Json;
 namespace DotNetWorkflowEngine.Examples;
 
 /// <summary>
-/// Provides JSON serialization helpers for <see cref="CustomActivityExample"/>.
+/// Provides JSON serialization and deserialization helpers for <see cref="CustomActivityExample"/>.
 /// </summary>
 public static class CustomActivityExampleJsonExtensions
 {
@@ -23,8 +23,8 @@ public static class CustomActivityExampleJsonExtensions
     /// Serializes the <see cref="CustomActivityExample"/> instance to a JSON string.
     /// </summary>
     /// <param name="value">The instance to serialize.</param>
-    /// <param name="indented">If <c>true</c>, the output JSON will be indented.</param>
-    /// <returns>A JSON representation of <paramref name="value"/>.</returns>
+    /// <param name="indented">If <c>true</c>, the output JSON will be indented for better readability.</param>
+    /// <returns>A JSON string representation of <paramref name="value"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <c>null</c>.</exception>
     public static string ToJson(this CustomActivityExample value, bool indented = false)
     {
