@@ -659,6 +659,84 @@ var positiveIntProblems = request.ProcessingRules.ValidatePositiveIntegerRule("b
 Console.WriteLine($"Positive integer validation problems: {positiveIntProblems.Count}"); // 0
 ```
 
+## ErrorHandlingExampleExtensions
+
+The `ErrorHandlingExampleExtensions` static class provides extension methods for the `ErrorHandlingExample` class to enhance error handling workflows. It includes methods for validating processing requests, creating standardized error responses, extracting retry policy information, generating comprehensive error reports, and validating workflow instance status with recovery actions.
+
+This extension class is particularly useful for implementing robust error handling strategies in workflow applications, including retry policies, fallback mechanisms, and detailed error reporting.
+
+Example usage:
+
+```csharp
+using DotNetWorkflowEngine.Examples;
+using DotNetWorkflowEngine.Models;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+// Create an ErrorHandlingExample instance
+var errorHandlingExample = new ErrorHandlingExample();
+
+// Example 1: Validate a processing request
+var processingRequest = new ProcessingRequest
+{
+    DataSourceUrl = "https://api.example.com/orders",
+    ProcessingRules = new Dictionary<string, object>
+    {
+        { "MaxRetries", 3 },
+        { "RetryDelayMs", 1000 }
+    }
+};
+
+bool isValid = errorHandlingExample.ValidateProcessingRequest(processingRequest);
+Console.WriteLine($"Processing request is valid: {isValid}"); // True
+
+// Example 2: Create a standardized error response
+var errorResponse = errorHandlingExample.CreateErrorResponse(
+    Guid.NewGuid(),
+    "Failed to process order due to network timeout",
+    retryCount: 2
+);
+Console.WriteLine($"Error response type: {errorResponse.GetType().Name}"); // BadRequestObjectResult
+
+// Example 3: Extract retry policy information
+var retryPolicyInfo = errorHandlingExample.GetRetryPolicyInfo(processingRequest.ProcessingRules);
+Console.WriteLine($"Max retries: {retryPolicyInfo["maxRetries"]}");
+Console.WriteLine($"Retry delay: {retryPolicyInfo["retryDelayMs"]}ms");
+
+// Example 4: Create a comprehensive error report
+var executionContext = new ExecutionContext
+{
+    InstanceId = Guid.NewGuid(),
+    WorkflowId = "order-processing-workflow",
+    Status = WorkflowStatus.Failed,
+    Variables = new Dictionary<string, object>
+    {
+        { "RetryAttempts", 2 },
+        { "LastError", "Network timeout after 30 seconds" },
+        { "StartTime", DateTime.UtcNow.AddMinutes(-5) }
+    }
+};
+
+var errorReport = errorHandlingExample.CreateErrorReport(executionContext);
+Console.WriteLine($"Error report contains {errorReport.Count} items");
+Console.WriteLine($"Instance ID: {errorReport["instanceId"]}");
+Console.WriteLine($"Status: {errorReport["status"]}");
+
+// Example 5: Validate workflow instance and get recovery action
+var workflowInstance = new WorkflowInstance
+{
+    Id = Guid.NewGuid().ToString(),
+    WorkflowId = "order-processing-workflow",
+    Status = WorkflowStatus.Failed
+};
+
+var (isValidInstance, recoveryAction) = errorHandlingExample.ValidateWorkflowInstance(workflowInstance);
+Console.WriteLine($"Instance valid: {isValidInstance}"); // False
+Console.WriteLine($"Recovery action: {recoveryAction}"); // "Review error details and retry"
+```
+
 ## HealthController
 
 The `HealthController` provides health monitoring endpoints for the workflow engine, implementing liveness and readiness probes suitable for container orchestration systems like Kubernetes. It exposes three endpoints for monitoring application health:
