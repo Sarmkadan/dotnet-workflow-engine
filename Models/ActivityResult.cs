@@ -106,6 +106,17 @@ public class ActivityResult
     }
 
     /// <summary>
+    /// Marks the activity as timed out.
+    /// </summary>
+    public void SetTimeout()
+    {
+        Status = ActivityStatus.Timeout;
+        ErrorMessage = "Activity execution timed out";
+        EndTime = DateTime.UtcNow;
+        ExecutionDurationMs = (long)(EndTime.Value - StartTime).TotalMilliseconds;
+    }
+
+    /// <summary>
     /// Checks if the activity execution was successful.
     /// </summary>
     public bool IsSuccess()
@@ -126,7 +137,15 @@ public class ActivityResult
     /// </summary>
     public bool IsWaiting()
     {
-        return Status == ActivityStatus.Waiting;
+        return Status == ActivityStatus.Waiting || Status == ActivityStatus.Timeout;
+    }
+
+    /// <summary>
+    /// Checks if the activity execution timed out.
+    /// </summary>
+    public bool IsTimeout()
+    {
+        return Status == ActivityStatus.Timeout;
     }
 
     /// <summary>

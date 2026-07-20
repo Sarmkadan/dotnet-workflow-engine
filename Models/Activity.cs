@@ -79,8 +79,8 @@ public class Activity
         if (string.IsNullOrWhiteSpace(Name))
             errors.Add("Activity name is required");
 
-        if (TimeoutSeconds <= 0)
-            errors.Add("Timeout must be greater than zero");
+        if (TimeoutSeconds < 0)
+            errors.Add("Timeout must be greater than or equal to zero");
 
         if (MaxRetries < 0)
             errors.Add("MaxRetries cannot be negative");

@@ -29,5 +29,8 @@ public enum ActivityStatus
     Waiting = 5,
 
     /// <summary>Activity execution was cancelled</summary>
-    Cancelled = 6
+    Cancelled = 6,
+
+    /// <summary>Activity execution timed out</summary>
+    Timeout = 7
 }
