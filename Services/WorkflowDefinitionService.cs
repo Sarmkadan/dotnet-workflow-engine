@@ -5,6 +5,7 @@
 
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Utilities;
 
 namespace DotNetWorkflowEngine.Services;
 
@@ -343,5 +344,107 @@ public class WorkflowDefinitionService
 
         _workflows[newWorkflowId] = clone;
         return clone;
+    }
+
+    /// <summary>
+    /// Exports a workflow definition to JSON format.
+    /// </summary>
+    /// <param name="workflowId">The ID of the workflow to export</param>
+    /// <returns>JSON string representation of the workflow</returns>
+    /// <exception cref="WorkflowException">Thrown when workflow not found</exception>
+    public string ExportWorkflowToJson(string workflowId)
+    {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        var workflow = GetWorkflow(workflowId);
+        if (workflow == null)
+            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
+
+        return SerializationHelper.ToJsonPretty(workflow);
+    }
+
+    /// <summary>
+    /// Imports a workflow definition from JSON format.
+    /// </summary>
+    /// <param name="workflowId">The ID to assign to the imported workflow</param>
+    /// <param name="workflowName">The name to assign to the imported workflow</param>
+    /// <param name="jsonDefinition">JSON string containing the workflow definition</param>
+    /// <param name="overwriteExisting">Whether to overwrite existing workflow with same ID</param>
+    /// <returns>The imported workflow</returns>
+    /// <exception cref="ValidationException">Thrown when JSON is invalid or workflow validation fails</exception>
+    public Workflow ImportWorkflowFromJson(string workflowId, string workflowName, string jsonDefinition, bool overwriteExisting = false)
+    {
+        if (string.IsNullOrWhiteSpace(workflowId))
+            throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
+
+        if (string.IsNullOrWhiteSpace(workflowName))
+            throw new ArgumentException("Workflow name cannot be null or empty", nameof(workflowName));
+
+        if (string.IsNullOrWhiteSpace(jsonDefinition))
+            throw new ArgumentException("JSON definition cannot be null or empty", nameof(jsonDefinition));
+
+        if (!SerializationHelper.IsValidJson(jsonDefinition))
+            throw new ValidationException("Invalid JSON format", "INVALID_JSON");
+
+        var workflow = SerializationHelper.FromJson<Workflow>(jsonDefinition);
+        if (workflow == null)
+            throw new ValidationException("Failed to deserialize workflow from JSON", "DESERIALIZATION_FAILED");
+
+        // Ensure the workflow has the correct ID and name
+        workflow.Id = workflowId;
+        workflow.Name = workflowName;
+        workflow.CreatedAt = DateTime.UtcNow;
+        workflow.ModifiedAt = DateTime.UtcNow;
+
+        // Validate the imported workflow
+        if (!workflow.Validate(out var errors))
+            throw new ValidationException("Imported workflow validation failed", errors, "Workflow");
+
+        // Check if workflow already exists
+        if (_workflows.ContainsKey(workflowId) && !overwriteExisting)
+            throw new WorkflowException($"Workflow with ID '{workflowId}' already exists", "WORKFLOW_EXISTS");
+
+        _workflows[workflowId] = workflow;
+        return workflow;
+    }
+
+    /// <summary>
+    /// Validates JSON workflow definition without importing it.
+    /// </summary>
+    /// <param name="jsonDefinition">JSON string containing the workflow definition</param>
+    /// <returns>Validation result with errors if any</returns>
+    public bool ValidateWorkflowJson(string jsonDefinition, out List<string> errors)
+    {
+        errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(jsonDefinition))
+        {
+            errors.Add("JSON definition cannot be null or empty");
+            return false;
+        }
+
+        if (!SerializationHelper.IsValidJson(jsonDefinition))
+        {
+            errors.Add("Invalid JSON format");
+            return false;
+        }
+
+        try
+        {
+            var workflow = SerializationHelper.FromJson<Workflow>(jsonDefinition);
+            if (workflow == null)
+            {
+                errors.Add("Failed to deserialize workflow from JSON");
+                return false;
+            }
+
+            return workflow.Validate(out errors);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Deserialization error: {ex.Message}");
+            return false;
+        }
     }
 }

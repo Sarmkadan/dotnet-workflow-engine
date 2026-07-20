@@ -15,6 +15,7 @@ using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Utilities;
 using DotNetWorkflowEngine.Exceptions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DotNetWorkflowEngine.Controllers;
 
@@ -245,6 +246,116 @@ public class WorkflowController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating workflow");
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Exports a workflow definition to JSON format. Returns 200 OK with the JSON definition,
+    /// 404 if workflow not found, or 500 on server error.
+    /// </summary>
+    [HttpGet("{id}/definition")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetWorkflowDefinition(string id)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new { error = "Workflow ID cannot be empty" });
+
+            _logger.LogInformation("Exporting workflow definition: {WorkflowId}", id);
+
+            var jsonDefinition = await Task.FromResult(_workflowService.ExportWorkflowToJson(id));
+
+            return Ok(jsonDefinition);
+        }
+        catch (WorkflowException ex) when (ex.ErrorCode == "WORKFLOW_NOT_FOUND")
+        {
+            _logger.LogWarning("Workflow not found during export: {WorkflowId}", id);
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting workflow definition {WorkflowId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Imports a workflow definition from JSON format. Returns 201 Created with the imported workflow,
+    /// 400 if validation fails, 409 if workflow already exists and overwrite is false, or 500 on server error.
+    /// </summary>
+    [HttpPost("{id}/definition")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(Workflow), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ImportWorkflowDefinition(string id, [FromBody] string jsonDefinition, [FromQuery] string name, [FromQuery] bool overwrite = false)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new { error = "Workflow ID cannot be empty" });
+
+            if (string.IsNullOrWhiteSpace(name))
+                return BadRequest(new { error = "Workflow name query parameter is required" });
+
+            if (string.IsNullOrWhiteSpace(jsonDefinition))
+                return BadRequest(new { error = "JSON definition is required in request body" });
+
+            _logger.LogInformation("Importing workflow definition: {WorkflowId}", id);
+
+            var workflow = await Task.FromResult(_workflowService.ImportWorkflowFromJson(id, name, jsonDefinition, overwrite));
+
+            return CreatedAtAction(nameof(GetWorkflow), new { id = workflow.Id }, workflow);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Workflow import validation error: {Message}", ex.Message);
+            return BadRequest(new { error = ex.Message, details = ex.Errors });
+        }
+        catch (WorkflowException ex) when (ex.ErrorCode == "WORKFLOW_EXISTS")
+        {
+            _logger.LogWarning("Workflow already exists during import: {WorkflowId}", id);
+            return Conflict(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing workflow definition {WorkflowId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Validates a workflow JSON definition without importing it. Useful for pre-flight
+    /// checks before actual import. Returns validation result with detailed error messages.
+    /// </summary>
+    [HttpPost("validate-definition")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ValidateWorkflowDefinition([FromBody] string jsonDefinition)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(jsonDefinition))
+                return BadRequest(new { error = "JSON definition is required" });
+
+            _logger.LogInformation("Validating workflow JSON definition");
+
+            var isValid = _workflowService.ValidateWorkflowJson(jsonDefinition, out var errors);
+
+            if (isValid)
+                return Ok(new { valid = true });
+            else
+                return BadRequest(new { valid = false, errors });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating workflow JSON definition");
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
