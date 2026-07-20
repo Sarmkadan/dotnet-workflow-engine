@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Enums;
 
@@ -163,21 +163,42 @@ public class WorkflowInstance
         return Status == WorkflowStatus.Active;
     }
 
-/// <summary>
-/// Checks if the instance is completed or cancelled.
-/// </summary>
-public bool IsCompletedOrCancelled()
-{
-    return Status == WorkflowStatus.Archived || Status == WorkflowStatus.Cancelled;
-}
+    /// <summary>
+    /// Checks if the instance is completed or cancelled.
+    /// </summary>
+    public bool IsCompletedOrCancelled()
+    {
+        return Status == WorkflowStatus.Archived || Status == WorkflowStatus.Cancelled;
+    }
 
-/// <summary>
-/// Marks the instance as cancelled.
-/// </summary>
-public void Cancel()
-{
-    CompletedAt = DateTime.UtcNow;
-    Status = WorkflowStatus.Cancelled;
-    ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
-}
+    /// <summary>
+    /// Checks if the instance is suspended.
+    /// </summary>
+    public bool IsSuspended()
+    {
+        return Status == WorkflowStatus.Suspended;
+    }
+
+    /// <summary>
+    /// Marks the instance as suspended.
+    /// </summary>
+    /// <param name="reason">Optional reason for suspension.</param>
+    public void Suspend(string? reason = null)
+    {
+        Status = WorkflowStatus.Suspended;
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            ErrorMessage = reason;
+        }
+    }
+
+    /// <summary>
+    /// Marks the instance as cancelled.
+    /// </summary>
+    public void Cancel()
+    {
+        CompletedAt = DateTime.UtcNow;
+        Status = WorkflowStatus.Cancelled;
+        ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+    }
 }

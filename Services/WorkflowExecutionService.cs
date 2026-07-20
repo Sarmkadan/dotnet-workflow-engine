@@ -484,6 +484,28 @@ public class WorkflowExecutionService
     }
 
     /// <summary>
+    /// Pauses a workflow instance. Sets the instance status to Suspended and prevents further execution.
+    /// </summary>
+    /// <param name="instanceId">The ID of the instance to pause.</param>
+    /// <param name="reason">Optional reason for pausing.</param>
+    /// <exception cref="WorkflowException">Thrown when instance not found or invalid.</exception>
+    public virtual async Task PauseInstance(string instanceId, string? reason = null)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        var instance = GetInstance(instanceId);
+        if (instance == null)
+            throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
+
+        if (instance.IsCompletedOrCancelled())
+            throw new StateException("Instance is already completed or cancelled", instance.Status.ToString(), "Active, Suspended, or WaitingForMessage", instanceId);
+
+        instance.Suspend(reason);
+        await _auditService.LogInstancePaused(instanceId, reason);
+    }
+
+    /// <summary>
     /// Determines which activities to execute next after <paramref name="activityId"/> completes,
     /// honouring each outgoing transition's <c>ConditionExpression</c> against the instance's
     /// context variables. Conditional transitions are only followed when their expression

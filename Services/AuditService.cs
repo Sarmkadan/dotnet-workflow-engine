@@ -122,6 +122,25 @@ public class AuditService : IAuditTrailQuery
     }
 
     /// <summary>
+    /// Logs when a workflow instance is paused.
+    /// </summary>
+    /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
+    public async Task LogInstancePaused(string instanceId, string? reason = null)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        var entry = new AuditLogEntry(instanceId, "InstancePaused", string.IsNullOrWhiteSpace(reason)
+            ? "Workflow instance paused"
+            : $"Workflow instance paused. Reason: {reason}")
+        {
+            Severity = "Warning"
+        };
+
+        await AddEntry(entry);
+    }
+
+    /// <summary>
     /// Logs when an activity completes.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>

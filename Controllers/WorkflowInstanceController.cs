@@ -183,8 +183,8 @@ public class WorkflowInstanceController : ControllerBase
 
             _logger.LogInformation("Retrying instance: {InstanceId}", instanceId);
 
-            // TODO: Implement retry logic - check instance status, queue for re-execution
-            var instance = new WorkflowInstance { Id = instanceId, Status = WorkflowStatus.Active };
+            // Resume execution from where it failed (handles both failed and suspended instances)
+            await _executionService.ResumeInstanceAsync(instanceId);
 
             await _auditService.LogAsync(new AuditLogEntry
             {
@@ -194,7 +194,7 @@ public class WorkflowInstanceController : ControllerBase
                 Timestamp = DateTime.UtcNow
             });
 
-            return Accepted(instance);
+            return Accepted();
         }
         catch (Exception ex)
         {
@@ -221,7 +221,8 @@ public class WorkflowInstanceController : ControllerBase
 
             _logger.LogInformation("Terminating instance: {InstanceId}, reason={Reason}", instanceId, reason);
 
-            // TODO: Implement termination logic
+            // Terminate the instance (can terminate suspended instances too)
+        _executionService.CancelInstance(instanceId, reason);
             await _auditService.LogAsync(new AuditLogEntry
             {
                 InstanceId = instanceId,
@@ -264,6 +265,101 @@ public class WorkflowInstanceController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving instance history {InstanceId}", instanceId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Pauses a running workflow instance. Transitions the instance to Suspended status.
+    /// Can only pause instances in Active status. Returns 202 Accepted on success.
+    /// </summary>
+    [HttpPost("{instanceId}/pause")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> PauseInstance(string instanceId, [FromBody] string? reason = null)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(instanceId))
+                return BadRequest(new { error = "Instance ID cannot be empty" });
+
+            _logger.LogInformation("Pausing instance: {InstanceId}, reason={Reason}", instanceId, reason);
+
+            await _executionService.PauseInstance(instanceId, reason);
+
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                InstanceId = instanceId,
+                Action = "INSTANCE_PAUSED",
+                Details = $"Instance paused by {User.Identity?.Name ?? "unknown"}. Reason: {reason ?? "No reason provided"}",
+                Timestamp = DateTime.UtcNow
+            });
+
+            return Accepted();
+        }
+        catch (WorkflowException ex) when (ex.Code == "INSTANCE_NOT_FOUND")
+        {
+            return NotFound(new { error = $"Instance '{instanceId}' not found" });
+        }
+        catch (StateException ex) when (ex.CurrentState == "Suspended" || ex.CurrentState == "WaitingForMessage")
+        {
+            return Conflict(new { error = $"Instance is already {ex.CurrentState} and cannot be paused" });
+        }
+        catch (StateException ex)
+        {
+            return Conflict(new { error = $"Instance is already {ex.CurrentState} and cannot be paused" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error pausing instance {InstanceId}", instanceId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Resumes a paused workflow instance. Transitions the instance back to Active status and continues execution.
+    /// Can only resume instances in Suspended or WaitingForMessage status. Returns 202 Accepted on success.
+    /// </summary>
+    [HttpPost("{instanceId}/resume")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ResumeInstance(string instanceId)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(instanceId))
+                return BadRequest(new { error = "Instance ID cannot be empty" });
+
+            _logger.LogInformation("Resuming instance: {InstanceId}", instanceId);
+
+            // Use the existing ResumeInstanceAsync method from the service
+            await _executionService.ResumeInstanceAsync(instanceId);
+
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                InstanceId = instanceId,
+                Action = "INSTANCE_RESUMED",
+                Details = $"Instance resumed by {User.Identity?.Name ?? "unknown"}",
+                Timestamp = DateTime.UtcNow
+            });
+
+            return Accepted();
+        }
+        catch (WorkflowException ex) when (ex.Code == "INSTANCE_NOT_FOUND")
+        {
+            return NotFound(new { error = $"Instance '{instanceId}' not found" });
+        }
+        catch (StateException ex) when (ex.CurrentState == "Active" || ex.CurrentState == "Archived" || ex.CurrentState == "Cancelled")
+        {
+            return Conflict(new { error = $"Instance is {ex.CurrentState} and cannot be resumed" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resuming instance {InstanceId}", instanceId);
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
@@ -313,5 +409,9 @@ public class WorkflowInstanceController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
-}
+
+    /// <summary>
+    /// Pauses a running workflow instance. Transitions the instance to Suspended status.
+    /// Can only pause instances in Active status. Returns 202 Accepted on success.
+    /// </summary>
 }
