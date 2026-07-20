@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Formatters;
 
 namespace DotNetWorkflowEngine.Controllers;
 
@@ -27,12 +28,14 @@ public class AuditController : ControllerBase
     private readonly AuditService _auditService;
     private readonly IAuditRepository _auditRepository;
     private readonly ILogger<AuditController> _logger;
+    private readonly CsvOutputFormatter _csvFormatter;
 
-    public AuditController(AuditService auditService, IAuditRepository auditRepository, ILogger<AuditController> logger)
+    public AuditController(AuditService auditService, IAuditRepository auditRepository, ILogger<AuditController> logger, CsvOutputFormatter csvFormatter)
     {
         _auditService = auditService;
         _auditRepository = auditRepository;
         _logger = logger;
+        _csvFormatter = csvFormatter;
     }
 
     /// <summary>
@@ -298,13 +301,8 @@ public class AuditController : ControllerBase
             switch (format.ToLowerInvariant())
             {
                 case "csv":
-                    var csvContent = new System.Text.StringBuilder();
-                    csvContent.AppendLine("Timestamp,EventType,WorkflowInstanceId,ActivityId,Severity,Description,Actor,CorrelationId");
-                    foreach (var entry in logs.OrderBy(e => e.Timestamp))
-                    {
-                        csvContent.AppendLine($"\"{entry.GetFormattedTimestamp()}\",\"{entry.EventType}\",\"{entry.WorkflowInstanceId}\",\"{entry.ActivityId}\",\"{entry.Severity}\",\"{entry.Description.Replace("\"", "\"\"")}\",\"{entry.Actor}\",\"{entry.CorrelationId}\"");
-                    }
-                    exportData = System.Text.Encoding.UTF8.GetBytes(csvContent.ToString());
+                    var csvString = await _csvFormatter.FormatAsync(logs.OrderBy(e => e.Timestamp));
+                    exportData = System.Text.Encoding.UTF8.GetBytes(csvString);
                     contentType = "text/csv";
                     fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.csv";
                     break;
@@ -313,12 +311,6 @@ public class AuditController : ControllerBase
                     contentType = "application/json";
                     fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.json";
                     break;
-                // case "xml": // XML export would require an XML formatter
-                //     // For now, default to JSON or CSV
-                //     exportData = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(logs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                //     contentType = "application/json";
-                //     fileName = $"audit-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.json";
-                //     break;
                 default:
                     return BadRequest(new { error = $"Unsupported export format: {format}" });
             }
