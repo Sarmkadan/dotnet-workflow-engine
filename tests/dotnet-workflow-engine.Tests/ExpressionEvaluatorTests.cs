@@ -578,4 +578,146 @@ public class ExpressionEvaluatorTests
 
         ExpressionEvaluator.Evaluate("${count}", context).Should().BeTrue();
     }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates len() function for strings.
+    /// </summary>
+    [Fact]
+    public void Evaluate_LenFunction_StringLength_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "name", "hello" },
+            { "empty", "" },
+            { "short", "a" }
+        });
+
+        // len() should return true (successfully evaluated) and store length in _len_result
+        ExpressionEvaluator.Evaluate("len(${name})", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("len(${empty})", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("len(${short})", context).Should().BeTrue();
+
+        // Verify the length is stored correctly
+        context.GetVariable("_len_result").Should().Be(5);
+        context.GetVariable("_len_result").Should().Be(0);
+        context.GetVariable("_len_result").Should().Be(1);
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates len() function with comparison.
+    /// </summary>
+    [Fact]
+    public void Evaluate_LenFunction_WithComparison_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "name", "hello" },
+            { "short", "hi" }
+        });
+
+        // Use len() result in comparison
+        ExpressionEvaluator.Evaluate("len(${name}) > 3", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("len(${name}) == 5", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("len(${short}) < 5", context).Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates coalesce() function.
+    /// </summary>
+    [Fact]
+    public void Evaluate_CoalesceFunction_ReturnsFirstNonNull_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "a", "value1" },
+            { "b", "value2" },
+            { "nullValue", null }
+        });
+
+        // coalesce() should return true and store first non-null value
+        ExpressionEvaluator.Evaluate("coalesce(${a}, ${b})", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("coalesce(${nullValue}, ${b})", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("coalesce(${nullValue}, ${nullValue})", context).Should().BeFalse();
+
+        // Verify the result is stored
+        context.GetVariable("_coalesce_result").Should().Be("value1");
+        context.GetVariable("_coalesce_result").Should().Be("value2");
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates coalesce() function with boolean values.
+    /// </summary>
+    [Fact]
+    public void Evaluate_CoalesceFunction_BooleanValues_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "flag1", true },
+            { "flag2", false },
+            { "nullFlag", null }
+        });
+
+        // coalesce should return true for first non-null value
+        ExpressionEvaluator.Evaluate("coalesce(${flag1}, ${flag2})", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("coalesce(${nullFlag}, ${flag2})", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("coalesce(${nullFlag}, ${nullFlag})", context).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates contains() function.
+    /// </summary>
+    [Fact]
+    public void Evaluate_ContainsFunction_StringSearch_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "text", "hello world" },
+            { "empty", "" }
+        });
+
+        // contains() should return true/false based on search
+        ExpressionEvaluator.Evaluate("contains(${text}, \"hello\")", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("contains(${text}, \"world\")", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("contains(${text}, \"foo\")", context).Should().BeFalse();
+        ExpressionEvaluator.Evaluate("contains(${empty}, \"test\")", context).Should().BeFalse();
+
+        // Verify the result is stored
+        context.GetVariable("_contains_result").Should().Be(true);
+        context.GetVariable("_contains_result").Should().Be(false);
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates contains() function with variable.
+    /// </summary>
+    [Fact]
+    public void Evaluate_ContainsFunction_WithVariable_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "text", "hello world" },
+            { "search", "hello" }
+        });
+
+        ExpressionEvaluator.Evaluate("contains(${text}, ${search})", context).Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates complex expressions with functions.
+    /// </summary>
+    [Fact]
+    public void Evaluate_ComplexExpression_WithFunctions_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "name", "john" },
+            { "age", 25 },
+            { "status", "active" },
+            { "description", "This is a test description" }
+        });
+
+        // Complex expressions combining functions and comparisons
+        ExpressionEvaluator.Evaluate("len(${name}) == 4 && ${age} > 20", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("contains(${description}, \"test\") && ${status} == \"active\"", context).Should().BeTrue();
+        ExpressionEvaluator.Evaluate("coalesce(${missing}, \"default\") == \"default\"", context).Should().BeTrue();
+    }
 }

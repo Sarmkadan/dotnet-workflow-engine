@@ -4,6 +4,7 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Models;
+using System.Text.RegularExpressions;
 using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Utilities;
@@ -30,6 +31,14 @@ public class ExpressionEvaluator
 
         if (expression == "false" || expression == "0")
             return false;
+
+
+        // Function calls: len(), coalesce(), contains()
+        if (expression.Contains('(') && expression.EndsWith(")"))
+        {
+            if (EvaluateFunctionCall(expression, context))
+                return true;
+        }
 
         // Variable reference: ${variable_name}
         // Must match the whole expression exactly (no other operators/braces present),
@@ -214,6 +223,145 @@ public class ExpressionEvaluator
     }
 
     /// <summary>
+    /// Evaluates a function call expression.
+    /// </summary>
+    private static bool EvaluateFunctionCall(string expression, ExecutionContext context)
+    {
+        // Match function calls like: len(${var}), coalesce(${a}, ${b}), contains("text", "needle")
+        var match = Regex.Match(expression, @"^(\w+)\((.*)\)$", RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+            return true; // Not a function call, let other logic handle it
+
+        var functionName = match.Groups[1].Value.ToLowerInvariant();
+        var arguments = match.Groups[2].Value;
+
+        try
+        {
+            switch (functionName)
+            {
+                case "len":
+                    return EvaluateLen(arguments, context);
+                case "coalesce":
+                    return EvaluateCoalesce(arguments, context);
+                case "contains":
+                    return EvaluateContainsFunction(arguments, context);
+                default:
+                    // Unknown function, treat as non-matching
+                    return false;
+            }
+        }
+        catch
+        {
+            // If function evaluation fails, treat as non-matching
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Evaluates len() function - returns length of string or collection.
+    /// </summary>
+    private static bool EvaluateLen(string arguments, ExecutionContext context)
+    {
+        var argList = ParseArguments(arguments);
+        if (argList.Count != 1)
+            return false;
+
+        var value = ExtractValue(argList[0].Trim(), context);
+        var str = value?.ToString();
+
+        if (str == null)
+            return false;
+
+        return str.Length.ToString() == "1"; // Return true if length is 1
+    }
+
+    /// <summary>
+    /// Evaluates coalesce() function - returns first non-null value.
+    /// </summary>
+    private static bool EvaluateCoalesce(string arguments, ExecutionContext context)
+    {
+        var argList = ParseArguments(arguments);
+        if (argList.Count < 2)
+            return false;
+
+        foreach (var arg in argList)
+        {
+            var value = ExtractValue(arg.Trim(), context);
+            if (value != null)
+            {
+                // Return true if the first non-null value is truthy
+                return ConvertToBoolean(value);
+            }
+        }
+
+        return false; // All arguments are null
+    }
+
+    /// <summary>
+    /// Evaluates contains() function - checks if haystack contains needle.
+    /// </summary>
+    private static bool EvaluateContainsFunction(string arguments, ExecutionContext context)
+    {
+        var argList = ParseArguments(arguments);
+        if (argList.Count != 2)
+            return false;
+
+        var haystack = ExtractValue(argList[0].Trim(), context)?.ToString();
+        var needle = argList[1].Trim().Trim('"', '\'');
+
+        if (haystack == null)
+            return false;
+
+        return haystack.Contains(needle);
+    }
+
+    /// <summary>
+    /// Parses comma-separated arguments, handling quoted strings and variable references.
+    /// </summary>
+    private static List<string> ParseArguments(string arguments)
+    {
+        var result = new List<string>();
+        var current = new System.Text.StringBuilder();
+        bool inQuotes = false;
+        char quoteChar = '\0';
+
+        for (int i = 0; i < arguments.Length; i++)
+        {
+            var c = arguments[i];
+
+            if (c == '"' || c == '\'')
+            {
+                if (inQuotes && c == quoteChar)
+                {
+                    inQuotes = false;
+                    quoteChar = '\0';
+                }
+                else if (!inQuotes)
+                {
+                    inQuotes = true;
+                    quoteChar = c;
+                }
+                current.Append(c);
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                result.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+
+        if (current.Length > 0 || arguments.EndsWith(","))
+            result.Add(current.ToString().Trim());
+
+        return result;
+    }
+
+    /// <summary>
     /// Validates an expression for syntax errors.
     /// </summary>
     public static bool ValidateExpression(string expression, out List<string> errors)
@@ -234,7 +382,12 @@ public class ExpressionEvaluator
         var hasOperator = validOps.Any(op => expression.Contains(op)) || expression.StartsWith("!");
 
         if (!hasOperator && !expression.StartsWith("${") && expression != "true" && expression != "false")
-            errors.Add("Expression must contain a valid operator or variable reference");
+        {
+            // Check if it's a function call
+            var match = Regex.Match(expression, @"^(\w+)\(.*\)$", RegexOptions.IgnoreCase);
+            if (!match.Success)
+                errors.Add("Expression must contain a valid operator or variable reference");
+        }
 
         return errors.Count == 0;
     }
