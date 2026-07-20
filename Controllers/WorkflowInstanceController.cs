@@ -268,3 +268,50 @@ public class WorkflowInstanceController : ControllerBase
         }
     }
 }
+
+    /// <summary>
+    /// Cancels a running workflow instance. Transitions the instance to Cancelled status.
+    /// Can only cancel instances in Active status. Returns 202 Accepted on success.
+    /// </summary>
+    [HttpPost("{instanceId}/cancel")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CancelInstance(string instanceId, [FromBody] string? reason = null)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(instanceId))
+                return BadRequest(new { error = "Instance ID cannot be empty" });
+
+            _logger.LogInformation("Cancelling instance: {InstanceId}, reason={Reason}", instanceId, reason);
+
+            _executionService.CancelInstance(instanceId, reason);
+
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                InstanceId = instanceId,
+                Action = "INSTANCE_CANCELLED",
+                Details = $"Instance cancelled by {User.Identity?.Name ?? \"unknown\"}. Reason: {reason ?? \"No reason provided\"}",
+                Timestamp = DateTime.UtcNow
+            });
+
+            return Accepted();
+        }
+        catch (WorkflowException ex) when (ex.Code == "INSTANCE_NOT_FOUND")
+        {
+            return NotFound(new { error = $"Instance '{instanceId}' not found" });
+        }
+        catch (StateException ex)
+        {
+            return Conflict(new { error = $"Instance is already {ex.CurrentState} and cannot be cancelled" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling instance {InstanceId}", instanceId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+        }
+    }
+}
+}

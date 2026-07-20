@@ -162,4 +162,22 @@ public class WorkflowInstance
     {
         return Status == WorkflowStatus.Active;
     }
+
+/// <summary>
+/// Checks if the instance is completed or cancelled.
+/// </summary>
+public bool IsCompletedOrCancelled()
+{
+    return Status == WorkflowStatus.Archived || Status == WorkflowStatus.Cancelled;
+}
+
+/// <summary>
+/// Marks the instance as cancelled.
+/// </summary>
+public void Cancel()
+{
+    CompletedAt = DateTime.UtcNow;
+    Status = WorkflowStatus.Cancelled;
+    ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+}
 }

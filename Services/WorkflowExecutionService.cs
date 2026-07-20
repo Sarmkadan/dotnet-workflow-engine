@@ -460,6 +460,30 @@ public class WorkflowExecutionService
     }
 
     /// <summary>
+    /// Cancels a workflow instance. Sets the instance status to Cancelled and prevents further execution.
+    /// </summary>
+    /// <param name="instanceId">The ID of the instance to cancel.</param>
+    /// <param name="reason">Optional reason for cancellation.</param>
+    /// <exception cref="WorkflowException">Thrown when instance not found or invalid.</exception>
+    public virtual void CancelInstance(string instanceId, string? reason = null)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
+
+        var instance = GetInstance(instanceId);
+        if (instance == null)
+            throw new WorkflowException($"Instance '{instanceId}' not found", "INSTANCE_NOT_FOUND");
+
+        if (instance.IsCompletedOrCancelled())
+            throw new StateException("Instance is already completed or cancelled", instance.Status.ToString(), "Active, Archived, or Cancelled", instanceId);
+
+        instance.Cancel();
+        _auditService.LogCustomEvent(instanceId, "InstanceCancelled",
+            $"Instance cancelled. Reason: {reason ?? "No reason provided"}",
+            "Info").GetAwaiter().GetResult();
+    }
+
+    /// <summary>
     /// Determines which activities to execute next after <paramref name="activityId"/> completes,
     /// honouring each outgoing transition's <c>ConditionExpression</c> against the instance's
     /// context variables. Conditional transitions are only followed when their expression
