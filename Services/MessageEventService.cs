@@ -6,7 +6,6 @@
 using DotNetWorkflowEngine.Events;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Enums;
-using System.Collections.Concurrent;
 using DotNetWorkflowEngine.Exceptions;
 
 namespace DotNetWorkflowEngine.Services;
@@ -20,20 +19,18 @@ public class MessageEventService
     private readonly IEventBus _eventBus;
     private readonly WorkflowExecutionService _workflowExecutionService;
     private readonly AuditService _auditService;
-
-    // A mapping of CorrelationKey to a list of InstanceIds that are currently waiting for a message
-    // with that correlation key and message name. This is an in-memory solution.
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _waitingInstances = new();
+    private readonly MessageSubscriptionRegistry _subscriptionRegistry;
 
     /// <summary>
     /// Initializes the message event service.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when any dependency is null.</exception>
-    public MessageEventService(IEventBus eventBus, WorkflowExecutionService workflowExecutionService, AuditService auditService)
+    public MessageEventService(IEventBus eventBus, WorkflowExecutionService workflowExecutionService, AuditService auditService, MessageSubscriptionRegistry subscriptionRegistry)
     {
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _workflowExecutionService = workflowExecutionService ?? throw new ArgumentNullException(nameof(workflowExecutionService));
         _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
+        _subscriptionRegistry = subscriptionRegistry ?? throw new ArgumentNullException(nameof(subscriptionRegistry));
     }
 
     /// <summary>
@@ -69,6 +66,7 @@ public class MessageEventService
         var waitingInstance = _workflowExecutionService.GetInstancesByCorrelation(message.CorrelationKey)
             .FirstOrDefault(i => i.Status == WorkflowStatus.WaitingForMessage &&
                 i.GetContextVariable("WaitingForMessageName")?.ToString() == message.MessageName);
+
         if (waitingInstance != null)
         {
             try

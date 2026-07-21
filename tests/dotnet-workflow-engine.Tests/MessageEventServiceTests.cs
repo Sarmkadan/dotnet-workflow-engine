@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Events;
@@ -25,6 +25,7 @@ public class MessageEventServiceTests
         var activityService = new ActivityService(new RetryPolicyService());
         var workflowExecutionMock = new Mock<WorkflowExecutionService>(definitionService, new AuditService(auditRepoMock.Object), activityService);
         var auditMock = new Mock<AuditService>(auditRepoMock.Object);
+        var subscriptionRegistry = new MessageSubscriptionRegistry();
 
         eventBusMock.Setup(eb => eb.PublishAsync(It.IsAny<IWorkflowEvent>()))
             .Returns(Task.CompletedTask);
@@ -32,7 +33,8 @@ public class MessageEventServiceTests
         var service = new MessageEventService(
             eventBusMock.Object,
             workflowExecutionMock.Object,
-            auditMock.Object
+            auditMock.Object,
+            subscriptionRegistry
         );
 
         return (service, eventBusMock, workflowExecutionMock, auditMock);
@@ -105,10 +107,10 @@ public class MessageEventServiceTests
         executionMock.Setup(e => e.GetInstancesByCorrelation("corr-1"))
             .Returns(new List<WorkflowInstance> { instance });
         executionMock.Setup(e => e.ResumeFromMessageAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<Dictionary<string, object?>>()))
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object?>>()))
             .Returns(Task.CompletedTask);
 
         var message = CreateMessage();
@@ -135,10 +137,10 @@ public class MessageEventServiceTests
         executionMock.Setup(e => e.GetInstancesByCorrelation("corr-1"))
             .Returns(new List<WorkflowInstance> { instance1, instance2 });
         executionMock.Setup(e => e.ResumeFromMessageAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<Dictionary<string, object?>>()))
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object?>>()))
             .Returns(Task.CompletedTask);
 
         var message = CreateMessage(messageName: "OrderApproved");
@@ -161,10 +163,10 @@ public class MessageEventServiceTests
         executionMock.Setup(e => e.GetInstancesByCorrelation("corr-1"))
             .Returns(new List<WorkflowInstance> { instance });
         executionMock.Setup(e => e.ResumeFromMessageAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<Dictionary<string, object?>>()))
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object?>>()))
             .ThrowsAsync(new InvalidOperationException("Resume failed"));
         executionMock.Setup(e => e.FailInstance(It.IsAny<string>(), It.IsAny<string>()))
             .Verifiable();
@@ -251,10 +253,10 @@ public class MessageEventServiceTests
         executionMock.Setup(e => e.GetInstancesByCorrelation("corr-2"))
             .Returns(new List<WorkflowInstance> { instance2 });
         executionMock.Setup(e => e.ResumeFromMessageAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<Dictionary<string, object?>>()))
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object?>>()))
             .Returns(Task.CompletedTask);
 
         var message1 = CreateMessage("corr-1", "Message1");
