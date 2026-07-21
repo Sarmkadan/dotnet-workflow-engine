@@ -662,4 +662,277 @@ public class WorkflowDefinitionServiceTests
         original.Activities.Should().HaveCount(1);
         cloned.Activities.Should().HaveCount(2);
     }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.AddWorkflow"/> successfully adds an existing workflow definition.
+    /// </summary>
+    [Fact]
+    public void AddWorkflow_WithValidWorkflow_AddsSuccessfully()
+    {
+        var service = CreateService();
+        var workflow = new Workflow
+        {
+            Id = "wf-1",
+            Name = "Test Workflow",
+            Description = "Test Description"
+        };
+
+        service.AddWorkflow(workflow);
+
+        var retrieved = service.GetWorkflow("wf-1");
+        retrieved.Should().NotBeNull();
+        retrieved!.Id.Should().Be("wf-1");
+        retrieved.Name.Should().Be("Test Workflow");
+        retrieved.Description.Should().Be("Test Description");
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.AddWorkflow"/> throws <see cref="ArgumentNullException"/> when workflow is null.
+    /// </summary>
+    [Fact]
+    public void AddWorkflow_WithNullWorkflow_ThrowsArgumentNullException()
+    {
+        var service = CreateService();
+
+        var act = () => service.AddWorkflow(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.AddWorkflow"/> throws <see cref="ValidationException"/> when workflow ID is invalid.
+    /// </summary>
+    [Fact]
+    public void AddWorkflow_WithInvalidWorkflowId_ThrowsValidationException()
+    {
+        var service = CreateService();
+        var workflow = new Workflow { Id = "", Name = "Test" };
+
+        var act = () => service.AddWorkflow(workflow);
+
+        act.Should().Throw<ValidationException>();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.AddWorkflow"/> throws <see cref="ValidationException"/> when workflow name is invalid.
+    /// </summary>
+    [Fact]
+    public void AddWorkflow_WithInvalidWorkflowName_ThrowsValidationException()
+    {
+        var service = CreateService();
+        var workflow = new Workflow { Id = "wf-1", Name = "" };
+
+        var act = () => service.AddWorkflow(workflow);
+
+        act.Should().Throw<ValidationException>();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ExportWorkflowToJson"/> successfully exports a workflow to JSON.
+    /// </summary>
+    [Fact]
+    public void ExportWorkflowToJson_WithValidWorkflow_ReturnsJson()
+    {
+        var service = CreateService();
+        var workflow = service.CreateWorkflow("wf-1", "Test Workflow", "Test Description");
+        service.AddActivity("wf-1", CreateActivity("act-1"));
+        workflow.StartActivityId = "act-1";
+
+        var json = service.ExportWorkflowToJson("wf-1");
+
+        json.Should().NotBeNullOrEmpty();
+        json.Should().Contain("wf-1");
+        json.Should().Contain("Test Workflow");
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ExportWorkflowToJson"/> throws <see cref="WorkflowException"/> when workflow not found.
+    /// </summary>
+    [Fact]
+    public void ExportWorkflowToJson_WithNonExistentWorkflow_ThrowsWorkflowException()
+    {
+        var service = CreateService();
+
+        var act = () => service.ExportWorkflowToJson("nonexistent");
+
+        act.Should().Throw<WorkflowException>()
+            .WithMessage("*not found*");
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ImportWorkflowFromJson"/> successfully imports a valid workflow from JSON.
+    /// </summary>
+    [Fact]
+    public void ImportWorkflowFromJson_WithValidJson_ImportsSuccessfully()
+    {
+        var service = CreateService();
+        var json = "{\r\n    \"Id\": \"wf-imported\",\r\n    \"Name\": \"Imported Workflow\",\r\n    \"Description\": \"Imported Description\",\r\n    \"Activities\": [\r\n        {\r\n            \"Id\": \"act-1\",\r\n            \"Name\": \"Activity 1\",\r\n            \"Type\": \"Task\",\r\n            \"ExecutionMode\": \"Sequential\"\r\n        }\r\n    ],\r\n    \"Transitions\": [],\r\n    \"StartActivityId\": \"act-1\",\r\n    \"CreatedAt\": \"2024-01-01T00:00:00Z\",\r\n    \"ModifiedAt\": \"2024-01-01T00:00:00Z\"\r\n}";
+
+        var workflow = service.ImportWorkflowFromJson("wf-imported", "Imported Workflow", json);
+
+        workflow.Should().NotBeNull();
+        workflow.Id.Should().Be("wf-imported");
+        workflow.Name.Should().Be("Imported Workflow");
+        workflow.Description.Should().Be("Imported Description");
+        service.GetWorkflow("wf-imported").Should().NotBeNull();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ImportWorkflowFromJson"/> throws <see cref="ValidationException"/> when JSON is invalid.
+    /// </summary>
+    [Fact]
+    public void ImportWorkflowFromJson_WithInvalidJson_ThrowsValidationException()
+    {
+        var service = CreateService();
+
+        var act = () => service.ImportWorkflowFromJson("wf-1", "Test", "invalid json");
+
+        act.Should().Throw<ValidationException>()
+            .WithMessage("*Invalid JSON format*");
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ImportWorkflowFromJson"/> throws <see cref="ValidationException"/> when workflow validation fails.
+    /// </summary>
+    [Fact]
+    public void ImportWorkflowFromJson_WithInvalidWorkflow_ThrowsValidationException()
+    {
+        var service = CreateService();
+        var invalidJson = "{\r\n    \"Id\": \"wf-invalid\",\r\n    \"Name\": \"\",\r\n    \"Activities\": [],\r\n    \"Transitions\": []\r\n}";
+
+        var act = () => service.ImportWorkflowFromJson("wf-invalid", "Invalid", invalidJson);
+
+        act.Should().Throw<ValidationException>();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ImportWorkflowFromJson"/> throws <see cref="WorkflowException"/> when workflow already exists and overwrite is false.
+    /// </summary>
+    [Fact]
+    public void ImportWorkflowFromJson_WithExistingWorkflowAndNoOverwrite_ThrowsWorkflowException()
+    {
+        var service = CreateService();
+        service.CreateWorkflow("wf-1", "Existing");
+        var json = "{\r\n    \"Id\": \"wf-1\",\r\n    \"Name\": \"New Name\",\r\n    \"Activities\": [],\r\n    \"Transitions\": [],\r\n    \"CreatedAt\": \"2024-01-01T00:00:00Z\",\r\n    \"ModifiedAt\": \"2024-01-01T00:00:00Z\"\r\n}";
+
+        var act = () => service.ImportWorkflowFromJson("wf-1", "New Name", json, false);
+
+        act.Should().Throw<WorkflowException>();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ImportWorkflowFromJson"/> overwrites existing workflow when overwrite is true.
+    /// </summary>
+    [Fact]
+    public void ImportWorkflowFromJson_WithExistingWorkflowAndOverwrite_OverwritesSuccessfully()
+    {
+        var service = CreateService();
+        var original = service.CreateWorkflow("wf-1", "Original", "Original Description");
+        var json = "{\r\n    \"Id\": \"wf-1\",\r\n    \"Name\": \"New Name\",\r\n    \"Description\": \"New Description\",\r\n    \"Activities\": [\r\n        {\r\n            \"Id\": \"act-1\",\r\n            \"Name\": \"Activity 1\",\r\n            \"Type\": \"Task\",\r\n            \"ExecutionMode\": \"Sequential\"\r\n        }\r\n    ],\r\n    \"Transitions\": [],\r\n    \"StartActivityId\": \"act-1\",\r\n    \"CreatedAt\": \"2024-01-01T00:00:00Z\",\r\n    \"ModifiedAt\": \"2024-01-01T00:00:00Z\"\r\n}";
+
+        var workflow = service.ImportWorkflowFromJson("wf-1", "New Name", json, true);
+
+        workflow.Should().NotBeNull();
+        workflow.Name.Should().Be("New Name");
+        workflow.Description.Should().Be("New Description");
+        service.GetWorkflow("wf-1")!.Name.Should().Be("New Name");
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ValidateWorkflowJson"/> validates valid JSON successfully.
+    /// </summary>
+    [Fact]
+    public void ValidateWorkflowJson_WithValidJson_ReturnsTrue()
+    {
+        var service = CreateService();
+        var json = "{\r\n    \"Id\": \"wf-valid\",\r\n    \"Name\": \"Valid Workflow\",\r\n    \"Activities\": [\r\n        {\r\n            \"Id\": \"act-1\",\r\n            \"Name\": \"Activity 1\",\r\n            \"Type\": \"Task\",\r\n            \"ExecutionMode\": \"Sequential\"\r\n        }\r\n    ],\r\n    \"Transitions\": [],\r\n    \"StartActivityId\": \"act-1\",\r\n    \"CreatedAt\": \"2024-01-01T00:00:00Z\",\r\n    \"ModifiedAt\": \"2024-01-01T00:00:00Z\"\r\n}";
+
+        var isValid = service.ValidateWorkflowJson(json, out var errors);
+
+        isValid.Should().BeTrue();
+        errors.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ValidateWorkflowJson"/> returns false and errors for invalid JSON.
+    /// </summary>
+    [Fact]
+    public void ValidateWorkflowJson_WithInvalidJson_ReturnsFalseWithErrors()
+    {
+        var service = CreateService();
+
+        var isValid = service.ValidateWorkflowJson("invalid json", out var errors);
+
+        isValid.Should().BeFalse();
+        errors.Should().ContainSingle(e => e.Contains("Invalid JSON format"));
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ValidateWorkflowJson"/> returns false and errors for workflow with missing required fields.
+    /// </summary>
+    [Fact]
+    public void ValidateWorkflowJson_WithInvalidWorkflow_ReturnsFalseWithErrors()
+    {
+        var service = CreateService();
+        var invalidJson = "{\r\n    \"Id\": \"\",\r\n    \"Name\": \"\",\r\n    \"Activities\": [],\r\n    \"Transitions\": []\r\n}";
+
+        var isValid = service.ValidateWorkflowJson(invalidJson, out var errors);
+
+        isValid.Should().BeFalse();
+        errors.Should().NotBeEmpty();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.ValidateWorkflowJson"/> returns false for null JSON.
+    /// </summary>
+    [Fact]
+    public void ValidateWorkflowJson_WithNullJson_ReturnsFalseWithErrors()
+    {
+        var service = CreateService();
+
+        var isValid = service.ValidateWorkflowJson(null!, out var errors);
+
+        isValid.Should().BeFalse();
+        errors.Should().ContainSingle(e => e.Contains("cannot be null or empty"));
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.DeleteWorkflow"/> removes workflow from service.
+    /// </summary>
+    [Fact]
+    public void DeleteWorkflow_RemovesWorkflowFromService()
+    {
+        var service = CreateService();
+        service.CreateWorkflow("wf-1", "Test");
+        service.DeleteWorkflow("wf-1");
+
+        var workflow = service.GetWorkflow("wf-1");
+        workflow.Should().BeNull();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.CreateWorkflow"/> throws ValidationException for empty ID.
+    /// </summary>
+    [Fact]
+    public void CreateWorkflow_WithEmptyId_ThrowsValidationException()
+    {
+        var service = CreateService();
+
+        var act = () => service.CreateWorkflow("", "Test");
+
+        act.Should().Throw<ValidationException>();
+    }
+
+    /// <summary>
+    /// Tests that <see cref="WorkflowDefinitionService.CreateWorkflow"/> throws ValidationException for empty name.
+    /// </summary>
+    [Fact]
+    public void CreateWorkflow_WithEmptyName_ThrowsValidationException()
+    {
+        var service = CreateService();
+
+        var act = () => service.CreateWorkflow("wf-1", "");
+
+        act.Should().Throw<ValidationException>();
+    }
 }
