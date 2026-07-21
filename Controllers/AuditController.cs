@@ -289,6 +289,7 @@ public class AuditController : ControllerBase
 
             var (logs, total) = await _auditService.GetFilteredAuditLogsAsync(
                 workflowId: workflowId,
+                eventType: action,
                 fromDate: fromDate,
                 toDate: toDate,
                 take: int.MaxValue // Get all filtered logs for export
