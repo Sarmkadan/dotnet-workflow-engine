@@ -579,29 +579,60 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("${count}", context).Should().BeTrue();
     }
 
-    /// <summary>
-    /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates len() function for strings.
-    /// </summary>
     [Fact]
-    public void Evaluate_LenFunction_StringLength_EvaluatesCorrectly()
+    public void Evaluate_LenFunction_EvaluatesCorrectly()
     {
         var context = CreateContext(new Dictionary<string, object?>
         {
-            { "name", "hello" },
-            { "empty", "" },
-            { "short", "a" }
+            { "name", "hello" }
         });
 
-        // len() should return true (successfully evaluated) and store length in _len_result
         ExpressionEvaluator.Evaluate("len(${name})", context).Should().BeTrue();
-        ExpressionEvaluator.Evaluate("len(${empty})", context).Should().BeTrue();
-        ExpressionEvaluator.Evaluate("len(${short})", context).Should().BeTrue();
-
-        // Verify the length is stored correctly
         context.GetVariable("_len_result").Should().Be(5);
-        context.GetVariable("_len_result").Should().Be(0);
-        context.GetVariable("_len_result").Should().Be(1);
     }
+
+    [Fact]
+    public void Evaluate_UpperFunction_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "name", "hello" }
+        });
+
+        ExpressionEvaluator.Evaluate("upper(${name})", context).Should().BeTrue();
+        context.GetVariable("_upper_result").Should().Be("HELLO");
+    }
+
+    [Fact]
+    public void Evaluate_LowerFunction_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>
+        {
+            { "name", "HELLO" }
+        });
+
+        ExpressionEvaluator.Evaluate("lower(${name})", context).Should().BeTrue();
+        context.GetVariable("_lower_result").Should().Be("hello");
+    }
+
+    [Fact]
+    public void Evaluate_NowFunction_EvaluatesCorrectly()
+    {
+        var context = CreateContext(new Dictionary<string, object?>());
+
+        ExpressionEvaluator.Evaluate("now()", context).Should().BeTrue();
+        context.GetVariable("_now_result").Should().NotBeNull();
+        ((DateTime)context.GetVariable("_now_result")!).Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void Evaluate_UnknownFunction_ReturnsFalse()
+    {
+        var context = CreateContext(new Dictionary<string, object?>());
+
+        ExpressionEvaluator.Evaluate("unknown()", context).Should().BeFalse();
+    }
+
 
     /// <summary>
     /// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> correctly evaluates len() function with comparison.

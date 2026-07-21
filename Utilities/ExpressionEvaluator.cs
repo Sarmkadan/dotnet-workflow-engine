@@ -242,6 +242,12 @@ public class ExpressionEvaluator
             {
                 case "len":
                     return EvaluateLen(arguments, context);
+                case "upper":
+                    return EvaluateUpper(arguments, context);
+                case "lower":
+                    return EvaluateLower(arguments, context);
+                case "now":
+                    return EvaluateNow(arguments, context);
                 case "coalesce":
                     return EvaluateCoalesce(arguments, context);
                 case "contains":
@@ -273,7 +279,55 @@ public class ExpressionEvaluator
         if (str == null)
             return false;
 
-        return str.Length.ToString() == "1"; // Return true if length is 1
+        context.SetVariable("_len_result", str.Length);
+        return true;
+    }
+
+    /// <summary>
+    /// Evaluates upper() function - returns uppercase string.
+    /// </summary>
+    private static bool EvaluateUpper(string arguments, ExecutionContext context)
+    {
+        var argList = ParseArguments(arguments);
+        if (argList.Count != 1)
+            return false;
+
+        var value = ExtractValue(argList[0].Trim(), context);
+        var str = value?.ToString();
+
+        if (str == null)
+            return false;
+
+        context.SetVariable("_upper_result", str.ToUpperInvariant());
+        return true;
+    }
+
+    /// <summary>
+    /// Evaluates lower() function - returns lowercase string.
+    /// </summary>
+    private static bool EvaluateLower(string arguments, ExecutionContext context)
+    {
+        var argList = ParseArguments(arguments);
+        if (argList.Count != 1)
+            return false;
+
+        var value = ExtractValue(argList[0].Trim(), context);
+        var str = value?.ToString();
+
+        if (str == null)
+            return false;
+
+        context.SetVariable("_lower_result", str.ToLowerInvariant());
+        return true;
+    }
+
+    /// <summary>
+    /// Evaluates now() function - returns current UTC date time.
+    /// </summary>
+    private static bool EvaluateNow(string arguments, ExecutionContext context)
+    {
+        context.SetVariable("_now_result", DateTime.UtcNow);
+        return true;
     }
 
     /// <summary>
