@@ -95,8 +95,9 @@ namespace DotNetWorkflowEngine.Tests
             var service = CreateServiceWithExponentialPolicy(maxRetries: 3);
 
             int attempts = 0;
+            Exception? caught = null;
 
-            var exception = Assert.Throws<TestException>(() =>
+            try
             {
                 while (true)
                 {
@@ -113,11 +114,16 @@ namespace DotNetWorkflowEngine.Tests
                             throw;
                     }
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                caught = ex;
+            }
 
+            Assert.NotNull(caught);
+            Assert.IsType<TestException>(caught);
             // The number of attempts should equal MaxAttempts (3) before the exception is re‑thrown
             Assert.Equal(3, attempts);
-            Assert.IsType<TestException>(exception);
         }
 
         [Fact]
