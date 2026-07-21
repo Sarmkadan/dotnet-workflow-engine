@@ -9,9 +9,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
 using DotNetWorkflowEngine.Enums;
+using DotNetWorkflowEngine.Data.Context;
 
 namespace DotNetWorkflowEngine.Controllers;
 
@@ -28,15 +30,18 @@ public class WorkflowInstanceController : ControllerBase
     private readonly WorkflowExecutionService _executionService;
     private readonly AuditService _auditService;
     private readonly ILogger<WorkflowInstanceController> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
     public WorkflowInstanceController(
         WorkflowExecutionService executionService,
         AuditService auditService,
-        ILogger<WorkflowInstanceController> logger)
+        ILogger<WorkflowInstanceController> logger,
+        IServiceProvider serviceProvider)
     {
         _executionService = executionService;
         _auditService = auditService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -141,21 +146,45 @@ public class WorkflowInstanceController : ControllerBase
     public async Task<IActionResult> ListInstances(
         [FromQuery] string? workflowId = null,
         [FromQuery] string? status = null,
-        [FromQuery] DateTime? startFrom = null,
-        [FromQuery] DateTime? startUntil = null,
+        [FromQuery] DateTime? createdFrom = null,
+        [FromQuery] DateTime? createdTo = null,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 50)
     {
         try
         {
-            _logger.LogInformation(
-                "Listing instances: workflowId={WorkflowId}, status={Status}, skip={Skip}, take={Take}",
-                workflowId, status, skip, take);
+                _logger.LogInformation(
+                    "Listing instances: workflowId={WorkflowId}, status={Status}, createdFrom={CreatedFrom}, createdTo={CreatedTo}, skip={Skip}, take={Take}",
+                    workflowId, status, createdFrom, createdTo, skip, take);
 
-            // TODO: Implement instance listing with filters and pagination
-            var instances = new List<WorkflowInstance>();
+                // Get database context from service provider
+                var dbContext = _serviceProvider.GetService<DatabaseContext>();
+                if (dbContext == null)
+                {
+                    _logger.LogError("DatabaseContext not available");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Database service unavailable" });
+                }
 
-            return Ok(instances);
+                // Use the new filtered and paged method
+                var (instances, totalCount) = await dbContext.Instances.GetFilteredPagedAsync(
+                    workflowId: workflowId,
+                    status: status,
+                    createdFrom: createdFrom,
+                    createdTo: createdTo,
+                    pageNumber: (skip / take) + 1,
+                    pageSize: take);
+
+                // Return paginated response with total count
+                var response = new
+                {
+                    items = instances,
+                    total = totalCount,
+                    page = (skip / take) + 1,
+                    pageSize = take,
+                    totalPages = (int)Math.Ceiling((double)totalCount / take)
+                };
+
+                return Ok(response);
         }
         catch (Exception ex)
         {

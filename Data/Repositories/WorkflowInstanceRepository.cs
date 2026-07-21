@@ -3,6 +3,10 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
 
@@ -164,6 +168,65 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
         var failed = _instances.Values.Count(i => !string.IsNullOrEmpty(i.ErrorMessage));
 
         return Task.FromResult((total, active, completed, failed));
+    }
+
+    /// <summary>
+    /// Gets instances with advanced filtering and pagination.
+    /// </summary>
+    /// <param name="workflowId">Filter by workflow ID</param>
+    /// <param name="status">Filter by status (string representation)</param>
+    /// <param name="createdFrom">Filter instances created on or after this date</param>
+    /// <param name="createdTo">Filter instances created on or before this date</param>
+    /// <param name="pageNumber">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    public Task<(List<WorkflowInstance> Items, int Total)> GetFilteredPagedAsync(
+        string? workflowId = null,
+        string? status = null,
+        DateTime? createdFrom = null,
+        DateTime? createdTo = null,
+        int pageNumber = 1,
+        int pageSize = 50)
+    {
+        var query = _instances.Values.AsQueryable();
+
+        // Apply workflow ID filter
+        if (!string.IsNullOrWhiteSpace(workflowId))
+        {
+            query = query.Where(i => i.WorkflowId.Equals(workflowId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply status filter
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (Enum.TryParse<WorkflowStatus>(status, true, out var parsedStatus))
+            {
+                query = query.Where(i => i.Status == parsedStatus);
+            }
+        }
+
+        // Apply created date range filter
+        if (createdFrom.HasValue)
+        {
+            query = query.Where(i => i.CreatedAt >= createdFrom.Value);
+        }
+
+        if (createdTo.HasValue)
+        {
+            query = query.Where(i => i.CreatedAt <= createdTo.Value);
+        }
+
+        // Calculate total count before pagination
+        var total = query.Count();
+
+        // Apply pagination
+        var items = query
+            .OrderByDescending(i => i.CreatedAt)
+            .ThenBy(i => i.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Task.FromResult((items, total));
     }
 
     /// <summary>
