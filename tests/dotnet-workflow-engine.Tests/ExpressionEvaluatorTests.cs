@@ -750,5 +750,188 @@ public class ExpressionEvaluatorTests
         ExpressionEvaluator.Evaluate("len(${name}) == 4 && ${age} > 20", context).Should().BeTrue();
         ExpressionEvaluator.Evaluate("contains(${description}, \"test\") && ${status} == \"active\"", context).Should().BeTrue();
         ExpressionEvaluator.Evaluate("coalesce(${missing}, \"default\") == \"default\"", context).Should().BeTrue();
-    }
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles missing variables in comparison expressions correctly.
+/// </summary>
+[Fact]
+public void Evaluate_MissingVariableInComparison_ReturnsFalse()
+{
+    var context = CreateContext();
+
+    ExpressionEvaluator.Evaluate("${missingVar} == \"value\"", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${missingVar} != \"value\"", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${missingVar} > \"100\"", context).Should().BeFalse();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles missing variables in logical expressions correctly.
+/// </summary>
+[Fact]
+public void Evaluate_MissingVariableInLogicalExpression_ReturnsFalse()
+{
+    var context = CreateContext();
+
+    ExpressionEvaluator.Evaluate("${missing1} && ${missing2}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${missing} || ${anotherMissing}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("!${missingVar}", context).Should().BeTrue();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles type coercion edge cases correctly.
+/// </summary>
+[Fact]
+public void Evaluate_TypeCoercion_EdgeCases_ReturnsCorrectly()
+{
+    var context = CreateContext(new Dictionary<string, object?>
+    {
+        { "boolTrue", true },
+        { "boolFalse", false },
+        { "intZero", 0 },
+        { "intOne", 1 },
+        { "doubleZero", 0.0 },
+        { "doublePositive", 3.14 },
+        { "stringTrue", "true" },
+        { "stringFalse", "false" },
+        { "stringZero", "0" },
+        { "stringEmpty", "" },
+        { "stringNonEmpty", "hello" }
+    });
+
+    // Boolean conversions
+    ExpressionEvaluator.Evaluate("${boolTrue}", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${boolFalse}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${intZero}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${intOne}", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${doubleZero}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${doublePositive}", context).Should().BeTrue();
+
+    // String conversions
+    ExpressionEvaluator.Evaluate("${stringTrue}", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${stringFalse}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${stringZero}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${stringEmpty}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${stringNonEmpty}", context).Should().BeTrue();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles type coercion in comparisons correctly.
+/// </summary>
+[Fact]
+public void Evaluate_TypeCoercion_InComparisons_ReturnsCorrectly()
+{
+    var context = CreateContext(new Dictionary<string, object?>
+    {
+        { "numericString", "123" },
+        { "boolString", "true" },
+        { "zeroString", "0" },
+        { "emptyString", "" },
+        { "intValue", 42 },
+        { "doubleValue", 3.14 }
+    });
+
+    // Numeric string comparisons
+    ExpressionEvaluator.Evaluate("${numericString} == \"123\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${numericString} > \"100\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${zeroString} == \"0\"", context).Should().BeTrue();
+
+    // Boolean string comparisons
+    ExpressionEvaluator.Evaluate("${boolString}", context).Should().BeTrue();
+
+    // Mixed type comparisons
+    ExpressionEvaluator.Evaluate("${intValue} > \"40\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${doubleValue} < \"4\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${emptyString} == \"\"", context).Should().BeTrue();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles edge cases in comparison operators correctly.
+/// </summary>
+[Fact]
+public void Evaluate_ComparisonOperators_EdgeCases_ReturnsCorrectly()
+{
+    var context = CreateContext(new Dictionary<string, object?>
+    {
+        { "value", 100 },
+        { "text", "hello" }
+    });
+
+    // Greater than or equal edge cases
+    ExpressionEvaluator.Evaluate("${value} >= \"100\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${value} >= \"99\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${value} >= \"101\"", context).Should().BeFalse();
+
+    // Less than or equal edge cases
+    ExpressionEvaluator.Evaluate("${value} <= \"100\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${value} <= \"101\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${value} <= \"99\"", context).Should().BeFalse();
+
+    // String comparisons with different cases
+    ExpressionEvaluator.Evaluate("${text} == \"hello\"", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${text} == \"HELLO\"", context).Should().BeFalse();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles nested logical expressions correctly.
+/// </summary>
+[Fact]
+public void Evaluate_NestedLogicalExpressions_ReturnsCorrectly()
+{
+    var context = CreateContext(new Dictionary<string, object?>
+    {
+        { "a", true },
+        { "b", true },
+        { "c", false },
+        { "d", false }
+    });
+
+    // Nested AND/OR combinations
+    ExpressionEvaluator.Evaluate("${a} && (${b} || ${c})", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("(${a} && ${b}) || ${c}", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${a} && ${b} && ${c} && ${d}", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${a} || ${b} || ${c} || ${d}", context).Should().BeTrue();
+
+    // Nested NOT expressions
+    ExpressionEvaluator.Evaluate("!(${c} || ${d})", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("!${a} && !${d}", context).Should().BeFalse();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles whitespace variations in expressions correctly.
+/// </summary>
+[Fact]
+public void Evaluate_WhitespaceVariations_ReturnsCorrectly()
+{
+    var context = CreateContext(new Dictionary<string, object?>
+    {
+        { "flag", true },
+        { "value", 100 }
+    });
+
+    // Multiple spaces around operators
+    ExpressionEvaluator.Evaluate("${flag}   &&   ${flag}", context).Should().BeTrue();
+    ExpressionEvaluator.Evaluate("${value}   >   \"50\"  ", context).Should().BeTrue();
+
+    // Tabs and mixed whitespace
+    ExpressionEvaluator.Evaluate("${flag}\t&&\t${flag}", context).Should().BeTrue();
+}
+
+/// <summary>
+/// Verifies that <see cref="ExpressionEvaluator.Evaluate"/> handles invalid numeric strings in comparisons correctly.
+/// </summary>
+[Fact]
+public void Evaluate_InvalidNumericStrings_InComparisons_ReturnsFalse()
+{
+    var context = CreateContext(new Dictionary<string, object?>
+    {
+        { "notNumber", "abc123" },
+        { "partialNumber", "123abc" }
+    });
+
+    // Invalid numeric strings should fail comparison
+    ExpressionEvaluator.Evaluate("${notNumber} > \"100\"", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${partialNumber} < \"200\"", context).Should().BeFalse();
+    ExpressionEvaluator.Evaluate("${notNumber} == \"abc123\"", context).Should().BeFalse();
+}
 }
