@@ -78,7 +78,7 @@ public class RateLimitingMiddleware
         {
             context.Response.Headers.Add("X-RateLimit-Limit", _config.MaxRequests.ToString());
             context.Response.Headers.Add("X-RateLimit-Remaining", bucket.TokensRemaining.ToString());
-            context.Response.Headers.Add("X-RateLimit-Reset", bucket.ResetTime.ToUnixTimeSeconds().ToString());
+            context.Response.Headers.Add("X-RateLimit-Reset", ((DateTimeOffset)bucket.ResetTime).ToUnixTimeSeconds().ToString());
             return Task.CompletedTask;
         });
 

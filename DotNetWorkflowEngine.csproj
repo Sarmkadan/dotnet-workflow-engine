@@ -41,7 +41,7 @@
     <Compile Remove="Configuration/DependencyInjection.cs" />
     <Compile Remove="Integration/HttpClientFactory.cs" />
     <Compile Remove="Middleware/ErrorHandlingMiddleware.cs" />
-    <Compile Remove="Middleware/RateLimitingMiddleware.cs" />
+    <!-- Temporarily removed for testing: <Compile Remove="Middleware/RateLimitingMiddleware.cs" /> -->
     <Compile Remove="Cli/WorkflowCommand.cs" />
   </ItemGroup>
 
