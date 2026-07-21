@@ -539,4 +539,38 @@ public class WorkflowValidatorTests
 
         result.Warnings.Should().NotContain(e => e.Contains("optional") && e.Contains("cannot reach"));
     }
+
+/// <summary>
+/// Tests that duplicate activity IDs are not explicitly validated (current behavior allows them).
+/// This test documents the current behavior - duplicate IDs are not detected as an error.
+/// </summary>
+[Fact]
+public void ValidateWorkflow_DuplicateActivityIds_NotDetectedAsError()
+{
+    var workflow = new Workflow
+    {
+        Id = "duplicate-ids",
+        Name = "Workflow with Duplicate IDs",
+        StartActivityId = "activity-1",
+        EndActivityId = "activity-3",
+        Activities = new List<Activity>
+        {
+            new Activity { Id = "activity-1", Name = "Start Activity", TimeoutSeconds = 30, MaxRetries = 0 },
+            new Activity { Id = "activity-2", Name = "Middle Activity", TimeoutSeconds = 30, MaxRetries = 0 },
+            new Activity { Id = "activity-2", Name = "Duplicate ID Activity", TimeoutSeconds = 30, MaxRetries = 0 },
+            new Activity { Id = "activity-3", Name = "End Activity", TimeoutSeconds = 30, MaxRetries = 0 }
+        },
+        Transitions = new List<Transition>
+        {
+            new Transition { Id = "t1", FromActivityId = "activity-1", ToActivityId = "activity-2" },
+            new Transition { Id = "t2", FromActivityId = "activity-2", ToActivityId = "activity-3" }
+        }
+    };
+
+    var result = WorkflowValidator.ValidateWorkflow(workflow);
+
+    // Current implementation does not detect duplicate IDs as an error
+    result.IsValid.Should().BeTrue();
+    result.Errors.Should().NotContain(e => e.Contains("duplicate") || e.Contains("Duplicate"));
+}
 }
