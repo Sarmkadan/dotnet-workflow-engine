@@ -4,6 +4,7 @@
 // =============================================================================
 
 using DotNetWorkflowEngine.Models;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
@@ -15,12 +16,28 @@ namespace DotNetWorkflowEngine.Utilities;
 public class ExpressionEvaluator
 {
     /// <summary>
+    /// Cache for parsed expressions to avoid re-parsing per evaluation.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, CachedExpression> ExpressionCache = new ConcurrentDictionary<string, CachedExpression>();
+
+    /// <summary>
+    /// Cache size limit to prevent unbounded memory growth.
+    /// </summary>
+    private const int MaxCacheSize = 1000;
+
+    /// <summary>
     /// Evaluates a boolean expression against a context.
     /// </summary>
     public static bool Evaluate(string expression, ExecutionContext context)
     {
         if (string.IsNullOrWhiteSpace(expression))
             return true;
+
+        // Use cache to avoid re-parsing expressions
+        if (ExpressionCache.TryGetValue(expression, out var cached))
+        {
+            return cached.Result;
+        }
 
         // Remove whitespace
         expression = expression.Trim();
@@ -37,7 +54,10 @@ public class ExpressionEvaluator
         if (expression.Contains('(') && expression.EndsWith(")"))
         {
             if (EvaluateFunctionCall(expression, context))
+            {
+                CacheResult(expression, true);
                 return true;
+            }
         }
 
         // Variable reference: ${variable_name}
@@ -48,7 +68,9 @@ public class ExpressionEvaluator
         {
             var varName = expression.Substring(2, expression.Length - 3);
             var value = context.GetVariable(varName);
-            return ConvertToBoolean(value);
+            var result = ConvertToBoolean(value);
+            CacheResult(expression, result);
+            return result;
         }
 
         // Logical AND / OR must be evaluated before individual comparisons: a compound
@@ -59,61 +81,115 @@ public class ExpressionEvaluator
         if (expression.Contains("&&"))
         {
             var parts = expression.Split("&&");
-            return parts.All(p => Evaluate(p.Trim(), context));
+            var result = parts.All(p => Evaluate(p.Trim(), context));
+            CacheResult(expression, result);
+            return result;
         }
 
         // Logical OR: expression1 || expression2
         if (expression.Contains("||"))
         {
             var parts = expression.Split("||");
-            return parts.Any(p => Evaluate(p.Trim(), context));
+            var result = parts.Any(p => Evaluate(p.Trim(), context));
+            CacheResult(expression, result);
+            return result;
         }
 
         // Comparison expressions: ${variable} == value
         if (expression.Contains("=="))
         {
-            return EvaluateComparison(expression, context, "==", (a, b) => a == b);
+            var result = EvaluateComparison(expression, context, "==", (a, b) => a == b);
+            CacheResult(expression, result);
+            return result;
         }
 
         if (expression.Contains("!="))
         {
-            return EvaluateComparison(expression, context, "!=", (a, b) => a != b);
+            var result = EvaluateComparison(expression, context, "!=", (a, b) => a != b);
+            CacheResult(expression, result);
+            return result;
         }
 
         if (expression.Contains(">="))
         {
-            return EvaluateNumericComparison(expression, context, ">=", (a, b) => a >= b);
+            var result = EvaluateNumericComparison(expression, context, ">=", (a, b) => a >= b);
+            CacheResult(expression, result);
+            return result;
         }
 
         if (expression.Contains("<="))
         {
-            return EvaluateNumericComparison(expression, context, "<=", (a, b) => a <= b);
+            var result = EvaluateNumericComparison(expression, context, "<=", (a, b) => a <= b);
+            CacheResult(expression, result);
+            return result;
         }
 
         if (expression.Contains(">"))
         {
-            return EvaluateNumericComparison(expression, context, ">", (a, b) => a > b);
+            var result = EvaluateNumericComparison(expression, context, ">", (a, b) => a > b);
+            CacheResult(expression, result);
+            return result;
         }
 
         if (expression.Contains("<"))
         {
-            return EvaluateNumericComparison(expression, context, "<", (a, b) => a < b);
+            var result = EvaluateNumericComparison(expression, context, "<", (a, b) => a < b);
+            CacheResult(expression, result);
+            return result;
         }
 
         // Logical NOT: !expression
         if (expression.StartsWith("!"))
         {
             var innerExpression = expression.Substring(1).Trim();
-            return !Evaluate(innerExpression, context);
+            var result = !Evaluate(innerExpression, context);
+            CacheResult(expression, result);
+            return result;
         }
 
         // String contains: ${var} contains "text"
         if (expression.Contains(" contains "))
         {
-            return EvaluateContains(expression, context);
+            var result = EvaluateContains(expression, context);
+            CacheResult(expression, result);
+            return result;
         }
 
-        return true;
+        var finalResult = true;
+        CacheResult(expression, finalResult);
+        return finalResult;
+    }
+
+    /// <summary>
+    /// Caches the result of an expression evaluation.
+    /// </summary>
+    private static void CacheResult(string expression, bool result)
+    {
+        // Enforce cache size limit
+        if (ExpressionCache.Count >= MaxCacheSize)
+        {
+            // Remove oldest entry to make room
+            foreach (var kvp in ExpressionCache)
+            {
+                ExpressionCache.TryRemove(kvp.Key, out _);
+                break;
+            }
+        }
+
+        ExpressionCache[expression] = new CachedExpression(result);
+    }
+
+    /// <summary>
+    /// Represents a cached expression evaluation result.
+    /// </summary>
+    private class CachedExpression
+    {
+        public bool Result { get; }
+
+        public CachedExpression(bool result)
+        {
+            Result = result;
+        }
     }
 
     /// <summary>
