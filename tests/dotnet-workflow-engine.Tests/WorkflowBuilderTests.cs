@@ -367,4 +367,265 @@ public class WorkflowBuilderTests
 		workflow.Activities.Should().HaveCount(6);
 		workflow.Transitions.Should().HaveCount(6);
 	}
+
+	/// <summary>
+	/// Tests that a MessageCatchEvent activity with correlation property can be added using the fluent method.
+	/// </summary>
+	[Fact]
+	public void AddMessageCatchEvent_WithCorrelation_CreatesMessageCatchEvent()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Message Workflow", service)
+			.AddTaskActivity("start", "Start")
+			.AddMessageCatchEvent("wait-payment", "Wait for Payment", "PaymentConfirmed", "paymentId")
+			.AddTransition("start", "wait-payment")
+			.WithStartActivity("start")
+			.WithEndActivity("wait-payment")
+			.Build();
+
+		workflow.Activities.Should().HaveCount(2);
+		var messageCatchEvent = workflow.Activities.FirstOrDefault(a => a.Type == "MessageCatchEvent");
+		messageCatchEvent.Should().NotBeNull();
+		messageCatchEvent!.MessageName.Should().Be("PaymentConfirmed");
+		messageCatchEvent.CorrelationProperty.Should().Be("paymentId");
+	}
+
+	/// <summary>
+	/// Tests that building a workflow without a start activity fails validation.
+	/// </summary>
+	[Fact]
+	public void Build_WithoutStartActivity_ThrowsValidationException()
+	{
+		var service = CreateService();
+		var builder = new WorkflowBuilder("wf-1", "Test", service)
+			.AddTaskActivity("act1", "Activity 1")
+			.AddTaskActivity("act2", "Activity 2");
+
+		var act = () => builder.Build();
+		act.Should().Throw<ValidationException>();
+	}
+
+	/// <summary>
+	/// Tests that building a workflow with a transition to non-existent activity fails validation.
+	/// </summary>
+	[Fact]
+	public void Build_WithTransitionToNonExistentActivity_ThrowsValidationException()
+	{
+		var service = CreateService();
+		var builder = new WorkflowBuilder("wf-1", "Test", service)
+			.AddTaskActivity("start", "Start")
+			.AddTransition("start", "nonexistent")
+			.WithStartActivity("start");
+
+		var act = () => builder.Build();
+		act.Should().Throw<ValidationException>();
+	}
+
+	/// <summary>
+	/// Tests that building a workflow with a transition from non-existent activity fails validation.
+	/// </summary>
+	[Fact]
+	public void Build_WithTransitionFromNonExistentActivity_ThrowsValidationException()
+	{
+		var service = CreateService();
+		var builder = new WorkflowBuilder("wf-1", "Test", service)
+			.AddTaskActivity("end", "End")
+			.AddTransition("start", "end")
+			.WithStartActivity("start")
+			.WithEndActivity("end");
+
+		var act = () => builder.Build();
+		act.Should().Throw<ValidationException>();
+	}
+
+	/// <summary>
+	/// Tests that building a workflow without activities fails validation.
+	/// </summary>
+	[Fact]
+	public void Build_WithoutActivities_ThrowsValidationException()
+	{
+		var service = CreateService();
+		var builder = new WorkflowBuilder("wf-1", "Test", service)
+			.WithStartActivity("nonexistent")
+			.WithEndActivity("nonexistent");
+
+		var act = () => builder.Build();
+		act.Should().Throw<ValidationException>();
+	}
+
+	/// <summary>
+	/// Tests that a workflow with multiple activities but no transitions can be built.
+	/// </summary>
+	[Fact]
+	public void Build_WithActivitiesNoTransitions_BuildsSuccessfully()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Parallel Workflow", service)
+			.AddTaskActivity("act1", "Activity 1")
+			.AddTaskActivity("act2", "Activity 2")
+			.AddTaskActivity("act3", "Activity 3")
+			.WithStartActivity("act1")
+			.WithEndActivity("act3")
+			.Build();
+
+		workflow.Activities.Should().HaveCount(3);
+		workflow.Transitions.Should().BeEmpty();
+		workflow.StartActivityId.Should().Be("act1");
+		workflow.EndActivityId.Should().Be("act3");
+	}
+
+	/// <summary>
+	/// Tests that transitions can be added in any order and still work correctly.
+	/// </summary>
+	[Fact]
+	public void AddTransition_OutOfOrder_StillCreatesValidTransitions()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Out of Order", service)
+			.AddTaskActivity("a", "A")
+			.AddTaskActivity("b", "B")
+			.AddTaskActivity("c", "C")
+			.AddTransition("b", "c")
+			.AddTransition("a", "b")
+			.WithStartActivity("a")
+			.WithEndActivity("c")
+			.Build();
+
+		workflow.Transitions.Should().HaveCount(2);
+		workflow.Transitions.Should().ContainSingle(t => t.FromActivityId == "a" && t.ToActivityId == "b");
+		workflow.Transitions.Should().ContainSingle(t => t.FromActivityId == "b" && t.ToActivityId == "c");
+	}
+
+	/// <summary>
+	/// Tests that default transitions are created correctly when no condition is specified.
+	/// </summary>
+	[Fact]
+	public void AddTransition_WithoutCondition_CreatesDefaultTransition()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Default Transition", service)
+			.AddTaskActivity("start", "Start")
+			.AddTaskActivity("end", "End")
+			.AddTransition("start", "end")
+			.WithStartActivity("start")
+			.WithEndActivity("end")
+			.Build();
+
+		var transition = workflow.Transitions.Should().ContainSingle().Subject;
+		transition.IsDefault.Should().BeTrue();
+		transition.ConditionExpression.Should().BeNull();
+	}
+
+	/// <summary>
+	/// Tests that conditional transitions are created correctly with condition expressions.
+	/// </summary>
+	[Fact]
+	public void AddTransition_WithCondition_CreatesConditionalTransition()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Conditional", service)
+			.AddTaskActivity("decision", "Decision")
+			.AddTaskActivity("yes", "Yes")
+			.AddTaskActivity("no", "No")
+			.AddTransition("decision", "yes", "${result} == true")
+			.AddTransition("decision", "no", "${result} == false")
+			.WithStartActivity("decision")
+			.Build();
+
+		var transitions = workflow.Transitions;
+		transitions.Should().HaveCount(2);
+		transitions.Should().ContainSingle(t => t.ConditionExpression == "${result} == true");
+		transitions.Should().ContainSingle(t => t.ConditionExpression == "${result} == false");
+	}
+
+	/// <summary>
+	/// Tests that BuildAndRegister creates the workflow in the service and returns it.
+	/// </summary>
+	[Fact]
+	public void BuildAndRegister_CreatesWorkflowInService()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Registered Workflow", service)
+			.WithDescription("A registered workflow")
+			.AddTaskActivity("start", "Start")
+			.AddTaskActivity("process", "Process")
+			.AddTaskActivity("end", "End")
+			.AddTransition("start", "process")
+			.AddTransition("process", "end")
+			.WithStartActivity("start")
+			.WithEndActivity("end")
+			.BuildAndRegister();
+
+		var registeredWorkflow = service.GetWorkflow("wf-1");
+		registeredWorkflow.Should().NotBeNull();
+		registeredWorkflow!.Name.Should().Be("Registered Workflow");
+		registeredWorkflow.Description.Should().Be("A registered workflow");
+		registeredWorkflow.Activities.Should().HaveCount(3);
+		registeredWorkflow.Transitions.Should().HaveCount(2);
+	}
+
+	/// <summary>
+	/// Tests that CreateSerial creates activities with lowercase IDs.
+	/// </summary>
+	[Fact]
+	public void CreateSerial_ActivitiesHaveLowercaseIds()
+	{
+		var service = CreateService();
+		var workflow = WorkflowBuilder
+			.CreateSerial("wf-1", "Test", service, "First Activity", "Second Activity", "Third Activity")
+			.Build();
+
+		workflow.Activities.Should().HaveCount(3);
+		workflow.Activities[0].Id.Should().Be("first activity");
+		workflow.Activities[1].Id.Should().Be("second activity");
+		workflow.Activities[2].Id.Should().Be("third activity");
+	}
+
+	/// <summary>
+	/// Tests that a workflow can be built with only start and end activities (no transitions).
+	/// </summary>
+	[Fact]
+	public void Build_WithStartAndEndOnly_BuildsSuccessfully()
+	{
+		var service = CreateService();
+		var workflow = new WorkflowBuilder("wf-1", "Minimal", service)
+			.AddTaskActivity("start", "Start")
+			.AddTaskActivity("end", "End")
+			.WithStartActivity("start")
+			.WithEndActivity("end")
+			.Build();
+
+		workflow.Activities.Should().HaveCount(2);
+		workflow.Transitions.Should().BeEmpty();
+		workflow.StartActivityId.Should().Be("start");
+		workflow.EndActivityId.Should().Be("end");
+	}
+
+	/// <summary>
+	/// Tests that multiple workflows can be built independently.
+	/// </summary>
+	[Fact]
+	public void MultipleWorkflows_BuiltIndependently_AllValid()
+	{
+		var service = CreateService();
+
+		var workflow1 = new WorkflowBuilder("wf-1", "Workflow 1", service)
+			.AddTaskActivity("a", "A")
+			.WithStartActivity("a")
+			.WithEndActivity("a")
+			.BuildAndRegister();
+
+		var workflow2 = new WorkflowBuilder("wf-2", "Workflow 2", service)
+			.AddTaskActivity("x", "X")
+			.AddTaskActivity("y", "Y")
+			.AddTransition("x", "y")
+			.WithStartActivity("x")
+			.WithEndActivity("y")
+			.BuildAndRegister();
+
+		workflow1.Id.Should().Be("wf-1");
+		workflow2.Id.Should().Be("wf-2");
+		service.GetWorkflow("wf-1").Should().NotBeNull();
+		service.GetWorkflow("wf-2").Should().NotBeNull();
+	}
 }
