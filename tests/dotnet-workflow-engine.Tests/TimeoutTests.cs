@@ -13,8 +13,18 @@ using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Tests;
 
+/// <summary>
+/// Contains unit tests for verifying timeout functionality in activities.
+/// Tests various scenarios including activities that timeout, complete successfully,
+/// and activities where timeout is not exceeded.
+/// </summary>
 public class TimeoutTests
 {
+    /// <summary>
+    /// Tests that an activity with a timeout that is exceeded results in a timeout status.
+    /// Verifies that the activity status is set to Timeout, the IsTimeout method returns true,
+    /// and an error message containing "timed out" is present.
+    /// </summary>
     [Fact]
     public async Task Activity_WithTimeout_ShouldTimeoutWhenExceeded()
     {
@@ -51,6 +61,11 @@ public class TimeoutTests
         Assert.Contains("timed out", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Tests that an activity without a timeout (TimeoutSeconds = 0) completes successfully.
+    /// Verifies that the activity status is Completed, IsTimeout returns false,
+    /// and IsSuccess returns true.
+    /// </summary>
     [Fact]
     public async Task Activity_WithoutTimeout_ShouldCompleteSuccessfully()
     {
@@ -86,6 +101,11 @@ public class TimeoutTests
         Assert.True(result.IsSuccess());
     }
 
+    /// <summary>
+    /// Tests that an activity with a timeout that is not exceeded completes successfully.
+    /// Verifies that the activity status is Completed, IsTimeout returns false,
+    /// and IsSuccess returns true when the activity completes within the timeout period.
+    /// </summary>
     [Fact]
     public async Task Activity_WithTimeoutNotExceeded_ShouldCompleteSuccessfully()
     {
@@ -122,15 +142,29 @@ public class TimeoutTests
     }
 }
 
+/// <summary>
+/// A slow activity handler that introduces a configurable delay before completing.
+/// Used to test timeout scenarios where activities take longer than the configured timeout.
+/// </summary>
 public class SlowHandler : ActivityService.IActivityHandler
 {
     private readonly TimeSpan _delay;
 
+    /// <summary>
+    /// Initializes a new instance of the SlowHandler with a specified delay duration.
+    /// </summary>
+    /// <param name="delay">The time span to wait before completing the activity.</param>
     public SlowHandler(TimeSpan delay)
     {
         _delay = delay;
     }
 
+    /// <summary>
+    /// Executes the activity with the configured delay.
+    /// </summary>
+    /// <param name="activity">The activity to execute.</param>
+    /// <param name="context">The execution context containing workflow instance information.</param>
+    /// <returns>A dictionary of output values from the activity execution.</returns>
     public async Task<System.Collections.Generic.Dictionary<string, object?>> ExecuteAsync(Activity activity, ExecutionContext context)
     {
         await Task.Delay(_delay);
@@ -138,8 +172,18 @@ public class SlowHandler : ActivityService.IActivityHandler
     }
 }
 
+/// <summary>
+/// A fast activity handler that completes immediately without any delay.
+/// Used to test successful activity execution scenarios.
+/// </summary>
 public class FastHandler : ActivityService.IActivityHandler
 {
+    /// <summary>
+    /// Executes the activity immediately without any delay.
+    /// </summary>
+    /// <param name="activity">The activity to execute.</param>
+    /// <param name="context">The execution context containing workflow instance information.</param>
+    /// <returns>A dictionary of output values from the activity execution.</returns>
     public async Task<System.Collections.Generic.Dictionary<string, object?>> ExecuteAsync(Activity activity, ExecutionContext context)
     {
         await Task.CompletedTask;
