@@ -15,6 +15,9 @@ public class WorkflowInstance
     /// <summary>Gets or sets the unique identifier of this instance.</summary>
     public string Id { get; set; } = string.Empty;
 
+    /// <summary>Gets or sets the optimistic concurrency version number.</summary>
+    public int Version { get; set; } = 0;
+
     /// <summary>Gets or sets the ID of the workflow definition.</summary>
     public string WorkflowId { get; set; } = string.Empty;
 
@@ -25,19 +28,20 @@ public class WorkflowInstance
     public string? CurrentActivityId { get; set; }
 
     /// <summary>Gets or sets the list of activities that have been executed.</summary>
-
+    
     public List<string> ExecutedActivities { get; set; } = new();
 
     /// <summary>Gets or sets the list of activities currently executing (for parallel execution).</summary>
-
+    
     public List<string> ActiveActivities { get; set; } = new();
 
     /// <summary>Gets or sets execution context containing variables and state.</summary>
-
+    
     public Dictionary<string, object?> Context { get; set; } = new();
 
     /// <summary>Gets or sets when the instance was created.</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
 
     /// <summary>Gets or sets when the instance execution started.</summary>
     public DateTime? StartedAt { get; set; }
@@ -50,7 +54,7 @@ public class WorkflowInstance
 
     /// <summary>
     /// Gets the elapsed duration of this instance.
-    /// Returns <c>CompletedAt - StartedAt</c> for terminal instances, or
+    /// Returns <c>CompletedAt - StartedAt</c> for terminal instances, or 
     /// <c>UtcNow - StartedAt</c> for instances that are still running.
     /// Returns <c>null</c> when the instance has not been started yet.
     /// </summary>
@@ -66,7 +70,7 @@ public class WorkflowInstance
     public string? CorrelationId { get; set; }
 
     /// <summary>Gets or sets custom metadata associated with the instance.</summary>
-
+    
     public Dictionary<string, object?> Metadata { get; set; } = new();
 
     /// <summary>Gets or sets the ID of the user who initiated this instance.</summary>

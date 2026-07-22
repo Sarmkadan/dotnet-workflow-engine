@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using System;
 using System.Collections.Generic;
@@ -43,6 +43,7 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
     {
         if (!_instances.ContainsKey(entity.Id))
         {
+            entity.Version = 0;
             _instances[entity.Id] = entity;
         }
         return Task.CompletedTask;
@@ -53,8 +54,18 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
     /// </summary>
     public Task UpdateAsync(WorkflowInstance entity)
     {
-        if (_instances.ContainsKey(entity.Id))
+        if (_instances.TryGetValue(entity.Id, out var existing))
         {
+            // Check for optimistic concurrency conflict
+            if (existing.Version != entity.Version)
+            {
+                throw new InvalidOperationException(
+                    $"Concurrent modification detected for workflow instance '{entity.Id}'. " +
+                    $"The instance was modified by another process. Please refresh and try again.");
+            }
+
+            // Increment version for next update
+            entity.Version++;
             _instances[entity.Id] = entity;
         }
         return Task.CompletedTask;
