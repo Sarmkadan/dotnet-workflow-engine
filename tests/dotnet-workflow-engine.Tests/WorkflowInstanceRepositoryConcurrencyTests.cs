@@ -7,8 +7,8 @@ using Xunit;
 namespace DotNetWorkflowEngine.Tests;
 
 /// <summary>
-/// Tests verifying that <see cref="WorkflowInstanceRepository"/> enforces optimistic
-/// concurrency on every mutation path instead of silently allowing last-write-wins.
+/// Tests verifying that <see cref="WorkflowInstance"/> optimistic concurrency via version field
+/// is properly enforced by <see cref="WorkflowInstanceRepository"/>.
 /// </summary>
 public class WorkflowInstanceRepositoryConcurrencyTests
 {
@@ -47,6 +47,37 @@ public class WorkflowInstanceRepositoryConcurrencyTests
     }
 
     /// <summary>
+    /// Verifies that creating a brand-new <see cref="WorkflowInstance"/> initializes the version
+    /// field to 0, ensuring callers get the documented starting value.
+    /// </summary>
+    [Fact]
+    public void WorkflowInstance_WhenNewInstanceCreated_VersionInitializedToZero()
+    {
+        // Arrange & Act
+        var instance = new WorkflowInstance("workflow-new");
+
+        // Assert
+        instance.Version.Should().Be(0, "A new WorkflowInstance should initialize Version to 0 for optimistic concurrency");
+    }
+
+    /// <summary>
+    /// Verifies that creating a brand-new <see cref="WorkflowInstance"/> via constructor with
+    /// explicit parameters initializes the version field to 0.
+    /// </summary>
+    [Fact]
+    public void WorkflowInstance_WhenCreatedWithParameters_VersionInitializedToZero()
+    {
+        // Arrange & Act
+        var instance = new WorkflowInstance("workflow-params", "correlation-123", 2);
+
+        // Assert
+        instance.Version.Should().Be(0, "A new WorkflowInstance should initialize Version to 0 regardless of constructor parameters");
+        instance.WorkflowId.Should().Be("workflow-params");
+        instance.CorrelationId.Should().Be("correlation-123");
+        instance.DefinitionVersion.Should().Be(2);
+    }
+
+    /// <summary>
     /// Verifies that a successful <see cref="WorkflowInstanceRepository.UpdateAsync"/> call
     /// increments the stored version, and a subsequent save with the refreshed version succeeds.
     /// </summary>
@@ -78,6 +109,28 @@ public class WorkflowInstanceRepositoryConcurrencyTests
     }
 
     /// <summary>
+    /// Verifies that <see cref="WorkflowInstanceRepository.AddAsync"/> initializes the version
+    /// field to 0 when adding a new instance.
+    /// </summary>
+    [Fact]
+    public async Task AddAsync_WhenNewInstanceAdded_VersionInitializedToZero()
+    {
+        // Arrange
+        var repository = new WorkflowInstanceRepository();
+        var instance = new WorkflowInstance("workflow-add");
+
+        // Act
+        await repository.AddAsync(instance);
+
+        // Assert
+        instance.Version.Should().Be(0, "AddAsync should initialize Version to 0");
+
+        // Verify it's persisted correctly
+        var loaded = await repository.GetByIdAsync(instance.Id);
+        loaded!.Version.Should().Be(0);
+    }
+
+    /// <summary>
     /// Verifies that <see cref="WorkflowInstanceRepository.UpdateAsync"/> throws a
     /// <see cref="WorkflowException"/> when no matching instance exists to update.
     /// </summary>
@@ -93,6 +146,39 @@ public class WorkflowInstanceRepositoryConcurrencyTests
 
         // Assert
         await act.Should().ThrowAsync<WorkflowException>();
+    }
+
+    /// <summary>
+    /// Verifies that each successful <see cref="WorkflowInstanceRepository.UpdateAsync"/> call
+    /// increments the version field by exactly 1, ensuring predictable version progression.
+    /// </summary>
+    [Fact]
+    public async Task UpdateAsync_WhenCalledMultipleTimes_VersionIncrementsByOneEachTime()
+    {
+        // Arrange
+        var repository = new WorkflowInstanceRepository();
+        var instance = new WorkflowInstance("workflow-multi");
+        await repository.AddAsync(instance);
+
+        var loaded = await repository.GetByIdAsync(instance.Id);
+        loaded.Should().NotBeNull();
+
+        // Act & Assert - Verify version increments by exactly 1 each time
+        loaded!.SetContextVariable("step", 1);
+        await repository.UpdateAsync(loaded);
+        loaded.Version.Should().Be(1);
+
+        loaded.SetContextVariable("step", 2);
+        await repository.UpdateAsync(loaded);
+        loaded.Version.Should().Be(2);
+
+        loaded.SetContextVariable("step", 3);
+        await repository.UpdateAsync(loaded);
+        loaded.Version.Should().Be(3);
+
+        // Verify persisted version matches
+        var reloaded = await repository.GetByIdAsync(instance.Id);
+        reloaded!.Version.Should().Be(3);
     }
 
     /// <summary>
