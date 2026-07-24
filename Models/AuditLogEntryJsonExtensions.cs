@@ -34,8 +34,7 @@ public static class AuditLogEntryJsonExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonSerializerOptions)
-            { WriteIndented = true }
+            ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true }
             : _jsonSerializerOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -46,10 +45,13 @@ public static class AuditLogEntryJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized audit log entry if successful; otherwise, null.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is empty.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is malformed and cannot be deserialized.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the JSON contains unsupported types or features.</exception>
     public static AuditLogEntry? FromJson(string json)
     {
+        ArgumentNullException.ThrowIfNull(json);
         ArgumentException.ThrowIfNullOrEmpty(json);
 
         return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonSerializerOptions);
@@ -61,9 +63,11 @@ public static class AuditLogEntryJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized audit log entry if successful.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is empty.</exception>
     public static bool TryFromJson(string json, out AuditLogEntry? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
         ArgumentException.ThrowIfNullOrEmpty(json);
 
         try
@@ -72,6 +76,11 @@ public static class AuditLogEntryJsonExtensions
             return true;
         }
         catch (JsonException)
+        {
+            value = null;
+            return false;
+        }
+        catch (NotSupportedException)
         {
             value = null;
             return false;

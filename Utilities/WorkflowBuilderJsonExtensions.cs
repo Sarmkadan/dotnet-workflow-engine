@@ -45,6 +45,9 @@ public static class WorkflowBuilderJsonExtensions
     /// <exception cref="JsonException">
     /// Thrown when the JSON is invalid or cannot be deserialized into a <see cref="WorkflowBuilder"/>.
     /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the JSON contains unsupported types or features that cannot be deserialized.
+    /// </exception>
     public static WorkflowBuilder? FromJson(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
@@ -77,6 +80,11 @@ public static class WorkflowBuilderJsonExtensions
             return true;
         }
         catch (JsonException)
+        {
+            value = null;
+            return false;
+        }
+        catch (NotSupportedException)
         {
             value = null;
             return false;

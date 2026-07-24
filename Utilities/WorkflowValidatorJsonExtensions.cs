@@ -40,6 +40,7 @@ public static class WorkflowValidatorJsonExtensions
     /// <returns>The deserialized validator, or null if the JSON is null or empty.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the JSON contains unsupported types or features.</exception>
     public static WorkflowValidator? FromJson(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
@@ -61,9 +62,9 @@ public static class WorkflowValidatorJsonExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out WorkflowValidator? value)
     {
-        value = null;
-
         ArgumentNullException.ThrowIfNull(json);
+
+        value = null;
 
         if (string.IsNullOrEmpty(json))
         {
@@ -76,6 +77,10 @@ public static class WorkflowValidatorJsonExtensions
             return true;
         }
         catch (JsonException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
         {
             return false;
         }
