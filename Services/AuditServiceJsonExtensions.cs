@@ -14,19 +14,31 @@ namespace DotNetWorkflowEngine.Services;
 /// </summary>
 public static class AuditServiceJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonOptionsCompact = new(JsonSerializerDefaults.Web)
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-        Converters = { new JsonStringEnumConverter() }
-    };
+    /// <summary>
+    /// Maximum allowed JSON input size in bytes to prevent memory exhaustion attacks.
+    /// Default: 1 MB (1024 * 1024 bytes)
+    /// </summary>
+    public static int MaxJsonInputSizeBytes { get; set; } = 1024 * 1024; // 1 MB
 
-    private static readonly JsonSerializerOptions _jsonOptionsIndented = new(JsonSerializerDefaults.Web)
+    /// <summary>
+    /// Maximum allowed nesting depth for JSON to prevent stack overflow attacks.
+    /// Default: 128 levels (significantly higher than typical JSON but prevents DoS)
+    /// </summary>
+    public static int MaxJsonNestingDepth { get; set; } = 128;
+
+    private static JsonSerializerOptions CreateJsonSerializerOptions(bool indented)
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
+        return new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented,
+            Converters = { new JsonStringEnumConverter() },
+            MaxDepth = MaxJsonNestingDepth
+        };
+    }
+
+    private static readonly JsonSerializerOptions _jsonOptionsCompact = CreateJsonSerializerOptions(false);
+    private static readonly JsonSerializerOptions _jsonOptionsIndented = CreateJsonSerializerOptions(true);
 
     /// <summary>
     /// Serializes an AuditLogEntry to a JSON string.
@@ -43,11 +55,28 @@ public static class AuditServiceJsonExtensions
     }
 
     /// <summary>
+    /// Validates JSON input size to prevent memory exhaustion attacks.
+    /// </summary>
+    /// <param name="json">The JSON string to validate.</param>
+    /// <exception cref="ArgumentException">Thrown when the JSON size exceeds the maximum allowed limit.</exception>
+    private static void ValidateJsonInputSize(string json)
+    {
+        if (json.Length > MaxJsonInputSizeBytes)
+        {
+            throw new ArgumentException(
+                $"JSON input size ({json.Length} bytes) exceeds maximum allowed size ({MaxJsonInputSizeBytes} bytes). " +
+                "This may indicate a potential denial-of-service attack through large payloads.",
+                nameof(json));
+        }
+    }
+
+    /// <summary>
     /// Deserializes a JSON string to an AuditLogEntry instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>An AuditLogEntry instance, or null if the JSON is empty or whitespace.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the JSON size exceeds the maximum allowed limit.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static AuditLogEntry? FromJsonToAuditLogEntry(string json)
     {
@@ -57,6 +86,8 @@ public static class AuditServiceJsonExtensions
         {
             return null;
         }
+
+        ValidateJsonInputSize(json);
 
         return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
     }
@@ -81,10 +112,19 @@ public static class AuditServiceJsonExtensions
 
         try
         {
+            ValidateJsonInputSize(json);
             value = JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
             return true;
         }
         catch (JsonException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
         {
             return false;
         }
@@ -110,6 +150,7 @@ public static class AuditServiceJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>A collection of AuditLogEntry instances, or empty collection if JSON is empty.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the JSON size exceeds the maximum allowed limit.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static IReadOnlyList<AuditLogEntry> FromJsonToAuditLogEntries(string json)
     {
@@ -119,6 +160,8 @@ public static class AuditServiceJsonExtensions
         {
             return Array.Empty<AuditLogEntry>();
         }
+
+        ValidateJsonInputSize(json);
 
         return JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact) ?? Array.Empty<AuditLogEntry>();
     }
@@ -143,11 +186,20 @@ public static class AuditServiceJsonExtensions
 
         try
         {
+            ValidateJsonInputSize(json);
             var result = JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact);
             values = result ?? Array.Empty<AuditLogEntry>();
             return true;
         }
         catch (JsonException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
         {
             return false;
         }
