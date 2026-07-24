@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -35,15 +35,12 @@ public class AuditLogEntry
     public string? Actor { get; set; }
 
     /// <summary>Gets or sets the previous state before this event.</summary>
-
     public Dictionary<string, object?> PreviousState { get; set; } = new();
 
     /// <summary>Gets or sets the current state after this event.</summary>
-
     public Dictionary<string, object?> CurrentState { get; set; } = new();
 
     /// <summary>Gets or sets details specific to the event.</summary>
-
     public Dictionary<string, object?> Details { get; set; } = new();
 
     /// <summary>Gets or sets the correlation ID for tracking related events.</summary>
@@ -120,5 +117,107 @@ public class AuditLogEntry
     public string GetFormattedTimestamp()
     {
         return Timestamp.ToString(Constants.WorkflowConstants.AuditTimestampFormat);
+    }
+
+    /// <summary>
+    /// Validates the audit log entry for security and consistency.
+    /// </summary>
+    /// <exception cref="ArgumentException">Thrown when validation fails.</exception>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(WorkflowInstanceId))
+        {
+            throw new ArgumentException(
+                "WorkflowInstanceId cannot be null or whitespace.",
+                nameof(WorkflowInstanceId));
+        }
+
+        if (WorkflowInstanceId.Length > Constants.WorkflowConstants.MaxWorkflowInstanceIdLength)
+        {
+            throw new ArgumentException(
+                $"WorkflowInstanceId exceeds maximum length of {Constants.WorkflowConstants.MaxWorkflowInstanceIdLength} characters.",
+                nameof(WorkflowInstanceId));
+        }
+
+        // Validate for path-unsafe or control characters that could be used in path traversal
+        if (ContainsUnsafePathCharacters(WorkflowInstanceId))
+        {
+            throw new ArgumentException(
+                "WorkflowInstanceId contains path-unsafe or control characters.",
+                nameof(WorkflowInstanceId));
+        }
+
+        if (string.IsNullOrWhiteSpace(EventType))
+        {
+            throw new ArgumentException(
+                "EventType cannot be null or whitespace.",
+                nameof(EventType));
+        }
+
+        if (EventType.Length > Constants.WorkflowConstants.MaxEventTypeLength)
+        {
+            throw new ArgumentException(
+                $"EventType exceeds maximum length of {Constants.WorkflowConstants.MaxEventTypeLength} characters.",
+                nameof(EventType));
+        }
+
+        if (Description.Length > Constants.WorkflowConstants.MaxAuditFieldLength)
+        {
+            throw new ArgumentException(
+                $"Description exceeds maximum length of {Constants.WorkflowConstants.MaxAuditFieldLength} characters.",
+                nameof(Description));
+        }
+
+        if (Severity.Length > Constants.WorkflowConstants.MaxAuditFieldLength)
+        {
+            throw new ArgumentException(
+                $"Severity exceeds maximum length of {Constants.WorkflowConstants.MaxAuditFieldLength} characters.",
+                nameof(Severity));
+        }
+
+        if (Actor?.Length > Constants.WorkflowConstants.MaxAuditFieldLength)
+        {
+            throw new ArgumentException(
+                $"Actor exceeds maximum length of {Constants.WorkflowConstants.MaxAuditFieldLength} characters.",
+                nameof(Actor));
+        }
+
+        if (ActivityId?.Length > Constants.WorkflowConstants.MaxActivityIdLength)
+        {
+            throw new ArgumentException(
+                $"ActivityId exceeds maximum length of {Constants.WorkflowConstants.MaxActivityIdLength} characters.",
+                nameof(ActivityId));
+        }
+
+        if (Id.Length > Constants.WorkflowConstants.MaxAuditFieldLength)
+        {
+            throw new ArgumentException(
+                $"Id exceeds maximum length of {Constants.WorkflowConstants.MaxAuditFieldLength} characters.",
+                nameof(Id));
+        }
+    }
+
+    /// <summary>
+    /// Checks if a string contains path-unsafe or control characters that could be used in path traversal attacks.
+    /// </summary>
+    private static bool ContainsUnsafePathCharacters(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return false;
+        }
+
+        foreach (char c in input)
+        {
+            // Check for path separators and control characters
+            if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' ||
+                c == '"' || c == '<' || c == '>' || c == '|' ||
+                c < 32) // Control characters (ASCII 0-31)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

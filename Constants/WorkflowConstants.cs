@@ -1,7 +1,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 namespace DotNetWorkflowEngine.Constants;
 
@@ -45,4 +45,19 @@ public static class WorkflowConstants
 
     /// <summary>Maximum page size allowed</summary>
     public const int MaxPageSize = 1000;
+
+    /// <summary>Maximum length for audit log entry fields to prevent memory amplification</summary>
+    public const int MaxAuditFieldLength = 4096; // 4 KB per field
+
+    /// <summary>Maximum length for workflow instance ID to prevent path traversal</summary>
+    public const int MaxWorkflowInstanceIdLength = 255; // Reasonable limit for IDs used in paths
+
+    /// <summary>Maximum length for workflow ID to prevent path traversal</summary>
+    public const int MaxWorkflowIdLength = 255; // Reasonable limit for IDs used in paths
+
+    /// <summary>Maximum length for activity ID to prevent path traversal</summary>
+    public const int MaxActivityIdLength = 255; // Reasonable limit for IDs used in paths
+
+    /// <summary>Maximum length for event type to prevent memory amplification</summary>
+    public const int MaxEventTypeLength = 128; // Reasonable limit for event types
 }

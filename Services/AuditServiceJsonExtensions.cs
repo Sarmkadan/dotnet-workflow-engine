@@ -76,7 +76,7 @@ public static class AuditServiceJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>An AuditLogEntry instance, or null if the JSON is empty or whitespace.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the JSON string is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when the JSON size exceeds the maximum allowed limit.</exception>
+    /// <exception cref="ArgumentException">Thrown when the JSON size exceeds the maximum allowed limit or validation fails.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static AuditLogEntry? FromJsonToAuditLogEntry(string json)
     {
@@ -89,7 +89,16 @@ public static class AuditServiceJsonExtensions
 
         ValidateJsonInputSize(json);
 
-        return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
+        var entry = JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
+
+        // Validate the deserialized entry to ensure it meets security and consistency requirements
+        // This serves as the trust boundary for external JSON input
+        if (entry is not null)
+        {
+            entry.Validate();
+        }
+
+        return entry;
     }
 
     /// <summary>
@@ -114,6 +123,14 @@ public static class AuditServiceJsonExtensions
         {
             ValidateJsonInputSize(json);
             value = JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
+
+            // Validate the deserialized entry to ensure it meets security and consistency requirements
+            // This serves as the trust boundary for external JSON input
+            if (value is not null)
+            {
+                value.Validate();
+            }
+
             return true;
         }
         catch (JsonException)
@@ -163,7 +180,22 @@ public static class AuditServiceJsonExtensions
 
         ValidateJsonInputSize(json);
 
-        return JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact) ?? Array.Empty<AuditLogEntry>();
+        var entries = JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact);
+
+        // Validate each deserialized entry to ensure they meet security and consistency requirements
+        // This serves as the trust boundary for external JSON input
+        if (entries is not null)
+        {
+            foreach (var entry in entries)
+            {
+                if (entry is not null)
+                {
+                    entry.Validate();
+                }
+            }
+        }
+
+        return entries ?? Array.Empty<AuditLogEntry>();
     }
 
     /// <summary>
@@ -188,6 +220,20 @@ public static class AuditServiceJsonExtensions
         {
             ValidateJsonInputSize(json);
             var result = JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact);
+
+            // Validate each deserialized entry to ensure they meet security and consistency requirements
+            // This serves as the trust boundary for external JSON input
+            if (result is not null)
+            {
+                foreach (var entry in result)
+                {
+                    if (entry is not null)
+                    {
+                        entry.Validate();
+                    }
+                }
+            }
+
             values = result ?? Array.Empty<AuditLogEntry>();
             return true;
         }
