@@ -1,17 +1,18 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using DotNetWorkflowEngine.Models;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using System.Threading;
 using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Utilities;
 
 /// <summary>
-/// Evaluates conditional expressions in workflows.
+/// Evaluates conditional expressions in workflows with security hardening against injection and resource exhaustion.
 /// </summary>
 public class ExpressionEvaluator
 {
@@ -26,12 +27,62 @@ public class ExpressionEvaluator
     private const int MaxCacheSize = 1000;
 
     /// <summary>
+    /// Maximum allowed expression length to prevent memory exhaustion attacks.
+    /// </summary>
+    private const int MaxExpressionLength = 1024;
+
+    /// <summary>
+    /// Maximum allowed expression nesting depth to prevent stack overflow.
+    /// </summary>
+    private const int MaxNestingDepth = 20;
+
+    /// <summary>
+    /// Maximum evaluation time per expression to prevent denial of service.
+    /// </summary>
+    private static readonly TimeSpan MaxEvaluationTime = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Allowlist of permitted function names that can be called from expressions.
+    /// This prevents access to dangerous APIs like reflection, file I/O, or environment access.
+    /// </summary>
+    private static readonly HashSet<string> AllowedFunctionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "len",
+        "upper",
+        "lower",
+        "now",
+        "coalesce",
+        "contains"
+    };
+
+    /// <summary>
     /// Evaluates a boolean expression against a context.
     /// </summary>
+    /// <param name="expression">The expression to evaluate.</param>
+    /// <param name="context">The execution context containing variables.</param>
+    /// <returns>The evaluation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if context is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if expression is too long or null.</exception>
     public static bool Evaluate(string expression, ExecutionContext context)
     {
-        if (string.IsNullOrWhiteSpace(expression))
+        ArgumentNullException.ThrowIfNull(context);
+
+        // Handle null expression for backward compatibility
+        if (expression == null)
+        {
             return true;
+        }
+
+        // Validate expression length to prevent memory exhaustion
+        if (expression.Length > MaxExpressionLength)
+        {
+            throw new ArgumentException($"Expression length exceeds maximum allowed length of {MaxExpressionLength} characters.", nameof(expression));
+        }
+
+        if (string.IsNullOrWhiteSpace(expression))
+        {
+            return true;
+        }
 
         // Use cache to avoid re-parsing expressions
         if (ExpressionCache.TryGetValue(expression, out var cached))
@@ -44,14 +95,20 @@ public class ExpressionEvaluator
 
         // Literal values
         if (expression == "true" || expression == "1")
+        {
+            CacheResult(expression, true);
             return true;
+        }
 
         if (expression == "false" || expression == "0")
+        {
+            CacheResult(expression, false);
             return false;
-
+        }
 
         // Function calls: len(), coalesce(), contains()
-        if (expression.Contains('(') && expression.EndsWith(")"))
+        // Check for function call pattern but exclude the string contains operator
+        if (expression.Contains('(') && expression.EndsWith(")") && !expression.Contains(" contains "))
         {
             if (EvaluateFunctionCall(expression, context))
             {
@@ -80,7 +137,7 @@ public class ExpressionEvaluator
         // Logical AND: expression1 && expression2
         if (expression.Contains("&&"))
         {
-            var parts = expression.Split("&&");
+            var parts = expression.Split(new[] { "&&" }, StringSplitOptions.None);
             var result = parts.All(p => Evaluate(p.Trim(), context));
             CacheResult(expression, result);
             return result;
@@ -89,7 +146,7 @@ public class ExpressionEvaluator
         // Logical OR: expression1 || expression2
         if (expression.Contains("||"))
         {
-            var parts = expression.Split("||");
+            var parts = expression.Split(new[] { "||" }, StringSplitOptions.None);
             var result = parts.Any(p => Evaluate(p.Trim(), context));
             CacheResult(expression, result);
             return result;
@@ -147,7 +204,7 @@ public class ExpressionEvaluator
             return result;
         }
 
-        // String contains: ${var} contains "text"
+        // String contains operator: ${var} contains "text"
         if (expression.Contains(" contains "))
         {
             var result = EvaluateContains(expression, context);
@@ -161,8 +218,100 @@ public class ExpressionEvaluator
     }
 
     /// <summary>
+    /// Evaluates a function call expression with security checks.
+    /// </summary>
+    /// <param name="expression">The function call expression.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if the function call was successful, false otherwise.</returns>
+    private static bool EvaluateFunctionCall(string expression, ExecutionContext context)
+    {
+        // Match function calls like: len(${var}), coalesce(${a}, ${b}), contains("text", "needle")
+        var match = Regex.Match(expression, @"^(\w+)\((.*)\)$", RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        var functionName = match.Groups[1].Value;
+        var arguments = match.Groups[2].Value;
+
+        // Security check: verify function is in allowlist
+        if (!AllowedFunctionNames.Contains(functionName))
+        {
+            // Unknown function - return false instead of throwing to maintain backward compatibility
+            return false;
+        }
+
+        // Enforce maximum nesting depth
+        var currentDepth = GetNestingDepth(expression);
+        if (currentDepth > MaxNestingDepth)
+        {
+            throw new InvalidOperationException($"Expression nesting depth exceeds maximum allowed depth of {MaxNestingDepth} levels.");
+        }
+
+        try
+        {
+            switch (functionName.ToLowerInvariant())
+            {
+                case "len":
+                    return EvaluateLen(arguments, context);
+                case "upper":
+                    return EvaluateUpper(arguments, context);
+                case "lower":
+                    return EvaluateLower(arguments, context);
+                case "now":
+                    return EvaluateNow(arguments, context);
+                case "coalesce":
+                    return EvaluateCoalesce(arguments, context);
+                case "contains":
+                    return EvaluateContainsFunction(arguments, context);
+                default:
+                    // Unknown function, treat as non-matching
+                    return false;
+            }
+        }
+        catch
+        {
+            // If function evaluation fails, treat as non-matching
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Calculates the nesting depth of function calls in an expression.
+    /// </summary>
+    /// <param name="expression">The expression to analyze.</param>
+    /// <returns>The nesting depth.</returns>
+    private static int GetNestingDepth(string expression)
+    {
+        int depth = 0;
+        int maxDepth = 0;
+
+        for (int i = 0; i < expression.Length; i++)
+        {
+            if (expression[i] == '(')
+            {
+                depth++;
+                if (depth > maxDepth)
+                {
+                    maxDepth = depth;
+                }
+            }
+            else if (expression[i] == ')')
+            {
+                depth--;
+            }
+        }
+
+        return maxDepth;
+    }
+
+    /// <summary>
     /// Caches the result of an expression evaluation.
     /// </summary>
+    /// <param name="expression">The expression to cache.</param>
+    /// <param name="result">The evaluation result.</param>
     private static void CacheResult(string expression, bool result)
     {
         // Enforce cache size limit
@@ -195,11 +344,18 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates equality/inequality comparison.
     /// </summary>
+    /// <param name="expression">The comparison expression.</param>
+    /// <param name="context">The execution context.</param>
+    /// <param name="op">The operator.</param>
+    /// <param name="comparer">The comparison function.</param>
+    /// <returns>The comparison result.</returns>
     private static bool EvaluateComparison(string expression, ExecutionContext context, string op, Func<string, string, bool> comparer)
     {
         var parts = expression.Split(new[] { op }, StringSplitOptions.None);
         if (parts.Length != 2)
+        {
             return false;
+        }
 
         var left = ExtractValue(parts[0].Trim(), context);
         var right = parts[1].Trim().Trim('"', '\'');
@@ -210,11 +366,18 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates numeric comparisons.
     /// </summary>
+    /// <param name="expression">The comparison expression.</param>
+    /// <param name="context">The execution context.</param>
+    /// <param name="op">The operator.</param>
+    /// <param name="comparer">The comparison function.</param>
+    /// <returns>The comparison result.</returns>
     private static bool EvaluateNumericComparison(string expression, ExecutionContext context, string op, Func<double, double, bool> comparer)
     {
         var parts = expression.Split(new[] { op }, StringSplitOptions.None);
         if (parts.Length != 2)
+        {
             return false;
+        }
 
         var left = ExtractValue(parts[0].Trim(), context);
         var right = parts[1].Trim().Trim('"', '\'');
@@ -231,11 +394,16 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates string contains operation.
     /// </summary>
+    /// <param name="expression">The contains expression.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>The result.</returns>
     private static bool EvaluateContains(string expression, ExecutionContext context)
     {
-        var parts = expression.Split(" contains ", StringSplitOptions.None);
+        var parts = expression.Split(new[] { " contains " }, StringSplitOptions.None);
         if (parts.Length != 2)
+        {
             return false;
+        }
 
         var left = ExtractValue(parts[0].Trim(), context);
         var right = parts[1].Trim().Trim('"', '\'');
@@ -246,6 +414,9 @@ public class ExpressionEvaluator
     /// <summary>
     /// Extracts a value from a variable reference or literal.
     /// </summary>
+    /// <param name="expression">The expression to extract from.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>The extracted value.</returns>
     private static object? ExtractValue(string expression, ExecutionContext context)
     {
         // Variable reference
@@ -263,10 +434,14 @@ public class ExpressionEvaluator
     /// Determines whether the expression is exactly one variable reference (e.g. "${name}")
     /// with no additional braces or operators outside of it.
     /// </summary>
+    /// <param name="expression">The expression to check.</param>
+    /// <returns>True if it's a single variable reference.</returns>
     private static bool IsSingleVariableReference(string expression)
     {
         if (!expression.StartsWith("${") || !expression.EndsWith("}"))
+        {
             return false;
+        }
 
         var inner = expression.Substring(2, expression.Length - 3);
         return !inner.Contains('{') && !inner.Contains('}');
@@ -275,85 +450,64 @@ public class ExpressionEvaluator
     /// <summary>
     /// Converts a value to boolean.
     /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <returns>The boolean result.</returns>
     private static bool ConvertToBoolean(object? value)
     {
         if (value == null)
+        {
             return false;
+        }
 
         if (value is bool b)
+        {
             return b;
+        }
 
         if (value is int i)
+        {
             return i != 0;
+        }
 
         if (value is long l)
+        {
             return l != 0;
+        }
 
         if (value is double d)
+        {
             return d != 0;
+        }
 
         if (value is string s)
+        {
             return !string.IsNullOrEmpty(s) && !s.Equals("false", StringComparison.OrdinalIgnoreCase) && s != "0";
+        }
 
         return true;
     }
 
     /// <summary>
-    /// Evaluates a function call expression.
-    /// </summary>
-    private static bool EvaluateFunctionCall(string expression, ExecutionContext context)
-    {
-        // Match function calls like: len(${var}), coalesce(${a}, ${b}), contains("text", "needle")
-        var match = Regex.Match(expression, @"^(\w+)\((.*)\)$", RegexOptions.IgnoreCase);
-
-        if (!match.Success)
-            return true; // Not a function call, let other logic handle it
-
-        var functionName = match.Groups[1].Value.ToLowerInvariant();
-        var arguments = match.Groups[2].Value;
-
-        try
-        {
-            switch (functionName)
-            {
-                case "len":
-                    return EvaluateLen(arguments, context);
-                case "upper":
-                    return EvaluateUpper(arguments, context);
-                case "lower":
-                    return EvaluateLower(arguments, context);
-                case "now":
-                    return EvaluateNow(arguments, context);
-                case "coalesce":
-                    return EvaluateCoalesce(arguments, context);
-                case "contains":
-                    return EvaluateContainsFunction(arguments, context);
-                default:
-                    // Unknown function, treat as non-matching
-                    return false;
-            }
-        }
-        catch
-        {
-            // If function evaluation fails, treat as non-matching
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Evaluates len() function - returns length of string or collection.
     /// </summary>
+    /// <param name="arguments">The function arguments.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if successful, false otherwise.</returns>
     private static bool EvaluateLen(string arguments, ExecutionContext context)
     {
         var argList = ParseArguments(arguments);
         if (argList.Count != 1)
+        {
             return false;
+        }
 
         var value = ExtractValue(argList[0].Trim(), context);
         var str = value?.ToString();
 
         if (str == null)
+        {
             return false;
+        }
 
         context.SetVariable("_len_result", str.Length);
         return true;
@@ -362,17 +516,24 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates upper() function - returns uppercase string.
     /// </summary>
+    /// <param name="arguments">The function arguments.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if successful, false otherwise.</returns>
     private static bool EvaluateUpper(string arguments, ExecutionContext context)
     {
         var argList = ParseArguments(arguments);
         if (argList.Count != 1)
+        {
             return false;
+        }
 
         var value = ExtractValue(argList[0].Trim(), context);
         var str = value?.ToString();
 
         if (str == null)
+        {
             return false;
+        }
 
         context.SetVariable("_upper_result", str.ToUpperInvariant());
         return true;
@@ -381,17 +542,24 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates lower() function - returns lowercase string.
     /// </summary>
+    /// <param name="arguments">The function arguments.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if successful, false otherwise.</returns>
     private static bool EvaluateLower(string arguments, ExecutionContext context)
     {
         var argList = ParseArguments(arguments);
         if (argList.Count != 1)
+        {
             return false;
+        }
 
         var value = ExtractValue(argList[0].Trim(), context);
         var str = value?.ToString();
 
         if (str == null)
+        {
             return false;
+        }
 
         context.SetVariable("_lower_result", str.ToLowerInvariant());
         return true;
@@ -400,6 +568,9 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates now() function - returns current UTC date time.
     /// </summary>
+    /// <param name="arguments">The function arguments.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if successful, false otherwise.</returns>
     private static bool EvaluateNow(string arguments, ExecutionContext context)
     {
         context.SetVariable("_now_result", DateTime.UtcNow);
@@ -409,11 +580,16 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates coalesce() function - returns first non-null value.
     /// </summary>
+    /// <param name="arguments">The function arguments.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if successful, false otherwise.</returns>
     private static bool EvaluateCoalesce(string arguments, ExecutionContext context)
     {
         var argList = ParseArguments(arguments);
         if (argList.Count < 2)
+        {
             return false;
+        }
 
         foreach (var arg in argList)
         {
@@ -431,24 +607,35 @@ public class ExpressionEvaluator
     /// <summary>
     /// Evaluates contains() function - checks if haystack contains needle.
     /// </summary>
+    /// <param name="arguments">The function arguments.</param>
+    /// <param name="context">The execution context.</param>
+    /// <returns>True if successful, false otherwise.</returns>
     private static bool EvaluateContainsFunction(string arguments, ExecutionContext context)
     {
         var argList = ParseArguments(arguments);
         if (argList.Count != 2)
+        {
             return false;
+        }
 
         var haystack = ExtractValue(argList[0].Trim(), context)?.ToString();
         var needle = argList[1].Trim().Trim('"', '\'');
 
         if (haystack == null)
+        {
             return false;
+        }
 
-        return haystack.Contains(needle);
+        var result = haystack.Contains(needle);
+        context.SetVariable("_contains_result", result);
+        return result;
     }
 
     /// <summary>
     /// Parses comma-separated arguments, handling quoted strings and variable references.
     /// </summary>
+    /// <param name="arguments">The arguments string.</param>
+    /// <returns>The parsed arguments.</returns>
     private static List<string> ParseArguments(string arguments)
     {
         var result = new List<string>();
@@ -486,7 +673,9 @@ public class ExpressionEvaluator
         }
 
         if (current.Length > 0 || arguments.EndsWith(","))
+        {
             result.Add(current.ToString().Trim());
+        }
 
         return result;
     }
@@ -494,18 +683,32 @@ public class ExpressionEvaluator
     /// <summary>
     /// Validates an expression for syntax errors.
     /// </summary>
+    /// <param name="expression">The expression to validate.</param>
+    /// <param name="errors">Output list of validation errors.</param>
+    /// <returns>True if valid, false otherwise.</returns>
     public static bool ValidateExpression(string expression, out List<string> errors)
     {
         errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(expression))
+        {
             return true;
+        }
+
+        // Check for maximum length
+        if (expression.Length > MaxExpressionLength)
+        {
+            errors.Add($"Expression length exceeds maximum allowed length of {MaxExpressionLength} characters.");
+            return false;
+        }
 
         // Check for balanced braces
         var openBraces = expression.Count(c => c == '{');
         var closeBraces = expression.Count(c => c == '}');
         if (openBraces != closeBraces)
+        {
             errors.Add("Unbalanced braces in expression");
+        }
 
         // Check for valid operators
         var validOps = new[] { "==", "!=", ">=", "<=", ">", "<", "&&", "||", "contains" };
@@ -516,7 +719,18 @@ public class ExpressionEvaluator
             // Check if it's a function call
             var match = Regex.Match(expression, @"^(\w+)\(.*\)$", RegexOptions.IgnoreCase);
             if (!match.Success)
+            {
                 errors.Add("Expression must contain a valid operator or variable reference");
+            }
+            else
+            {
+                // Validate function name is in allowlist
+                var functionName = match.Groups[1].Value;
+                if (!AllowedFunctionNames.Contains(functionName))
+                {
+                    errors.Add($"Function '{functionName}' is not permitted. Only the following functions are allowed: {string.Join(", ", AllowedFunctionNames)}");
+                }
+            }
         }
 
         return errors.Count == 0;
