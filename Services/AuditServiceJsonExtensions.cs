@@ -4,6 +4,7 @@
 // ===================================================================
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DotNetWorkflowEngine.Models;
 
 namespace DotNetWorkflowEngine.Services;
@@ -13,10 +14,18 @@ namespace DotNetWorkflowEngine.Services;
 /// </summary>
 public static class AuditServiceJsonExtensions
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
+    private static readonly JsonSerializerOptions _jsonOptionsCompact = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private static readonly JsonSerializerOptions _jsonOptionsIndented = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     /// <summary>
@@ -30,11 +39,7 @@ public static class AuditServiceJsonExtensions
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        var options = indented
-            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
-            : _jsonOptions;
-
-        return JsonSerializer.Serialize(value, options);
+        return JsonSerializer.Serialize(value, indented ? _jsonOptionsIndented : _jsonOptionsCompact);
     }
 
     /// <summary>
@@ -53,7 +58,7 @@ public static class AuditServiceJsonExtensions
             return null;
         }
 
-        return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptions);
+        return JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
     }
 
     /// <summary>
@@ -76,7 +81,7 @@ public static class AuditServiceJsonExtensions
 
         try
         {
-            value = JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptions);
+            value = JsonSerializer.Deserialize<AuditLogEntry>(json, _jsonOptionsCompact);
             return true;
         }
         catch (JsonException)
@@ -96,11 +101,7 @@ public static class AuditServiceJsonExtensions
     {
         ArgumentNullException.ThrowIfNull(values);
 
-        var options = indented
-            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
-            : _jsonOptions;
-
-        return JsonSerializer.Serialize(values, options);
+        return JsonSerializer.Serialize(values, indented ? _jsonOptionsIndented : _jsonOptionsCompact);
     }
 
     /// <summary>
@@ -119,7 +120,7 @@ public static class AuditServiceJsonExtensions
             return Array.Empty<AuditLogEntry>();
         }
 
-        return JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptions) ?? Array.Empty<AuditLogEntry>();
+        return JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact) ?? Array.Empty<AuditLogEntry>();
     }
 
     /// <summary>
@@ -142,7 +143,7 @@ public static class AuditServiceJsonExtensions
 
         try
         {
-            var result = JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptions);
+            var result = JsonSerializer.Deserialize<AuditLogEntry[]>(json, _jsonOptionsCompact);
             values = result ?? Array.Empty<AuditLogEntry>();
             return true;
         }
