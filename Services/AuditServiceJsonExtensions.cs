@@ -135,14 +135,17 @@ public static class AuditServiceJsonExtensions
         }
         catch (JsonException)
         {
+            value = null;
             return false;
         }
         catch (ArgumentException)
         {
+            value = null;
             return false;
         }
         catch (NotSupportedException)
         {
+            value = null;
             return false;
         }
     }
@@ -239,14 +242,17 @@ public static class AuditServiceJsonExtensions
         }
         catch (JsonException)
         {
+            values = Array.Empty<AuditLogEntry>();
             return false;
         }
         catch (ArgumentException)
         {
+            values = Array.Empty<AuditLogEntry>();
             return false;
         }
         catch (NotSupportedException)
         {
+            values = Array.Empty<AuditLogEntry>();
             return false;
         }
     }
