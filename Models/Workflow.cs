@@ -1,9 +1,10 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// ===================================================================
 
 using DotNetWorkflowEngine.Enums;
+using System.Text.Json.Serialization;
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -16,12 +17,17 @@ namespace DotNetWorkflowEngine.Models;
 /// <para>
 /// A valid workflow requires:
 /// <list type="bullet">
-///   <item>A non-empty <see cref="Id"/> and <see cref="Name"/></item>
-///   <item>At least one <see cref="Activity"/> in <see cref="Activities"/></item>
-///   <item>A <see cref="StartActivityId"/> referencing an existing activity</item>
-///   <item>All <see cref="Transition"/> endpoints referencing existing activities</item>
+/// <item>A non-empty <see cref="Id"/> and <see cref="Name"/></item>
+/// <item>At least one <see cref="Activity"/> in <see cref="Activities"/></item>
+/// <item>A <see cref="StartActivityId"/> referencing an existing activity</item>
+/// <item>All <see cref="Transition"/> endpoints referencing existing activities</item>
 /// </list>
 /// Use <see cref="Validate"/> to check these constraints before calling <see cref="Publish"/>.
+/// </para>
+/// <para>
+/// Workflow versions are immutable. When a workflow is updated, a new version is created
+/// instead of mutating the existing workflow. This ensures that in-flight instances continue
+/// to execute against the version they were created with.
 /// </para>
 /// </remarks>
 public class Workflow
@@ -35,8 +41,13 @@ public class Workflow
     /// <summary>Gets or sets the description of the workflow.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Gets or sets the version of the workflow.</summary>
-    public int Version { get; set; } = 1;
+    /// <summary>Gets the immutable version number of this workflow definition.</summary>
+    /// <remarks>
+    /// This version is assigned when the workflow is first created and never changes.
+    /// When a workflow is updated, a new version is created instead of mutating the existing one.
+    /// Existing workflow instances are pinned to this version and will execute against it.
+    /// </remarks>
+    public int Version { get; init; } = 1;
 
     /// <summary>Gets or sets the current status of the workflow.</summary>
     public WorkflowStatus Status { get; set; } = WorkflowStatus.Draft;
@@ -45,11 +56,9 @@ public class Workflow
     public bool IsPublished => Status == WorkflowStatus.Active;
 
     /// <summary>Gets or sets the list of activities in this workflow.</summary>
-
     public List<Activity> Activities { get; set; } = new();
 
     /// <summary>Gets or sets the list of transitions between activities.</summary>
-
     public List<Transition> Transitions { get; set; } = new();
 
     /// <summary>Gets or sets the ID of the starting activity.</summary>
@@ -145,5 +154,56 @@ public class Workflow
         {
             throw new Exceptions.ValidationException("Cannot publish invalid workflow", errors, "Workflow");
         }
+    }
+
+    /// <summary>
+    /// Creates a deep copy of this workflow with a new version number.
+    /// Used when creating a new version from an existing workflow.
+    /// </summary>
+    /// <param name="newVersion">The version number for the new workflow.</param>
+    /// <returns>A new workflow instance with copied properties and activities.</returns>
+    public Workflow CloneWithVersion(int newVersion)
+    {
+        return new Workflow
+        {
+            Id = Id,
+            Name = Name,
+            Description = Description,
+            Version = newVersion,
+            Status = Status,
+            Activities = Activities.Select(a => new Activity
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description,
+                Type = a.Type,
+                ExecutionMode = a.ExecutionMode,
+                HandlerType = a.HandlerType,
+                InputParameters = new Dictionary<string, object?>((IDictionary<string, object?>)a.InputParameters),
+                OutputMapping = new Dictionary<string, string>((IDictionary<string, string>)a.OutputMapping),
+                RetryPolicy = a.RetryPolicy,
+                MaxRetries = a.MaxRetries,
+                TimeoutSeconds = a.TimeoutSeconds,
+                IsOptional = a.IsOptional,
+                ConditionExpression = a.ConditionExpression,
+                Metadata = new Dictionary<string, object?>((IDictionary<string, object?>)a.Metadata)
+            }).ToList(),
+            Transitions = Transitions.Select(t => new Transition
+            {
+                Id = t.Id,
+                FromActivityId = t.FromActivityId,
+                ToActivityId = t.ToActivityId,
+                ConditionExpression = t.ConditionExpression,
+                Label = t.Label,
+                IsDefault = t.IsDefault,
+                Priority = t.Priority
+            }).ToList(),
+            StartActivityId = StartActivityId,
+            EndActivityId = EndActivityId,
+            CreatedAt = CreatedAt,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedBy = CreatedBy,
+            ModifiedBy = ModifiedBy
+        };
     }
 }

@@ -10,14 +10,18 @@ using DotNetWorkflowEngine.Utilities;
 namespace DotNetWorkflowEngine.Services;
 
 /// <summary>
-/// Service for managing workflow definitions.
+/// Service for managing workflow definitions with versioning support.
+/// Workflow definitions are immutable once created. Updates create new versions
+/// instead of mutating existing workflows, ensuring in-flight instances execute
+/// against the version they were created with.
 /// </summary>
 public class WorkflowDefinitionService
 {
     private readonly Dictionary<string, Workflow> _workflows = new();
+    private readonly Dictionary<string, List<Workflow>> _workflowVersions = new();
 
     /// <summary>
-    /// Creates a new workflow definition.
+    /// Creates a new workflow definition with version 1.
     /// </summary>
     /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
     public Workflow CreateWorkflow(string id, string name, string? description = null)
@@ -32,7 +36,8 @@ public class WorkflowDefinitionService
         {
             Id = id,
             Name = name,
-            Description = description
+            Description = description,
+            Version = 1
         };
 
         // Validate the workflow before adding it
@@ -47,6 +52,7 @@ public class WorkflowDefinitionService
         }
 
         _workflows[id] = workflow;
+        _workflowVersions[id] = new List<Workflow> { workflow };
         return workflow;
     }
 
@@ -78,10 +84,18 @@ public class WorkflowDefinitionService
         }
 
         _workflows[workflow.Id] = workflow;
+
+        // Track this version
+        if (!_workflowVersions.TryGetValue(workflow.Id, out var versions))
+        {
+            versions = new List<Workflow>();
+            _workflowVersions[workflow.Id] = versions;
+        }
+        versions.Add(workflow);
     }
 
     /// <summary>
-    /// Gets a workflow definition by ID.
+    /// Gets a workflow definition by ID, returning the latest version.
     /// </summary>
     public virtual Workflow? GetWorkflow(string id)
     {
@@ -92,7 +106,24 @@ public class WorkflowDefinitionService
     }
 
     /// <summary>
-    /// Gets all workflow definitions.
+    /// Gets a specific version of a workflow definition by ID and version number.
+    /// </summary>
+    /// <param name="id">The workflow ID.</param>
+    /// <param name="version">The specific version number to retrieve.</param>
+    /// <returns>The workflow definition with the specified version, or null if not found.</returns>
+    public virtual Workflow? GetWorkflowVersion(string id, int version)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+
+        if (_workflowVersions.TryGetValue(id, out var versions))
+        {
+            return versions.FirstOrDefault(w => w.Version == version);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets all workflow definitions (latest versions only).
     /// </summary>
     public List<Workflow> GetAllWorkflows()
     {
@@ -100,7 +131,83 @@ public class WorkflowDefinitionService
     }
 
     /// <summary>
-    /// Adds an activity to a workflow.
+    /// Gets all versions of a workflow definition.
+    /// </summary>
+    /// <param name="workflowId">The workflow ID.</param>
+    /// <returns>List of all versions of the workflow, ordered by version number.</returns>
+    public List<Workflow> GetWorkflowVersions(string workflowId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+
+        if (_workflowVersions.TryGetValue(workflowId, out var versions))
+        {
+            return versions.OrderBy(w => w.Version).ToList();
+        }
+        return new List<Workflow>();
+    }
+
+    /// <summary>
+    /// Gets the latest version number for a workflow.
+    /// </summary>
+    /// <param name="workflowId">The workflow ID.</param>
+    /// <returns>The latest version number, or 0 if workflow not found.</returns>
+    public int GetLatestVersion(string workflowId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+
+        if (_workflowVersions.TryGetValue(workflowId, out var versions))
+        {
+            return versions.Max(w => w.Version);
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Creates a new version of an existing workflow by copying it and incrementing the version.
+    /// This is the primary method for updating workflows - it creates an immutable new version
+    /// instead of mutating the existing workflow.
+    /// </summary>
+    /// <param name="workflowId">The ID of the workflow to update.</param>
+    /// <param name="updateAction">Action that modifies the workflow definition.</param>
+    /// <returns>The new version of the workflow.</returns>
+    /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
+    /// <exception cref="ValidationException">Thrown when workflow validation fails.</exception>
+    public Workflow UpdateWorkflow(string workflowId, Action<Workflow> updateAction)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+        ArgumentNullException.ThrowIfNull(updateAction);
+
+        // Get the latest version
+        if (!_workflows.TryGetValue(workflowId, out var latestWorkflow))
+            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
+
+        // Create a new version by cloning the latest with incremented version
+        var newVersionNumber = latestWorkflow.Version + 1;
+        var newWorkflow = latestWorkflow.CloneWithVersion(newVersionNumber);
+
+        // Apply the update
+        updateAction(newWorkflow);
+
+        // Validate the updated workflow
+        var validationResult = WorkflowValidator.ValidateWorkflow(newWorkflow);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(
+                "Updated workflow validation failed",
+                validationResult.Errors,
+                "Workflow"
+            );
+        }
+
+        // Store the new version
+        _workflows[workflowId] = newWorkflow;
+        _workflowVersions[workflowId].Add(newWorkflow);
+
+        return newWorkflow;
+    }
+
+    /// <summary>
+    /// Adds an activity to the latest version of a workflow, creating a new version.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity already exists.</exception>
     /// <exception cref="ValidationException">Thrown when activity is invalid.</exception>
@@ -109,34 +216,20 @@ public class WorkflowDefinitionService
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentNullException.ThrowIfNull(activity);
 
-        var workflow = GetWorkflow(workflowId);
-        if (workflow == null)
-            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
-
-        if (workflow.Activities.Any(a => a.Id == activity.Id))
-            throw new WorkflowException($"Activity '{activity.Id}' already exists", "ACTIVITY_EXISTS");
-
-        if (!activity.Validate(out var errors))
-            throw new ValidationException("Invalid activity", errors, "Activity");
-
-        workflow.Activities.Add(activity);
-        workflow.ModifiedAt = DateTime.UtcNow;
-
-        // Validate the workflow after adding the activity
-        var validationResult = WorkflowValidator.ValidateWorkflow(workflow);
-        if (!validationResult.IsValid)
+        UpdateWorkflow(workflowId, workflow =>
         {
-            workflow.Activities.Remove(activity); // Rollback
-            throw new ValidationException(
-                "Workflow validation failed after adding activity",
-                validationResult.Errors,
-                "Workflow"
-            );
-        }
+            if (workflow.Activities.Any(a => a.Id == activity.Id))
+                throw new WorkflowException($"Activity '{activity.Id}' already exists", "ACTIVITY_EXISTS");
+
+            if (!activity.Validate(out var errors))
+                throw new ValidationException("Invalid activity", errors, "Activity");
+
+            workflow.Activities.Add(activity);
+        });
     }
 
     /// <summary>
-    /// Adds a transition between activities.
+    /// Adds a transition between activities in the latest version of a workflow, creating a new version.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activities don't exist.</exception>
     /// <exception cref="ValidationException">Thrown when transition is invalid.</exception>
@@ -145,40 +238,26 @@ public class WorkflowDefinitionService
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentNullException.ThrowIfNull(transition);
 
-        var workflow = GetWorkflow(workflowId);
-        if (workflow == null)
-            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
-
-        if (!transition.Validate(out var errors))
-            throw new ValidationException("Invalid transition", errors, "Transition");
-
-        if (!workflow.Activities.Any(a => a.Id == transition.FromActivityId))
-            throw new WorkflowException($"Activity '{transition.FromActivityId}' not found", "ACTIVITY_NOT_FOUND");
-
-        if (!workflow.Activities.Any(a => a.Id == transition.ToActivityId))
-            throw new WorkflowException($"Activity '{transition.ToActivityId}' not found", "ACTIVITY_NOT_FOUND");
-
-        if (workflow.Transitions.Any(t => t.Id == transition.Id))
-            throw new WorkflowException($"Transition '{transition.Id}' already exists", "TRANSITION_EXISTS");
-
-        workflow.Transitions.Add(transition);
-        workflow.ModifiedAt = DateTime.UtcNow;
-
-        // Validate the workflow after adding the transition
-        var validationResult = WorkflowValidator.ValidateWorkflow(workflow);
-        if (!validationResult.IsValid)
+        UpdateWorkflow(workflowId, workflow =>
         {
-            workflow.Transitions.Remove(transition); // Rollback
-            throw new ValidationException(
-                "Workflow validation failed after adding transition",
-                validationResult.Errors,
-                "Workflow"
-            );
-        }
+            if (!transition.Validate(out var errors))
+                throw new ValidationException("Invalid transition", errors, "Transition");
+
+            if (!workflow.Activities.Any(a => a.Id == transition.FromActivityId))
+                throw new WorkflowException($"Activity '{transition.FromActivityId}' not found", "ACTIVITY_NOT_FOUND");
+
+            if (!workflow.Activities.Any(a => a.Id == transition.ToActivityId))
+                throw new WorkflowException($"Activity '{transition.ToActivityId}' not found", "ACTIVITY_NOT_FOUND");
+
+            if (workflow.Transitions.Any(t => t.Id == transition.Id))
+                throw new WorkflowException($"Transition '{transition.Id}' already exists", "TRANSITION_EXISTS");
+
+            workflow.Transitions.Add(transition);
+        });
     }
 
     /// <summary>
-    /// Sets the start activity for a workflow.
+    /// Sets the start activity for the latest version of a workflow, creating a new version.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetStartActivity(string workflowId, string activityId)
@@ -186,31 +265,17 @@ public class WorkflowDefinitionService
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(activityId);
 
-        var workflow = GetWorkflow(workflowId);
-        if (workflow == null)
-            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
-
-        if (!workflow.Activities.Any(a => a.Id == activityId))
-            throw new WorkflowException($"Activity '{activityId}' not found", "ACTIVITY_NOT_FOUND");
-
-        workflow.StartActivityId = activityId;
-        workflow.ModifiedAt = DateTime.UtcNow;
-
-        // Validate the workflow after setting start activity
-        var validationResult = WorkflowValidator.ValidateWorkflow(workflow);
-        if (!validationResult.IsValid)
+        UpdateWorkflow(workflowId, workflow =>
         {
-            workflow.StartActivityId = null; // Rollback
-            throw new ValidationException(
-                "Workflow validation failed after setting start activity",
-                validationResult.Errors,
-                "Workflow"
-            );
-        }
+            if (!workflow.Activities.Any(a => a.Id == activityId))
+                throw new WorkflowException($"Activity '{activityId}' not found", "ACTIVITY_NOT_FOUND");
+
+            workflow.StartActivityId = activityId;
+        });
     }
 
     /// <summary>
-    /// Sets the end activity for a workflow.
+    /// Sets the end activity for the latest version of a workflow, creating a new version.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetEndActivity(string workflowId, string activityId)
@@ -218,51 +283,27 @@ public class WorkflowDefinitionService
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(activityId);
 
-        var workflow = GetWorkflow(workflowId);
-        if (workflow == null)
-            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
-
-        if (!workflow.Activities.Any(a => a.Id == activityId))
-            throw new WorkflowException($"Activity '{activityId}' not found", "ACTIVITY_NOT_FOUND");
-
-        workflow.EndActivityId = activityId;
-        workflow.ModifiedAt = DateTime.UtcNow;
-
-        // Validate the workflow after setting end activity
-        var validationResult = WorkflowValidator.ValidateWorkflow(workflow);
-        if (!validationResult.IsValid)
+        UpdateWorkflow(workflowId, workflow =>
         {
-            workflow.EndActivityId = null; // Rollback
-            throw new ValidationException(
-                "Workflow validation failed after setting end activity",
-                validationResult.Errors,
-                "Workflow"
-            );
-        }
+            if (!workflow.Activities.Any(a => a.Id == activityId))
+                throw new WorkflowException($"Activity '{activityId}' not found", "ACTIVITY_NOT_FOUND");
+
+            workflow.EndActivityId = activityId;
+        });
     }
 
     /// <summary>
-    /// Publishes a workflow to make it active.
+    /// Publishes the latest version of a workflow to make it active.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public void PublishWorkflow(string workflowId)
     {
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
-        var workflow = GetWorkflow(workflowId);
-        if (workflow == null)
-            throw new WorkflowException($"Workflow '{workflowId}' not found", "WORKFLOW_NOT_FOUND");
-
-        try
+        UpdateWorkflow(workflowId, workflow =>
         {
             workflow.Publish();
-        }
-        catch (ValidationException)
-        {
-            throw;
-        }
-
-        workflow.ModifiedAt = DateTime.UtcNow;
+        });
     }
 
     /// <summary>
@@ -291,10 +332,10 @@ public class WorkflowDefinitionService
     }
 
     /// <summary>
-    /// Gets all activities in a workflow.
+    /// Gets all activities in the latest version of a workflow.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
-   public List<Activity> GetActivities(string workflowId)
+    public List<Activity> GetActivities(string workflowId)
     {
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
@@ -306,7 +347,7 @@ public class WorkflowDefinitionService
     }
 
     /// <summary>
-    /// Gets a specific activity from a workflow.
+    /// Gets a specific activity from the latest version of a workflow.
     /// </summary>
     public Activity? GetActivity(string workflowId, string activityId)
     {
@@ -321,17 +362,19 @@ public class WorkflowDefinitionService
     }
 
     /// <summary>
-    /// Deletes a workflow definition.
+    /// Deletes a workflow definition and all its versions.
     /// </summary>
     public bool DeleteWorkflow(string workflowId)
     {
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
-        return _workflows.Remove(workflowId);
+        var removed = _workflows.Remove(workflowId);
+        _workflowVersions.Remove(workflowId);
+        return removed;
     }
 
     /// <summary>
-    /// Clones a workflow definition.
+    /// Clones a workflow definition, creating a new workflow with a new ID and version 1.
     /// </summary>
     /// <exception cref="WorkflowException">Thrown when source workflow not found.</exception>
     public Workflow CloneWorkflow(string sourceWorkflowId, string newWorkflowId, string newName)
@@ -344,49 +387,11 @@ public class WorkflowDefinitionService
         if (source == null)
             throw new WorkflowException($"Source workflow '{sourceWorkflowId}' not found", "WORKFLOW_NOT_FOUND");
 
-        var clone = new Workflow
-        {
-            Id = newWorkflowId,
-            Name = newName,
-            Description = source.Description,
-            StartActivityId = source.StartActivityId,
-            EndActivityId = source.EndActivityId
-        };
-
-        foreach (var activity in source.Activities)
-        {
-            clone.Activities.Add(new Activity
-            {
-                Id = activity.Id,
-                Name = activity.Name,
-                Description = activity.Description,
-                Type = activity.Type,
-                ExecutionMode = activity.ExecutionMode,
-                HandlerType = activity.HandlerType,
-                InputParameters = new Dictionary<string, object?>((IDictionary<string, object?>)activity.InputParameters),
-                OutputMapping = new Dictionary<string, string>((IDictionary<string, string>)activity.OutputMapping),
-                RetryPolicy = activity.RetryPolicy,
-                MaxRetries = activity.MaxRetries,
-                TimeoutSeconds = activity.TimeoutSeconds,
-                IsOptional = activity.IsOptional,
-                ConditionExpression = activity.ConditionExpression,
-                Metadata = new Dictionary<string, object?>((IDictionary<string, object?>)activity.Metadata)
-            });
-        }
-
-        foreach (var transition in source.Transitions)
-        {
-            clone.Transitions.Add(new Transition
-            {
-                Id = transition.Id,
-                FromActivityId = transition.FromActivityId,
-                ToActivityId = transition.ToActivityId,
-                ConditionExpression = transition.ConditionExpression,
-                Label = transition.Label,
-                IsDefault = transition.IsDefault,
-                Priority = transition.Priority
-            });
-        }
+        var clone = source.CloneWithVersion(1);
+        clone.Id = newWorkflowId;
+        clone.Name = newName;
+        clone.CreatedAt = DateTime.UtcNow;
+        clone.ModifiedAt = DateTime.UtcNow;
 
         // Validate the cloned workflow
         var validationResult = WorkflowValidator.ValidateWorkflow(clone);
@@ -400,6 +405,7 @@ public class WorkflowDefinitionService
         }
 
         _workflows[newWorkflowId] = clone;
+        _workflowVersions[newWorkflowId] = new List<Workflow> { clone };
         return clone;
     }
 
@@ -468,6 +474,15 @@ public class WorkflowDefinitionService
             throw new WorkflowException($"Workflow with ID '{workflowId}' already exists", "WORKFLOW_EXISTS");
 
         _workflows[workflowId] = workflow;
+
+        // Track this version
+        if (!_workflowVersions.TryGetValue(workflowId, out var versions))
+        {
+            versions = new List<Workflow>();
+            _workflowVersions[workflowId] = versions;
+        }
+        versions.Add(workflow);
+
         return workflow;
     }
 

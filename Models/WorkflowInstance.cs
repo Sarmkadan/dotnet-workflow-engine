@@ -4,6 +4,7 @@
 // ===================================================================
 
 using DotNetWorkflowEngine.Enums;
+using System.Text.Json.Serialization;
 
 namespace DotNetWorkflowEngine.Models;
 
@@ -18,6 +19,13 @@ public class WorkflowInstance
     /// <summary>Gets or sets the optimistic concurrency version number.</summary>
     public int Version { get; set; } = 0;
 
+    /// <summary>
+    /// Gets the version of the workflow definition that this instance was created from.
+    /// This ensures the instance executes against the specific workflow version it started with,
+    /// even if the workflow definition is later updated.
+    /// </summary>
+    public int DefinitionVersion { get; set; }
+
     /// <summary>Gets or sets the ID of the workflow definition.</summary>
     public string WorkflowId { get; set; } = string.Empty;
 
@@ -28,20 +36,16 @@ public class WorkflowInstance
     public string? CurrentActivityId { get; set; }
 
     /// <summary>Gets or sets the list of activities that have been executed.</summary>
-    
     public List<string> ExecutedActivities { get; set; } = new();
 
     /// <summary>Gets or sets the list of activities currently executing (for parallel execution).</summary>
-    
     public List<string> ActiveActivities { get; set; } = new();
 
     /// <summary>Gets or sets execution context containing variables and state.</summary>
-    
     public Dictionary<string, object?> Context { get; set; } = new();
 
     /// <summary>Gets or sets when the instance was created.</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
 
     /// <summary>Gets or sets when the instance execution started.</summary>
     public DateTime? StartedAt { get; set; }
@@ -54,7 +58,7 @@ public class WorkflowInstance
 
     /// <summary>
     /// Gets the elapsed duration of this instance.
-    /// Returns <c>CompletedAt - StartedAt</c> for terminal instances, or 
+    /// Returns <c>CompletedAt - StartedAt</c> for terminal instances, or
     /// <c>UtcNow - StartedAt</c> for instances that are still running.
     /// Returns <c>null</c> when the instance has not been started yet.
     /// </summary>
@@ -70,7 +74,6 @@ public class WorkflowInstance
     public string? CorrelationId { get; set; }
 
     /// <summary>Gets or sets custom metadata associated with the instance.</summary>
-    
     public Dictionary<string, object?> Metadata { get; set; } = new();
 
     /// <summary>Gets or sets the ID of the user who initiated this instance.</summary>
@@ -81,11 +84,13 @@ public class WorkflowInstance
     /// </summary>
     /// <param name="workflowId">The unique identifier of the workflow definition.</param>
     /// <param name="correlationId">Optional correlation ID for tracking related instances.</param>
-    public WorkflowInstance(string workflowId, string? correlationId = null)
+    /// <param name="definitionVersion">The version of the workflow definition to pin this instance to.</param>
+    public WorkflowInstance(string workflowId, string? correlationId = null, int definitionVersion = 1)
     {
         Id = Guid.NewGuid().ToString();
         WorkflowId = workflowId;
         CorrelationId = correlationId ?? Id;
+        DefinitionVersion = definitionVersion;
     }
 
     /// <summary>
@@ -218,6 +223,7 @@ public class WorkflowInstance
     {
         Id = Id,
         Version = Version,
+        DefinitionVersion = DefinitionVersion,
         WorkflowId = WorkflowId,
         Status = Status,
         CurrentActivityId = CurrentActivityId,
@@ -231,6 +237,6 @@ public class WorkflowInstance
         ErrorMessage = ErrorMessage,
         CorrelationId = CorrelationId,
         Metadata = new Dictionary<string, object?>(Metadata),
-        InitiatedBy = InitiatedBy,
+        InitiatedBy = InitiatedBy
     };
 }
