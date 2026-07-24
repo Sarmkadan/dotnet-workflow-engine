@@ -105,8 +105,7 @@ public class WorkflowInstance
     /// </summary>
     public void Start()
     {
-        StartedAt = DateTime.UtcNow;
-        Status = WorkflowStatus.Active;
+        TransitionTo(WorkflowStatus.Active);
     }
 
     /// <summary>
@@ -114,20 +113,17 @@ public class WorkflowInstance
     /// </summary>
     public void Complete()
     {
-        CompletedAt = DateTime.UtcNow;
-        Status = WorkflowStatus.Archived;
-        ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+        TransitionTo(WorkflowStatus.Archived);
     }
 
     /// <summary>
     /// Marks the instance as failed with error message.
     /// </summary>
+    /// <param name="errorMessage">The error message describing the failure.</param>
     public void Fail(string errorMessage)
     {
-        CompletedAt = DateTime.UtcNow;
         ErrorMessage = errorMessage;
-        Status = WorkflowStatus.Suspended;
-        ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+        TransitionTo(WorkflowStatus.Suspended);
     }
 
     /// <summary>
@@ -194,11 +190,7 @@ public class WorkflowInstance
     /// <param name="reason">Optional reason for suspension.</param>
     public void Suspend(string? reason = null)
     {
-        Status = WorkflowStatus.Suspended;
-        if (!string.IsNullOrWhiteSpace(reason))
-        {
-            ErrorMessage = reason;
-        }
+        TransitionTo(WorkflowStatus.Suspended, reason);
     }
 
     /// <summary>
@@ -206,9 +198,7 @@ public class WorkflowInstance
     /// </summary>
     public void Cancel()
     {
-        CompletedAt = DateTime.UtcNow;
-        Status = WorkflowStatus.Cancelled;
-        ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+        TransitionTo(WorkflowStatus.Cancelled);
     }
 
     /// <summary>
@@ -239,4 +229,60 @@ public class WorkflowInstance
         Metadata = new Dictionary<string, object?>(Metadata),
         InitiatedBy = InitiatedBy
     };
+
+    /// <summary>
+    /// Validates and performs a state transition to the specified status.
+    /// This method enforces the explicit state machine rules and ensures only valid transitions are allowed.
+    /// </summary>
+    /// <param name="newStatus">The target status to transition to.</param>
+    /// <param name="reason">Optional reason for the status change.</param>
+    /// <exception cref="WorkflowStatusTransitionException">Thrown when the transition is invalid.</exception>
+    public void TransitionTo(WorkflowStatus newStatus, string? reason = null)
+    {
+        ArgumentNullException.ThrowIfNull(newStatus);
+
+        if (!WorkflowStatusMachine.IsValidTransition(Status, newStatus))
+        {
+            throw new WorkflowStatusTransitionException(Status, newStatus, Id);
+        }
+
+        // Perform the transition with optimistic concurrency
+        Version++;
+
+        switch (newStatus)
+        {
+            case WorkflowStatus.Active:
+                StartedAt = DateTime.UtcNow;
+                break;
+
+            case WorkflowStatus.Archived:
+                CompletedAt = DateTime.UtcNow;
+                ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+                break;
+
+            case WorkflowStatus.Suspended:
+                if (!string.IsNullOrWhiteSpace(reason))
+                {
+                    ErrorMessage = reason;
+                }
+                break;
+
+            case WorkflowStatus.Cancelled:
+                CompletedAt = DateTime.UtcNow;
+                ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
+                break;
+
+            case WorkflowStatus.WaitingForMessage:
+                // Clear waiting message metadata if transitioning away from waiting state
+                if (Status == WorkflowStatus.WaitingForMessage)
+                {
+                    Context.Remove("WaitingForMessageName");
+                    Context.Remove("WaitingForCorrelationKey");
+                    Context.Remove("WaitingActivityId");
+                }
+                break;
+        }
+
+        Status = newStatus;
+    }
 }

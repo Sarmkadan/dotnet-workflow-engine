@@ -157,7 +157,7 @@ public class WorkflowExecutionService
             instance.SetContextVariable("WaitingForMessageName", activity.MessageName);
             instance.SetContextVariable("WaitingForCorrelationKey", correlationKey);
             instance.SetContextVariable("WaitingActivityId", activityId);
-            instance.Status = WorkflowStatus.WaitingForMessage;
+            instance.TransitionTo(WorkflowStatus.WaitingForMessage);
 
             await _auditService.LogCustomEvent(instance.Id, "WorkflowSuspended",
                 $"Workflow suspended at MessageCatchEvent '{activityId}', waiting for message '{activity.MessageName}' with correlation key '{correlationKey}'",
@@ -416,7 +416,7 @@ public class WorkflowExecutionService
         instance.Context.Remove("WaitingForCorrelationKey");
         instance.Context.Remove("WaitingActivityId");
 
-        instance.Status = WorkflowStatus.Active;
+        instance.TransitionTo(WorkflowStatus.Active);
         await _auditService.LogCustomEvent(instance.Id, "MessageReceived",
             $"Workflow instance resumed by message '{messageName}' with key '{correlationKey}'.",
             "Info", waitingActivityId);
