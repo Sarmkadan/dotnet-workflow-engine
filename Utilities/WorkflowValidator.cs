@@ -5,6 +5,7 @@
 
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Utilities;
 
 namespace DotNetWorkflowEngine.Utilities;
 
@@ -30,6 +31,9 @@ public class WorkflowValidator
         if (workflow.Activities.Count == 0)
             result.AddError("Workflow must have at least one activity");
 
+        // Validate duplicate activity IDs
+        ValidateDuplicateActivityIds(workflow, result);
+
         // Validate activities
         foreach (var activity in workflow.Activities)
         {
@@ -38,6 +42,9 @@ public class WorkflowValidator
             {
                 result.AddError($"Invalid activity '{activity.Id}': {string.Join(", ", activityErrors.Errors)}");
             }
+
+            // Validate activity expression
+            ValidateActivityExpression(activity, result);
         }
 
         // Validate transitions
@@ -48,6 +55,9 @@ public class WorkflowValidator
             {
                 result.AddError($"Invalid transition '{transition.Id}': {string.Join(", ", transitionErrors.Errors)}");
             }
+
+            // Validate transition expression
+            ValidateTransitionExpression(transition, workflow, result);
         }
 
         // Validate start and end activities
@@ -69,6 +79,12 @@ public class WorkflowValidator
 
         // Validate connectivity
         ValidateConnectivity(workflow, result);
+
+        // Validate cycles (without explicit loop constructs)
+        ValidateCycles(workflow, result);
+
+        // Validate all transitions reference existing activities
+        ValidateTransitionReferences(workflow, result);
 
         return result;
     }
@@ -125,6 +141,10 @@ public class WorkflowValidator
 
         if (!workflow.Activities.Any(a => a.Id == transition.ToActivityId))
             result.AddError($"To activity '{transition.ToActivityId}' not found in workflow");
+
+        // Validate duplicate transition IDs
+        if (workflow.Transitions.Count(t => t.Id == transition.Id) > 1)
+            result.AddError($"Duplicate transition ID '{transition.Id}'");
 
         return result;
     }
@@ -219,6 +239,131 @@ public class WorkflowValidator
             }
         }
 
+        return false;
+    }
+
+    /// <summary>
+    /// Validates that all activity IDs are unique.
+    /// </summary>
+    private static void ValidateDuplicateActivityIds(Workflow workflow, ValidationResult result)
+    {
+        var activityIds = new HashSet<string>();
+        foreach (var activity in workflow.Activities)
+        {
+            if (activityIds.Contains(activity.Id))
+            {
+                result.AddError($"Duplicate activity ID '{activity.Id}'");
+            }
+            else
+            {
+                activityIds.Add(activity.Id);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates activity expressions using ExpressionEvaluator.
+    /// </summary>
+    private static void ValidateActivityExpression(Activity activity, ValidationResult result)
+    {
+        if (string.IsNullOrWhiteSpace(activity.ConditionExpression))
+            return;
+
+        var expressionErrors = new List<string>();
+        if (!ExpressionEvaluator.ValidateExpression(activity.ConditionExpression, out expressionErrors))
+        {
+            foreach (var error in expressionErrors)
+            {
+                result.AddError($"Activity '{activity.Id}' condition expression validation failed: {error}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates transition expressions using ExpressionEvaluator.
+    /// </summary>
+    private static void ValidateTransitionExpression(Transition transition, Workflow workflow, ValidationResult result)
+    {
+        if (string.IsNullOrWhiteSpace(transition.ConditionExpression))
+            return;
+
+        var expressionErrors = new List<string>();
+        if (!ExpressionEvaluator.ValidateExpression(transition.ConditionExpression, out expressionErrors))
+        {
+            foreach (var error in expressionErrors)
+            {
+                result.AddError($"Transition '{transition.Id}' condition expression validation failed: {error}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates that all transitions reference existing activities.
+    /// </summary>
+    private static void ValidateTransitionReferences(Workflow workflow, ValidationResult result)
+    {
+        foreach (var transition in workflow.Transitions)
+        {
+            if (!workflow.Activities.Any(a => a.Id == transition.FromActivityId))
+            {
+                result.AddError($"Transition '{transition.Id}' references non-existent activity: {transition.FromActivityId}");
+            }
+
+            if (!workflow.Activities.Any(a => a.Id == transition.ToActivityId))
+            {
+                result.AddError($"Transition '{transition.Id}' references non-existent activity: {transition.ToActivityId}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates that there are no cycles without explicit loop constructs.
+    /// </summary>
+    private static void ValidateCycles(Workflow workflow, ValidationResult result)
+    {
+        if (string.IsNullOrEmpty(workflow.StartActivityId) || workflow.Activities.Count == 0)
+            return;
+
+        var visited = new HashSet<string>();
+        var recursionStack = new HashSet<string>();
+
+        // Check for cycles starting from each activity
+        foreach (var activity in workflow.Activities)
+        {
+            if (!visited.Contains(activity.Id))
+            {
+                if (HasCycleDFS(workflow, activity.Id, visited, recursionStack, new HashSet<string>()))
+                {
+                    result.AddError($"Cycle detected involving activity '{activity.Id}'. Cycles must use explicit loop constructs.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Depth-first search to detect cycles in the workflow graph.
+    /// </summary>
+    private static bool HasCycleDFS(Workflow workflow, string currentId, HashSet<string> visited, HashSet<string> recursionStack, HashSet<string> path)
+    {
+        if (recursionStack.Contains(currentId))
+            return true;
+
+        if (visited.Contains(currentId))
+            return false;
+
+        visited.Add(currentId);
+        recursionStack.Add(currentId);
+        path.Add(currentId);
+
+        var nextActivities = workflow.GetNextActivities(currentId);
+        foreach (var nextActivity in nextActivities)
+        {
+            if (HasCycleDFS(workflow, nextActivity.Id, visited, recursionStack, path))
+                return true;
+        }
+
+        recursionStack.Remove(currentId);
+        path.Remove(currentId);
         return false;
     }
 
