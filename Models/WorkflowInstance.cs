@@ -205,4 +205,32 @@ public class WorkflowInstance
         Status = WorkflowStatus.Cancelled;
         ExecutionTimeMs = (long)(CompletedAt.Value - (StartedAt ?? CreatedAt)).TotalMilliseconds;
     }
+
+    /// <summary>
+    /// Creates an independent deep copy of this instance, including its own copies of
+    /// <see cref="ExecutedActivities"/>, <see cref="ActiveActivities"/>, <see cref="Context"/> and
+    /// <see cref="Metadata"/>. Repositories return clones from reads so that callers can only affect
+    /// persisted state by going through a save path that enforces the <see cref="Version"/>
+    /// compare-and-swap - mutating a clone in place never bypasses the concurrency check.
+    /// </summary>
+    /// <returns>A new <see cref="WorkflowInstance"/> with the same field values as this one.</returns>
+    public WorkflowInstance Clone() => new()
+    {
+        Id = Id,
+        Version = Version,
+        WorkflowId = WorkflowId,
+        Status = Status,
+        CurrentActivityId = CurrentActivityId,
+        ExecutedActivities = new List<string>(ExecutedActivities),
+        ActiveActivities = new List<string>(ActiveActivities),
+        Context = new Dictionary<string, object?>(Context),
+        CreatedAt = CreatedAt,
+        StartedAt = StartedAt,
+        CompletedAt = CompletedAt,
+        ExecutionTimeMs = ExecutionTimeMs,
+        ErrorMessage = ErrorMessage,
+        CorrelationId = CorrelationId,
+        Metadata = new Dictionary<string, object?>(Metadata),
+        InitiatedBy = InitiatedBy,
+    };
 }
