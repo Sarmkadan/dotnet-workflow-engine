@@ -57,15 +57,21 @@ public class ActivityService
     /// <param name="activity">The activity to execute.</param>
     /// <param name="context">The execution context.</param>
     /// <returns>A task representing the asynchronous operation, returning the <see cref="ActivityResult"/>.</returns>
+    /// <remarks>
+    /// <see cref="Activity.TimeoutSeconds"/> is enforced per attempt: each retry iteration gets
+    /// its own <see cref="CancellationTokenSource"/> window rather than sharing a budget across
+    /// the whole call. The worst-case total run time is therefore up to
+    /// <c>MaxAttempts * TimeoutSeconds</c> plus retry delays, not a single
+    /// <c>TimeoutSeconds</c> window. Callers who need to bound the total execution time must
+    /// impose their own outer cancellation/timeout around this call.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="activity"/> or <paramref name="context"/> is null.</exception>
     /// <exception cref="ValidationException">Thrown if activity validation fails.</exception>
     /// <exception cref="ActivityException">Thrown if execution fails after all retries.</exception>
     public virtual async Task<ActivityResult> ExecuteAsync(Activity activity, ExecutionContext context)
     {
-        if (activity == null)
-            throw new ArgumentNullException(nameof(activity));
-
-        if (context == null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(activity);
+        ArgumentNullException.ThrowIfNull(context);
 
         if (string.IsNullOrWhiteSpace(activity.Id))
             throw new ValidationException("Activity ID cannot be empty", "INVALID_ACTIVITY_ID", "Activity");

@@ -44,7 +44,21 @@ public class Activity
     /// <summary>Gets or sets maximum number of retries allowed.</summary>
     public int MaxRetries { get; set; } = 0;
 
-    /// <summary>Gets or sets the timeout in seconds for activity execution.</summary>
+    /// <summary>
+    /// Gets or sets the timeout in seconds for activity execution. A value of zero disables
+    /// the timeout entirely.
+    /// </summary>
+    /// <remarks>
+    /// This timeout is applied <b>per attempt</b>, not to the total execution time across
+    /// retries: <see cref="ActivityService"/> starts a fresh cancellation window for every
+    /// retry iteration. When combined with <see cref="RetryPolicy"/> and <see cref="MaxRetries"/>,
+    /// the worst-case wall-clock time for the activity is approximately
+    /// <c>MaxRetries * TimeoutSeconds</c> plus the cumulative inter-attempt retry delay -
+    /// e.g. 5 retries with a 30 second timeout can take up to ~2.5 minutes, not 30 seconds.
+    /// Callers that need a hard cap on total execution time must enforce it themselves
+    /// (for example by wrapping the call to <see cref="ActivityService.ExecuteAsync"/> in an
+    /// outer <see cref="CancellationTokenSource"/>).
+    /// </remarks>
     public int TimeoutSeconds { get; set; } = 300;
 
     /// <summary>Gets or sets the message name for MessageCatchEvent.</summary>
