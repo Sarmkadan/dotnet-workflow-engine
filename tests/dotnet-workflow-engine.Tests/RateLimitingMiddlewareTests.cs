@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -82,11 +83,11 @@ public class RateLimitingMiddlewareTests
 
         // Assert
         nextMock.Verify(n => n.Invoke(context), Times.Once);
-        context.Response.StatusCode.Should().Be(200); // Default status code when next delegate is called
+        context.Response.StatusCode.Should().Be(200);
     }
 
     [Fact]
-    public async Task InvokeAsync_RequestOverLimit_Returns429()
+    public async Task InvokeAsync_RequestOverLimit_Returns429AndShortCircuitsPipeline()
     {
         // Arrange
         var nextMock = new Mock<RequestDelegate>();
@@ -103,11 +104,19 @@ public class RateLimitingMiddlewareTests
             context.Request.Path = "/api/test";
         }
 
-        // Act - 6th request should be rate limited
+        // Reset nextMock call count
+        nextMock.Invocations.Clear();
+
+        // Act - 6th request should be rate limited and NOT invoke next delegate
         await middleware.InvokeAsync(context);
 
         // Assert
         context.Response.StatusCode.Should().Be((int)HttpStatusCode.TooManyRequests);
+
+        // Critical: Verify next delegate was NEVER invoked (short-circuit)
+        nextMock.Verify(n => n.Invoke(context), Times.Never);
+
+        // Verify rate limit response headers
         context.Response.Headers.Should().ContainKey("Retry-After");
         context.Response.Headers["Retry-After"].ToString().Should().Be("1");
         context.Response.Headers.Should().ContainKey("X-RateLimit-Limit");
@@ -207,6 +216,39 @@ public class RateLimitingMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_ConcurrentRequests_FromDifferentClients_AreTrackedIndependently()
+    {
+        // Arrange
+        var nextMock = new Mock<RequestDelegate>();
+        var middleware = new RateLimitingMiddleware(nextMock.Object, _loggerMock.Object, _testConfig);
+
+        // Create contexts for multiple concurrent clients
+        var contexts = new List<DefaultHttpContext>();
+        for (int i = 0; i < 10; i++)
+        {
+            var context = CreateHttpContext(ipAddress: $"192.168.1.{i}");
+            context.Request.Path = "/api/test";
+            contexts.Add(context);
+        }
+
+        // Act - each client makes 3 requests (under limit of 5)
+        foreach (var context in contexts)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                await middleware.InvokeAsync(context);
+            }
+        }
+
+        // Assert - all should pass through
+        foreach (var context in contexts)
+        {
+            nextMock.Verify(n => n.Invoke(context), Times.Exactly(3));
+            context.Response.StatusCode.Should().Be(200);
+        }
+    }
+
+    [Fact]
     public async Task InvokeAsync_ExemptPaths_BypassRateLimiting()
     {
         // Arrange
@@ -239,6 +281,9 @@ public class RateLimitingMiddlewareTests
             // Assert
             nextMock.Verify(n => n.Invoke(exemptContext), Times.Once);
             exemptContext.Response.StatusCode.Should().Be(200); // Should pass through
+
+            // Reset for next iteration
+            nextMock.Invocations.Clear();
         }
     }
 
@@ -262,26 +307,25 @@ public class RateLimitingMiddlewareTests
         // Act - Request should be rate limited
         await middleware.InvokeAsync(context);
 
-        // Assert
+        // Assert - should be rate limited
         context.Response.StatusCode.Should().Be((int)HttpStatusCode.TooManyRequests);
 
-        // Reset the middleware's internal state by creating a new instance
-        // This simulates a new window period
+        // Create a new middleware instance with fresh buckets to simulate window reset
         var nextMockReset = new Mock<RequestDelegate>();
         var middlewareReset = new RateLimitingMiddleware(nextMockReset.Object, _loggerMock.Object, _testConfig);
         var resetContext = CreateHttpContext();
         resetContext.Request.Path = "/api/test";
 
-        // Act - Request should now pass through
+        // Act - Request should now pass through with fresh capacity
         await middlewareReset.InvokeAsync(resetContext);
 
-        // Assert
+        // Assert - should pass through with full capacity
         nextMockReset.Verify(n => n.Invoke(resetContext), Times.Once);
-        resetContext.Response.StatusCode.Should().Be(200); // Should pass through after reset
+        resetContext.Response.StatusCode.Should().Be(200);
     }
 
     [Fact]
-    public async Task InvokeAsync_AddsRateLimitHeadersToRateLimitedResponses()
+    public async Task InvokeAsync_AddsRateLimitHeadersToAllResponses()
     {
         // Arrange
         var nextMock = new Mock<RequestDelegate>();
@@ -289,21 +333,39 @@ public class RateLimitingMiddlewareTests
         var context = CreateHttpContext();
         context.Request.Path = "/api/test";
 
+        // Act - First request (under limit)
+        await middleware.InvokeAsync(context);
+
+        // Assert - Successful request has rate limit headers
+        context.Response.StatusCode.Should().Be(200);
+        context.Response.Headers.Should().ContainKey("X-RateLimit-Limit");
+        context.Response.Headers["X-RateLimit-Limit"].ToString().Should().Be("5");
+        context.Response.Headers.Should().ContainKey("X-RateLimit-Remaining");
+        context.Response.Headers["X-RateLimit-Remaining"].ToString().Should().Be("4"); // 5-1=4
+        context.Response.Headers.Should().ContainKey("X-RateLimit-Reset");
+
+        // Reset for next test
+        var context2 = CreateHttpContext();
+        context2.Request.Path = "/api/test";
+        nextMock.Invocations.Clear();
+
         // Exhaust the rate limit
         for (int i = 0; i < 5; i++)
         {
-            await middleware.InvokeAsync(context);
-            context = CreateHttpContext();
-            context.Request.Path = "/api/test";
+            await middleware.InvokeAsync(context2);
+            context2 = CreateHttpContext();
+            context2.Request.Path = "/api/test";
         }
 
         // Act - 6th request should be rate limited
-        await middleware.InvokeAsync(context);
+        await middleware.InvokeAsync(context2);
 
         // Assert - Rate limited responses have headers added directly (not via OnStarting)
-        context.Response.StatusCode.Should().Be((int)HttpStatusCode.TooManyRequests);
-        context.Response.Headers.Should().ContainKey("X-RateLimit-Limit");
-        context.Response.Headers["X-RateLimit-Limit"].ToString().Should().Be("5");
+        context2.Response.StatusCode.Should().Be((int)HttpStatusCode.TooManyRequests);
+        context2.Response.Headers.Should().ContainKey("X-RateLimit-Limit");
+        context2.Response.Headers["X-RateLimit-Limit"].ToString().Should().Be("5");
+        context2.Response.Headers.Should().ContainKey("X-RateLimit-Remaining");
+        context2.Response.Headers["X-RateLimit-Remaining"].ToString().Should().Be("0");
     }
 
     [Fact]
@@ -380,5 +442,96 @@ public class RateLimitingMiddlewareTests
         // Assert - should use default values and pass through
         nextMock.Verify(n => n.Invoke(context), Times.Once);
         context.Response.StatusCode.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_MissingXApiKeyHeader_UsesIpAddressAsFallback()
+    {
+        // Arrange
+        var nextMock = new Mock<RequestDelegate>();
+        var middleware = new RateLimitingMiddleware(nextMock.Object, _loggerMock.Object, _testConfig);
+        var context = CreateHttpContext(ipAddress: "10.0.0.1");
+        context.Request.Path = "/api/test";
+
+        // Ensure no API key header is set
+        context.Request.Headers.Remove("X-API-Key");
+
+        // Act - Should not throw, should use IP address as fallback
+        Func<Task> act = async () => await middleware.InvokeAsync(context);
+        await act.Should().NotThrowAsync<NullReferenceException>();
+
+        // Assert - Should pass through (under limit)
+        nextMock.Verify(n => n.Invoke(context), Times.Once);
+        context.Response.StatusCode.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_RetryAfterHeader_HasCorrectFormat()
+    {
+        // Arrange
+        var nextMock = new Mock<RequestDelegate>();
+        var middleware = new RateLimitingMiddleware(nextMock.Object, _loggerMock.Object, _testConfig);
+        var context = CreateHttpContext();
+        context.Request.Path = "/api/test";
+
+        // Exhaust the rate limit
+        for (int i = 0; i < 5; i++)
+        {
+            await middleware.InvokeAsync(context);
+            context = CreateHttpContext();
+            context.Request.Path = "/api/test";
+        }
+
+        // Act - 6th request should be rate limited
+        await middleware.InvokeAsync(context);
+
+        // Assert - Retry-After should be a valid number
+        context.Response.StatusCode.Should().Be((int)HttpStatusCode.TooManyRequests);
+        context.Response.Headers.Should().ContainKey("Retry-After");
+        var retryAfter = context.Response.Headers["Retry-After"].ToString();
+        retryAfter.Should().NotBeNullOrEmpty();
+        int.Parse(retryAfter).Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_MultipleClients_WithSameIpButDifferentApiKeys_AreTrackedIndependently()
+    {
+        // Arrange
+        var nextMock = new Mock<RequestDelegate>();
+        var middleware = new RateLimitingMiddleware(nextMock.Object, _loggerMock.Object, _testConfig);
+
+        // Client 1 with API key "key1" and IP "192.168.1.1"
+        var client1Context = CreateHttpContext(apiKey: "key1", ipAddress: "192.168.1.1");
+        client1Context.Request.Path = "/api/test";
+
+        // Client 2 with API key "key2" and same IP "192.168.1.1"
+        var client2Context = CreateHttpContext(apiKey: "key2", ipAddress: "192.168.1.1");
+        client2Context.Request.Path = "/api/test";
+
+        // Exhaust client 1's limit
+        for (int i = 0; i < 5; i++)
+        {
+            await middleware.InvokeAsync(client1Context);
+            client1Context = CreateHttpContext(apiKey: "key1", ipAddress: "192.168.1.1");
+            client1Context.Request.Path = "/api/test";
+        }
+
+        // Client 2 should still be able to make requests (different API key = different client)
+        await middleware.InvokeAsync(client2Context);
+
+        // Assert
+        nextMock.Verify(n => n.Invoke(client2Context), Times.Once);
+        client2Context.Response.StatusCode.Should().Be(200);
+    }
+}
+
+// Extension method to read response body as string
+internal static class HttpResponseExtensions
+{
+    public static async Task<string> ReadAsStringAsync(this HttpResponse response)
+    {
+        response.Body.Seek(0, System.IO.SeekOrigin.Begin);
+        using var reader = new StreamReader(response.Body);
+        return await reader.ReadToEndAsync();
     }
 }
