@@ -1,0 +1,169 @@
+diff --git a/Utilities/ExpressionEvaluator.cs b/Utilities/ExpressionEvaluator.cs
+index 0000000..0000000 100644
+--- a/Utilities/ExpressionEvaluator.cs
++++ b/Utilities/ExpressionEvaluator.cs
+@@ -8,6 +8,51 @@ using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
+
+ namespace DotNetWorkflowEngine.Utilities;
+
++/// <summary>
++/// Exception thrown when a referenced variable is not found in the execution context.
++/// </summary>
++public class ExpressionVariableNotFoundException : Exception
++{
++    /// <summary>
++    /// Gets the name of the missing variable.
++    /// </summary>
++    public string VariableName { get; }
++
++    /// <summary>
++    /// Initializes a new instance of the <see cref="ExpressionVariableNotFoundException"/> class.
++    /// </summary>
++    /// <param name="variableName">The name of the missing variable.</param>
++    public ExpressionVariableNotFoundException(string variableName)
++        : base($"Variable '{variableName}' not found in execution context.")
++    {
++        VariableName = variableName;
++    }
++
++    /// <summary>
++    /// Initializes a new instance of the <see cref="ExpressionVariableNotFoundException"/> class with a custom message.
++    /// </summary>
++    /// <param name="variableName">The name of the missing variable.</param>
++    /// <param name="message">The custom error message.</param>
++    public ExpressionVariableNotFoundException(string variableName, string message)
++        : base(message)
++    {
++        VariableName = variableName;
++    }
++}
++
++/// <summary>
++/// Specifies the evaluation mode for handling missing or null variables.
++/// </summary>
++public enum ExpressionEvaluationMode
++{
++    /// <summary>
++    /// Lenient mode: Missing variables are treated as null and evaluate to false.
++    /// This maintains backward compatibility with existing workflows.
++    /// </summary>
++    Lenient,
++
++    /// <summary>
++    /// Strict mode: Missing variables throw <see cref="ExpressionVariableNotFoundException"/>.
++    /// This ensures deterministic behavior and catches configuration errors.
++    /// </summary>
++    Strict
++}
++
+ /// <summary>
+ /// Evaluates conditional expressions in workflows with security hardening against injection and resource exhaustion.
+ /// </summary>
+@@ -63,8 +108,7 @@ public class ExpressionEvaluator
+ /// <exception cref="ArgumentException">Thrown if expression is too long or null.</exception>
+ public static bool Evaluate(string expression, ExecutionContext context)
+ {
+-    ArgumentNullException.ThrowIfNull(context);
+-
++    ArgumentNullException.ThrowIfNull(context);
+
+     // Handle null expression for backward compatibility
+     if (expression == null)
+@@ -115,6 +159,103 @@ public static bool Evaluate(string expression, ExecutionContext context)
+     expression = expression.Trim();
+
++    // Variable reference: ${variable_name}
++    // Must match the whole expression exactly (no other operators/braces present),
++    // otherwise a compound expression like "${a} && ${b}" would be misread as a
++    // single variable reference because it also starts with "${" and ends with "}".
++    if (IsSingleVariableReference(expression))
++    {
++        var varName = expression.Substring(2, expression.Length - 3);
++        var value = GetVariableWithMode(varName, context, ExpressionEvaluationMode.Lenient);
++        var result = ConvertToBoolean(value);
++        CacheResult(expression, result);
++        return result;
++    }
++
++    // Rest of the method continues...
++
++}
++
++/// <summary>
++/// Evaluates a boolean expression against a context with specified evaluation mode.
++/// </summary>
++/// <param name="expression">The expression to evaluate.</param>
++/// <param name="context">The execution context containing variables.</param>
++/// <param name="mode">The evaluation mode for handling missing/null variables.</param>
++/// <returns>The evaluation result.</returns>
++/// <exception cref="ArgumentNullException">Thrown if context is null.</exception>
++/// <exception cref="ArgumentException">Thrown if expression is too long or null.</exception>
++/// <exception cref="ExpressionVariableNotFoundException">Thrown in strict mode when a variable is not found.</exception>
++public static bool Evaluate(string expression, ExecutionContext context, ExpressionEvaluationMode mode)
++{
++    ArgumentNullException.ThrowIfNull(context);
++
++    // Handle null expression for backward compatibility
++    if (expression == null)
++    {
++        return mode == ExpressionEvaluationMode.Strict
++            ? throw new ExpressionVariableNotFoundException("Expression is null")
++            : true;
++    }
++
++    // Validate expression length to prevent memory exhaustion
++    if (expression.Length > MaxExpressionLength)
++    {
++        throw new ArgumentException($"Expression length exceeds maximum allowed length of {MaxExpressionLength} characters.", nameof(expression));
++    }
++
++    if (string.IsNullOrWhiteSpace(expression))
++    {
++        return true;
++    }
++
++    // Use cache to avoid re-parsing expressions
++    if (ExpressionCache.TryGetValue(expression, out var cached))
++    {
++        return cached.Result;
++    }
++
++    // Remove whitespace
++    expression = expression.Trim();
++
++    // Literal values
++    if (expression == "true" || expression == "1")
++    {
++        CacheResult(expression, true);
++        return true;
++    }
++
++    if (expression == "false" || expression == "0")
++    {
++        CacheResult(expression, false);
++        return false;
++    }
++
++    // Function calls: len(), coalesce(), contains()
++    if (expression.Contains('(') && expression.EndsWith(")") && !expression.Contains(" contains "))
++    {
++        if (EvaluateFunctionCall(expression, context))
++        {
++            CacheResult(expression, true);
++            return true;
++        }
++    }
++
++    // Variable reference with mode support
++    if (IsSingleVariableReference(expression))
++    {
++        var varName = expression.Substring(2, expression.Length - 3);
++        var value = GetVariableWithMode(varName, context, mode);
++        var result = ConvertToBoolean(value);
++        CacheResult(expression, result);
++        return result;
++    }
++
++    // Update all recursive calls to pass the mode parameter
++    // Logical AND, OR, comparisons, NOT, contains all need to be updated
++
