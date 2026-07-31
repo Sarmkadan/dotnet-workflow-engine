@@ -62,6 +62,9 @@ public class DotnetWorkflowEngineOptionsValidator : AbstractValidator<DotnetWork
                    x.Equals("Redis", StringComparison.OrdinalIgnoreCase))
             .WithMessage("CacheProvider must be either 'Memory' or 'Redis'");
 
+        RuleFor(x => x.DefaultCacheExpiration)
+            .GreaterThan(TimeSpan.Zero).WithMessage("DefaultCacheExpiration must be greater than zero");
+
         // Execution mode validation
         RuleFor(x => x.ExecutionMode)
             .Must(x => x.Equals("Sequential", StringComparison.OrdinalIgnoreCase) ||
