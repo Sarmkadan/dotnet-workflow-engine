@@ -4,8 +4,12 @@
 // =============================================================================
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace DotNetWorkflowEngine.Monitoring;
 
@@ -28,18 +32,18 @@ public interface IWorkflowMetrics
 /// </summary>
 public class WorkflowMetricsSnapshot
 {
-    public int TotalWorkflowsExecuted { get; set; }
-    public int SuccessfulWorkflows { get; set; }
-    public int FailedWorkflows { get; set; }
+    public long TotalWorkflowsExecuted { get; set; }
+    public long SuccessfulWorkflows { get; set; }
+    public long FailedWorkflows { get; set; }
     public double SuccessRate { get; set; }
     public long AverageWorkflowDurationMs { get; set; }
     public long MinWorkflowDurationMs { get; set; }
     public long MaxWorkflowDurationMs { get; set; }
-    public int TotalActivitiesExecuted { get; set; }
-    public int SuccessfulActivities { get; set; }
-    public int FailedActivities { get; set; }
+    public long TotalActivitiesExecuted { get; set; }
+    public long SuccessfulActivities { get; set; }
+    public long FailedActivities { get; set; }
     public long AverageActivityDurationMs { get; set; }
-    public Dictionary<string, int> ErrorCount { get; set; } = new();
+    public Dictionary<string, long> ErrorCount { get; set; } = new();
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     public DateTime SnapshotTime { get; set; } = DateTime.UtcNow;
 }
@@ -50,22 +54,29 @@ public class WorkflowMetricsSnapshot
 /// </summary>
 public class WorkflowMetrics : IWorkflowMetrics
 {
+    private class AtomicCounter
+    {
+        public long Value;
+        public long Increment() => Interlocked.Increment(ref Value);
+        public void Reset() => Interlocked.Exchange(ref Value, 0);
+    }
+
     private readonly ILogger<WorkflowMetrics> _logger;
-    private int _totalWorkflowsExecuted;
-    private int _successfulWorkflows;
-    private int _failedWorkflows;
+    private long _totalWorkflowsExecuted;
+    private long _successfulWorkflows;
+    private long _failedWorkflows;
     private long _totalWorkflowDurationMs;
     private long _minWorkflowDurationMs = long.MaxValue;
     private long _maxWorkflowDurationMs;
 
-    private int _totalActivitiesExecuted;
-    private int _successfulActivities;
-    private int _failedActivities;
+    private long _totalActivitiesExecuted;
+    private long _successfulActivities;
+    private long _failedActivities;
     private long _totalActivityDurationMs;
     private long _minActivityDurationMs = long.MaxValue;
     private long _maxActivityDurationMs;
 
-    private readonly Dictionary<string, int> _errorCounts = new();
+    private readonly ConcurrentDictionary<string, AtomicCounter> _errorCounts = new();
     private readonly object _lock = new();
 
     public WorkflowMetrics(ILogger<WorkflowMetrics> logger)
@@ -78,25 +89,23 @@ public class WorkflowMetrics : IWorkflowMetrics
     /// </summary>
     public void RecordWorkflowExecution(string workflowId, long durationMs, bool success)
     {
-        lock (_lock)
-        {
-            _totalWorkflowsExecuted++;
+        Interlocked.Increment(ref _totalWorkflowsExecuted);
 
-            if (success)
-                _successfulWorkflows++;
-            else
-                _failedWorkflows++;
+        if (success)
+            Interlocked.Increment(ref _successfulWorkflows);
+        else
+            Interlocked.Increment(ref _failedWorkflows);
 
-            _totalWorkflowDurationMs += durationMs;
-            _minWorkflowDurationMs = Math.Min(_minWorkflowDurationMs, durationMs);
-            _maxWorkflowDurationMs = Math.Max(_maxWorkflowDurationMs, durationMs);
+        Interlocked.Add(ref _totalWorkflowDurationMs, durationMs);
+        
+        UpdateMin(ref _minWorkflowDurationMs, durationMs);
+        UpdateMax(ref _maxWorkflowDurationMs, durationMs);
 
-            _logger.LogDebug(
-                "Workflow executed: {WorkflowId}, Duration: {DurationMs}ms, Success: {Success}",
-                workflowId,
-                durationMs,
-                success);
-        }
+        _logger.LogDebug(
+            "Workflow executed: {WorkflowId}, Duration: {DurationMs}ms, Success: {Success}",
+            workflowId,
+            durationMs,
+            success);
     }
 
     /// <summary>
@@ -104,25 +113,23 @@ public class WorkflowMetrics : IWorkflowMetrics
     /// </summary>
     public void RecordActivityExecution(string activityId, long durationMs, bool success)
     {
-        lock (_lock)
-        {
-            _totalActivitiesExecuted++;
+        Interlocked.Increment(ref _totalActivitiesExecuted);
 
-            if (success)
-                _successfulActivities++;
-            else
-                _failedActivities++;
+        if (success)
+            Interlocked.Increment(ref _successfulActivities);
+        else
+            Interlocked.Increment(ref _failedActivities);
 
-            _totalActivityDurationMs += durationMs;
-            _minActivityDurationMs = Math.Min(_minActivityDurationMs, durationMs);
-            _maxActivityDurationMs = Math.Max(_maxActivityDurationMs, durationMs);
+        Interlocked.Add(ref _totalActivityDurationMs, durationMs);
+        
+        UpdateMin(ref _minActivityDurationMs, durationMs);
+        UpdateMax(ref _maxActivityDurationMs, durationMs);
 
-            _logger.LogDebug(
-                "Activity executed: {ActivityId}, Duration: {DurationMs}ms, Success: {Success}",
-                activityId,
-                durationMs,
-                success);
-        }
+        _logger.LogDebug(
+            "Activity executed: {ActivityId}, Duration: {DurationMs}ms, Success: {Success}",
+            activityId,
+            durationMs,
+            success);
     }
 
     /// <summary>
@@ -130,19 +137,14 @@ public class WorkflowMetrics : IWorkflowMetrics
     /// </summary>
     public void RecordError(string errorType, string? details = null)
     {
-        lock (_lock)
-        {
-            if (!_errorCounts.ContainsKey(errorType))
-                _errorCounts[errorType] = 0;
+        var counter = _errorCounts.GetOrAdd(errorType, _ => new AtomicCounter());
+        long newCount = counter.Increment();
 
-            _errorCounts[errorType]++;
-
-            _logger.LogWarning(
-                "Error recorded: {ErrorType}. Count: {Count}. Details: {Details}",
-                errorType,
-                _errorCounts[errorType],
-                details ?? "none");
-        }
+        _logger.LogWarning(
+            "Error recorded: {ErrorType}. Count: {Count}. Details: {Details}",
+            errorType,
+            newCount,
+            details ?? "none");
     }
 
     /// <summary>
@@ -154,9 +156,9 @@ public class WorkflowMetrics : IWorkflowMetrics
         {
             var snapshot = new WorkflowMetricsSnapshot
             {
-                TotalWorkflowsExecuted = _totalWorkflowsExecuted,
-                SuccessfulWorkflows = _successfulWorkflows,
-                FailedWorkflows = _failedWorkflows,
+                TotalWorkflowsExecuted = Interlocked.Read(ref _totalWorkflowsExecuted),
+                SuccessfulWorkflows = Interlocked.Read(ref _successfulWorkflows),
+                FailedWorkflows = Interlocked.Read(ref _failedWorkflows),
                 SuccessRate = _totalWorkflowsExecuted > 0
                     ? Math.Round((double)_successfulWorkflows / _totalWorkflowsExecuted * 100, 2)
                     : 0,
@@ -166,14 +168,14 @@ public class WorkflowMetrics : IWorkflowMetrics
                 MinWorkflowDurationMs = _minWorkflowDurationMs == long.MaxValue ? 0 : _minWorkflowDurationMs,
                 MaxWorkflowDurationMs = _maxWorkflowDurationMs,
 
-                TotalActivitiesExecuted = _totalActivitiesExecuted,
-                SuccessfulActivities = _successfulActivities,
-                FailedActivities = _failedActivities,
+                TotalActivitiesExecuted = Interlocked.Read(ref _totalActivitiesExecuted),
+                SuccessfulActivities = Interlocked.Read(ref _successfulActivities),
+                FailedActivities = Interlocked.Read(ref _failedActivities),
                 AverageActivityDurationMs = _totalActivitiesExecuted > 0
                     ? _totalActivityDurationMs / _totalActivitiesExecuted
                     : 0,
 
-                ErrorCount = new Dictionary<string, int>(_errorCounts),
+                ErrorCount = _errorCounts.ToDictionary(kvp => kvp.Key, kvp => Interlocked.Read(ref kvp.Value.Value)),
                 SnapshotTime = DateTime.UtcNow
             };
 
@@ -188,23 +190,47 @@ public class WorkflowMetrics : IWorkflowMetrics
     {
         lock (_lock)
         {
-            _totalWorkflowsExecuted = 0;
-            _successfulWorkflows = 0;
-            _failedWorkflows = 0;
-            _totalWorkflowDurationMs = 0;
-            _minWorkflowDurationMs = long.MaxValue;
-            _maxWorkflowDurationMs = 0;
+            Interlocked.Exchange(ref _totalWorkflowsExecuted, 0);
+            Interlocked.Exchange(ref _successfulWorkflows, 0);
+            Interlocked.Exchange(ref _failedWorkflows, 0);
+            Interlocked.Exchange(ref _totalWorkflowDurationMs, 0);
+            Interlocked.Exchange(ref _minWorkflowDurationMs, long.MaxValue);
+            Interlocked.Exchange(ref _maxWorkflowDurationMs, 0);
 
-            _totalActivitiesExecuted = 0;
-            _successfulActivities = 0;
-            _failedActivities = 0;
-            _totalActivityDurationMs = 0;
-            _minActivityDurationMs = long.MaxValue;
-            _maxActivityDurationMs = 0;
+            Interlocked.Exchange(ref _totalActivitiesExecuted, 0);
+            Interlocked.Exchange(ref _successfulActivities, 0);
+            Interlocked.Exchange(ref _failedActivities, 0);
+            Interlocked.Exchange(ref _totalActivityDurationMs, 0);
+            Interlocked.Exchange(ref _minActivityDurationMs, long.MaxValue);
+            Interlocked.Exchange(ref _maxActivityDurationMs, 0);
 
             _errorCounts.Clear();
 
             _logger.LogInformation("Metrics reset");
+        }
+    }
+
+    private static void UpdateMin(ref long location, long value)
+    {
+        long initialValue = Volatile.Read(ref location);
+        while (value < initialValue)
+        {
+            long originalValue = Interlocked.CompareExchange(ref location, value, initialValue);
+            if (originalValue == initialValue)
+                break;
+            initialValue = originalValue;
+        }
+    }
+
+    private static void UpdateMax(ref long location, long value)
+    {
+        long initialValue = Volatile.Read(ref location);
+        while (value > initialValue)
+        {
+            long originalValue = Interlocked.CompareExchange(ref location, value, initialValue);
+            if (originalValue == initialValue)
+                break;
+            initialValue = originalValue;
         }
     }
 }
