@@ -34,7 +34,7 @@ public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequire
     {
         var user = context.User;
 
-        if (!user.Identity?.IsAuthenticated ?? true)
+        if (user == null || user.Identity?.IsAuthenticated != true)
         {
             _logger.LogWarning("Authorization failed: User is not authenticated");
             context.Fail();
