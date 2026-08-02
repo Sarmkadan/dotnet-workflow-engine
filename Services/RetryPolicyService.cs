@@ -41,7 +41,7 @@ public class RetryPolicyService
         if (policy == null)
             return Constants.WorkflowConstants.DefaultRetryDelayMs;
 
-        return policy.CalculateDelayMs(attemptNumber);
+        return Math.Min(int.MaxValue, policy.CalculateDelayMs(attemptNumber));
     }
 
     /// <summary>
