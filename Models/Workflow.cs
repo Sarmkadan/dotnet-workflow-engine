@@ -30,16 +30,28 @@ namespace DotNetWorkflowEngine.Models;
 /// to execute against the version they were created with.
 /// </para>
 /// </remarks>
-public class Workflow
+/// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public class Workflow
 {
     /// <summary>Gets or sets the unique identifier of the workflow.</summary>
-    public string Id { get; set; } = string.Empty;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string Id { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the name of the workflow.</summary>
-    public string Name { get; set; } = string.Empty;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the description of the workflow.</summary>
-    public string? Description { get; set; }
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string? Description { get; set; }
 
     /// <summary>Gets the immutable version number of this workflow definition.</summary>
     /// <remarks>
@@ -47,37 +59,70 @@ public class Workflow
     /// When a workflow is updated, a new version is created instead of mutating the existing one.
     /// Existing workflow instances are pinned to this version and will execute against it.
     /// </remarks>
-    public int Version { get; init; } = 1;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public int Version { get; init; } = 1;
 
     /// <summary>Gets or sets the current status of the workflow.</summary>
-    public WorkflowStatus Status { get; set; } = WorkflowStatus.Draft;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public WorkflowStatus Status { get; set; } = WorkflowStatus.Draft;
 
     /// <summary>Gets whether the workflow has been published (status is <see cref="WorkflowStatus.Active"/>).</summary>
-    public bool IsPublished => Status == WorkflowStatus.Active;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public bool IsPublished => Status == WorkflowStatus.Active;
 
     /// <summary>Gets or sets the list of activities in this workflow.</summary>
-    public List<Activity> Activities { get; set; } = new();
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public List<Activity> Activities { get; set; } = new();
 
     /// <summary>Gets or sets the list of transitions between activities.</summary>
-    public List<Transition> Transitions { get; set; } = new();
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public List<Transition> Transitions { get; set; } = new();
 
     /// <summary>Gets or sets the ID of the starting activity.</summary>
-    public string? StartActivityId { get; set; }
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string? StartActivityId { get; set; }
 
     /// <summary>Gets or sets the ID of the ending activity.</summary>
-    public string? EndActivityId { get; set; }
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string? EndActivityId { get; set; }
 
     /// <summary>Gets or sets when the workflow was created.</summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Gets or sets when the workflow was last modified.</summary>
-    public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Gets or sets the creator of the workflow.</summary>
-    public string? CreatedBy { get; set; }
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string? CreatedBy { get; set; }
 
     /// <summary>Gets or sets the user who last modified the workflow.</summary>
-    public string? ModifiedBy { get; set; }
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public string? ModifiedBy { get; set; }
 
     /// <summary>
     /// Validates the workflow definition by checking required properties and verifying
@@ -88,7 +133,10 @@ public class Workflow
     /// describing validation failures.
     /// </param>
     /// <returns><c>true</c> if the workflow definition is valid; otherwise <c>false</c>.</returns>
-    public bool Validate(out List<string> errors)
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public bool Validate(out List<string> errors)
     {
         errors = new List<string>();
 
@@ -125,7 +173,10 @@ public class Workflow
     /// <summary>
     /// Gets all activities that can be reached from a given activity.
     /// </summary>
-    public List<Activity> GetNextActivities(string activityId)
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public List<Activity> GetNextActivities(string activityId)
     {
         var transitions = Transitions.Where(t => t.FromActivityId == activityId).ToList();
         return Activities.Where(a => transitions.Any(t => t.ToActivityId == a.Id)).ToList();
@@ -134,7 +185,10 @@ public class Workflow
     /// <summary>
     /// Gets all activities that can reach a given activity.
     /// </summary>
-    public List<Activity> GetPreviousActivities(string activityId)
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public List<Activity> GetPreviousActivities(string activityId)
     {
         var transitions = Transitions.Where(t => t.ToActivityId == activityId).ToList();
         return Activities.Where(a => transitions.Any(t => t.FromActivityId == a.Id)).ToList();
@@ -143,7 +197,10 @@ public class Workflow
     /// <summary>
     /// Marks the workflow as ready for execution.
     /// </summary>
-    public void Publish()
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public void Publish()
     {
         if (Validate(out var errors))
         {
@@ -162,7 +219,10 @@ public class Workflow
     /// </summary>
     /// <param name="newVersion">The version number for the new workflow.</param>
     /// <returns>A new workflow instance with copied properties and activities.</returns>
-    public Workflow CloneWithVersion(int newVersion)
+    /// <summary>
+        /// XML doc comments go here
+        /// </summary>
+        public Workflow CloneWithVersion(int newVersion)
     {
         return new Workflow
         {
