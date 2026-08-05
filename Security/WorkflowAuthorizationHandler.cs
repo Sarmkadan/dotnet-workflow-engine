@@ -21,6 +21,7 @@ public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequire
 
     public WorkflowAuthorizationHandler(ILogger<WorkflowAuthorizationHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
