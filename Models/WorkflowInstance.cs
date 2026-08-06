@@ -87,6 +87,7 @@ public class WorkflowInstance
     /// <param name="definitionVersion">The version of the workflow definition to pin this instance to.</param>
     public WorkflowInstance(string workflowId, string? correlationId = null, int definitionVersion = 1)
     {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(workflowId));
         Id = Guid.NewGuid().ToString();
         WorkflowId = workflowId;
         CorrelationId = correlationId ?? Id;
@@ -105,6 +106,7 @@ public class WorkflowInstance
     /// </summary>
     public void Start()
     {
+        ArgumentNullException.ThrowIfNull(Status);
         TransitionTo(WorkflowStatus.Active);
     }
 
@@ -113,6 +115,7 @@ public class WorkflowInstance
     /// </summary>
     public void Complete()
     {
+        ArgumentNullException.ThrowIfNull(Status);
         TransitionTo(WorkflowStatus.Archived);
     }
 
@@ -122,6 +125,7 @@ public class WorkflowInstance
     /// <param name="errorMessage">The error message describing the failure.</param>
     public void Fail(string errorMessage)
     {
+        ArgumentException.ThrowIfNullOrEmpty(errorMessage);
         ErrorMessage = errorMessage;
         TransitionTo(WorkflowStatus.Suspended);
     }
@@ -131,6 +135,7 @@ public class WorkflowInstance
     /// </summary>
     public void SetContextVariable(string key, object? value)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         Context[key] = value;
     }
 
@@ -139,6 +144,7 @@ public class WorkflowInstance
     /// </summary>
     public object? GetContextVariable(string key)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         Context.TryGetValue(key, out var value);
         return value;
     }
@@ -190,6 +196,7 @@ public class WorkflowInstance
     /// <param name="reason">Optional reason for suspension.</param>
     public void Suspend(string? reason = null)
     {
+        ArgumentNullException.ThrowIfNull(Status);
         TransitionTo(WorkflowStatus.Suspended, reason);
     }
 
