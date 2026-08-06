@@ -178,6 +178,7 @@ namespace DotNetWorkflowEngine.Models;
         /// </summary>
         public List<Activity> GetNextActivities(string activityId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(activityId);
         var transitions = Transitions.Where(t => t.FromActivityId == activityId).ToList();
         return Activities.Where(a => transitions.Any(t => t.ToActivityId == a.Id)).ToList();
     }
@@ -190,6 +191,7 @@ namespace DotNetWorkflowEngine.Models;
         /// </summary>
         public List<Activity> GetPreviousActivities(string activityId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(activityId);
         var transitions = Transitions.Where(t => t.ToActivityId == activityId).ToList();
         return Activities.Where(a => transitions.Any(t => t.FromActivityId == a.Id)).ToList();
     }
