@@ -59,6 +59,7 @@ public class ActivityResult
     /// </summary>
     public ActivityResult(string activityId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(activityId);
         ActivityId = activityId;
     }
 
@@ -67,6 +68,7 @@ public class ActivityResult
     /// </summary>
     public void SetSuccess(Dictionary<string, object?> output)
     {
+        ArgumentNullException.ThrowIfNull(output);
         Status = ActivityStatus.Completed;
         Output = output;
         EndTime = DateTime.UtcNow;
@@ -78,6 +80,7 @@ public class ActivityResult
     /// </summary>
     public void SetFailure(string errorMessage, string? stackTrace = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(errorMessage);
         Status = ActivityStatus.Failed;
         ErrorMessage = errorMessage;
         StackTrace = stackTrace;
@@ -90,6 +93,7 @@ public class ActivityResult
     /// </summary>
     public void SetSkipped(string reason)
     {
+        ArgumentException.ThrowIfNullOrEmpty(reason);
         Status = ActivityStatus.Skipped;
         ErrorMessage = reason;
         EndTime = DateTime.UtcNow;
@@ -101,6 +105,7 @@ public class ActivityResult
     /// </summary>
     public void SetWaiting(string reason)
     {
+        ArgumentException.ThrowIfNullOrEmpty(reason);
         Status = ActivityStatus.Waiting;
         ErrorMessage = reason;
     }
@@ -153,6 +158,7 @@ public class ActivityResult
     /// </summary>
     public object? GetOutput(string key)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         Output.TryGetValue(key, out var value);
         return value;
     }
@@ -162,6 +168,7 @@ public class ActivityResult
     /// </summary>
     public T? GetOutput<T>(string key)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         if (Output.TryGetValue(key, out var value))
         {
             if (value is T typed)
