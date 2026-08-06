@@ -58,6 +58,9 @@ public class AuditLogEntry
     /// </summary>
     public AuditLogEntry(string workflowInstanceId, string eventType, string description)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowInstanceId);
+        ArgumentException.ThrowIfNullOrEmpty(eventType);
+        ArgumentException.ThrowIfNullOrEmpty(description);
         Id = Guid.NewGuid().ToString();
         WorkflowInstanceId = workflowInstanceId;
         EventType = eventType;
@@ -69,6 +72,9 @@ public class AuditLogEntry
     /// </summary>
     public static AuditLogEntry CreateActivityExecution(string workflowInstanceId, string activityId, string status)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowInstanceId);
+        ArgumentException.ThrowIfNullOrEmpty(activityId);
+        ArgumentException.ThrowIfNullOrEmpty(status);
         return new AuditLogEntry
         {
             Id = Guid.NewGuid().ToString(),
@@ -84,6 +90,10 @@ public class AuditLogEntry
     /// </summary>
     public static AuditLogEntry CreateStateChange(string workflowInstanceId, string previousState, string currentState, string reason)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowInstanceId);
+        ArgumentException.ThrowIfNullOrEmpty(previousState);
+        ArgumentException.ThrowIfNullOrEmpty(currentState);
+        ArgumentException.ThrowIfNullOrEmpty(reason);
         return new AuditLogEntry
         {
             Id = Guid.NewGuid().ToString(),
@@ -99,6 +109,8 @@ public class AuditLogEntry
     /// </summary>
     public static AuditLogEntry CreateError(string workflowInstanceId, string? activityId, string errorMessage, string? correlationId = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowInstanceId);
+        ArgumentException.ThrowIfNullOrEmpty(errorMessage);
         return new AuditLogEntry
         {
             Id = Guid.NewGuid().ToString(),
