@@ -24,6 +24,7 @@ public class ValidationFilter : IAsyncActionFilter
 
     public ValidationFilter(ILogger<ValidationFilter> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
@@ -33,6 +34,9 @@ public class ValidationFilter : IAsyncActionFilter
     /// </summary>
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
+
         if (!context.ModelState.IsValid)
         {
             var errors = context.ModelState
@@ -70,11 +74,15 @@ public class DataAnnotationValidationFilter : IAsyncActionFilter
 
     public DataAnnotationValidationFilter(ILogger<DataAnnotationValidationFilter> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
+
         // Validate all action arguments that have validation attributes
         foreach (var argument in context.ActionArguments)
         {
