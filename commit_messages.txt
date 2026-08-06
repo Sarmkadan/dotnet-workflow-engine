@@ -1,2 +1,0 @@
-feat(model): add argument null guards to ActivityResult methods
-
