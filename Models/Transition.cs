@@ -9,65 +9,65 @@ namespace DotNetWorkflowEngine.Models;
 /// Represents a transition/edge between two activities in a workflow.
 /// </summary>
 /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public class Transition
+/// XML doc comments go here
+/// </summary>
+public class Transition
 {
     /// <summary>Gets or sets the unique identifier of the transition.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string Id { get; set; } = string.Empty;
+    /// XML doc comments go here
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the ID of the source activity.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string FromActivityId { get; set; } = string.Empty;
+    /// XML doc comments go here
+    /// </summary>
+    public string FromActivityId { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the ID of the target activity.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string ToActivityId { get; set; } = string.Empty;
+    /// XML doc comments go here
+    /// </summary>
+    public string ToActivityId { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the condition expression for conditional transitions.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? ConditionExpression { get; set; }
+    /// XML doc comments go here
+    /// </summary>
+    public string? ConditionExpression { get; set; }
 
     /// <summary>Gets or sets the label or description of the transition.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? Label { get; set; }
+    /// XML doc comments go here
+    /// </summary>
+    public string? Label { get; set; }
 
     /// <summary>Gets or sets whether this is the default transition when no other conditions match.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public bool IsDefault { get; set; } = false;
+    /// XML doc comments go here
+    /// </summary>
+    public bool IsDefault { get; set; } = false;
 
     /// <summary>Gets or sets the priority for this transition (higher priority evaluated first).</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public int Priority { get; set; } = 0;
+    /// XML doc comments go here
+    /// </summary>
+    public int Priority { get; set; } = 0;
 
     /// <summary>Gets or sets when the transition was created.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// XML doc comments go here
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Validates the transition configuration.
     /// </summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public bool Validate(out List<string> errors)
+    /// XML doc comments go here
+    /// </summary>
+    public bool Validate(out List<string> errors)
     {
         errors = new List<string>();
 
@@ -90,10 +90,12 @@ namespace DotNetWorkflowEngine.Models;
     /// Creates a default transition between two activities.
     /// </summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public static Transition CreateDefault(string fromId, string toId)
+    /// XML doc comments go here
+    /// </summary>
+    public static Transition CreateDefault(string fromId, string toId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(fromId);
+        ArgumentException.ThrowIfNullOrEmpty(toId);
         return new Transition
         {
             Id = $"{fromId}_to_{toId}_default",
@@ -107,10 +109,13 @@ namespace DotNetWorkflowEngine.Models;
     /// Creates a conditional transition with an expression.
     /// </summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public static Transition CreateConditional(string fromId, string toId, string conditionExpression)
+    /// XML doc comments go here
+    /// </summary>
+    public static Transition CreateConditional(string fromId, string toId, string conditionExpression)
     {
+        ArgumentException.ThrowIfNullOrEmpty(fromId);
+        ArgumentException.ThrowIfNullOrEmpty(toId);
+        ArgumentNullException.ThrowIfNull(conditionExpression);
         return new Transition
         {
             Id = $"{fromId}_to_{toId}_conditional",
