@@ -162,6 +162,8 @@ public class OrderProcessingExample : ControllerBase
     [HttpPost("process")]
     public async Task<ActionResult> ProcessOrder([FromBody] OrderRequest request)
     {
+        if (request == null) { throw new ArgumentNullException(nameof(request)); }
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var workflows = await _workflowService.GetWorkflowsByNameAsync("OrderProcessing");
