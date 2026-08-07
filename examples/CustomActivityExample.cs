@@ -25,6 +25,9 @@ public class CustomActivityExample : ControllerBase
         IWorkflowExecutionService executionService,
         IActivityService activityService)
     {
+        ArgumentNullException.ThrowIfNull(workflowService);
+        ArgumentNullException.ThrowIfNull(executionService);
+        ArgumentNullException.ThrowIfNull(activityService);
         _workflowService = workflowService;
         _executionService = executionService;
         _activityService = activityService;
