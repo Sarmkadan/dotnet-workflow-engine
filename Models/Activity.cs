@@ -170,6 +170,8 @@ namespace DotNetWorkflowEngine.Models;
         /// </summary>
         public void SetInputParameter(string key, object? value)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(value);
         InputParameters[key] = value;
     }
 
@@ -181,6 +183,7 @@ namespace DotNetWorkflowEngine.Models;
         /// </summary>
         public object? GetInputParameter(string key)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         InputParameters.TryGetValue(key, out var value);
         return value;
     }
@@ -193,6 +196,8 @@ namespace DotNetWorkflowEngine.Models;
         /// </summary>
         public void AddOutputMapping(string activityOutputKey, string contextKey)
     {
+        ArgumentException.ThrowIfNullOrEmpty(activityOutputKey);
+        ArgumentNullException.ThrowIfNull(contextKey);
         OutputMapping[activityOutputKey] = contextKey;
     }
 
