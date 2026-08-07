@@ -23,6 +23,8 @@ public class ApprovalChainExample : ControllerBase
         IWorkflowDefinitionService workflowService,
         IWorkflowExecutionService executionService)
     {
+        ArgumentNullException.ThrowIfNull(workflowService);
+        ArgumentNullException.ThrowIfNull(executionService);
         _workflowService = workflowService;
         _executionService = executionService;
     }
@@ -200,6 +202,7 @@ public class ApprovalChainExample : ControllerBase
     [HttpPost("submit")]
     public async Task<ActionResult> SubmitForApproval([FromBody] DocumentSubmission submission)
     {
+        ArgumentNullException.ThrowIfNull(submission);
         try
         {
             var workflows = await _workflowService.GetWorkflowsByNameAsync("DocumentApprovalChain");
@@ -244,6 +247,8 @@ public class ApprovalChainExample : ControllerBase
     [HttpPost("{instanceId}/approve")]
     public async Task<ActionResult> ApproveDocument(Guid instanceId, [FromBody] ApprovalDecision decision)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(decision);
         try
         {
             var instance = await _executionService.GetInstanceAsync(instanceId);
@@ -282,6 +287,8 @@ public class ApprovalChainExample : ControllerBase
     [HttpPost("{instanceId}/reject")]
     public async Task<ActionResult> RejectDocument(Guid instanceId, [FromBody] ApprovalDecision decision)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(decision);
         try
         {
             var instance = await _executionService.GetInstanceAsync(instanceId);
