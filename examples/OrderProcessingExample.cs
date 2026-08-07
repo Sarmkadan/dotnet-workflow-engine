@@ -26,6 +26,9 @@ public class OrderProcessingExample : ControllerBase
         IWorkflowExecutionService executionService,
         IAuditService auditService)
     {
+        ArgumentNullException.ThrowIfNull(workflowService);
+        ArgumentNullException.ThrowIfNull(executionService);
+        ArgumentNullException.ThrowIfNull(auditService);
         _workflowService = workflowService;
         _executionService = executionService;
         _auditService = auditService;
@@ -162,7 +165,6 @@ public class OrderProcessingExample : ControllerBase
     [HttpPost("process")]
     public async Task<ActionResult> ProcessOrder([FromBody] OrderRequest request)
     {
-        if (request == null) { throw new ArgumentNullException(nameof(request)); }
         ArgumentNullException.ThrowIfNull(request);
         try
         {
