@@ -317,6 +317,7 @@ public class CustomActivityExample : ControllerBase
     [HttpPost("execute")]
     public async Task<ActionResult> ExecuteWithCustomActivities([FromBody] CustomActivityRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var workflows = await _workflowService.GetWorkflowsByNameAsync("CustomActivityWorkflow");
