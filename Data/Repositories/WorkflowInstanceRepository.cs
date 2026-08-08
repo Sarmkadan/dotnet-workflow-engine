@@ -153,6 +153,7 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
     /// </summary>
     public Task<bool> ExistsAsync(string id)
     {
+        ArgumentException.ThrowIfNullOrEmpty(id);
         return Task.FromResult(_instances.ContainsKey(id));
     }
 
@@ -188,6 +189,8 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
     /// </summary>
     public Task<List<WorkflowInstance>> GetByWorkflowIdAsync(string workflowId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+
         lock (_syncRoot)
         {
             var instances = _instances.Values.Where(i => i.WorkflowId == workflowId).Select(i => i.Clone()).ToList();
@@ -224,6 +227,8 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
     /// </summary>
     public Task<List<WorkflowInstance>> GetByCorrelationIdAsync(string correlationId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(correlationId);
+
         lock (_syncRoot)
         {
             var instances = _instances.Values.Where(i => i.CorrelationId == correlationId).Select(i => i.Clone()).ToList();
