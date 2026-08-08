@@ -20,6 +20,8 @@ public class RetryPolicyService
     /// </summary>
     public void CreatePolicy(string policyId, RetryPolicyConfig config)
     {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(policyId);
         _policies[policyId] = config;
     }
 
@@ -28,6 +30,7 @@ public class RetryPolicyService
     /// </summary>
     public RetryPolicyConfig? GetPolicy(string policyId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(policyId);
         _policies.TryGetValue(policyId, out var policy);
         return policy;
     }
@@ -37,6 +40,7 @@ public class RetryPolicyService
     /// </summary>
     public int CalculateRetryDelay(string policyId, int attemptNumber)
     {
+        ArgumentException.ThrowIfNullOrEmpty(policyId);
         var policy = GetPolicy(policyId);
         if (policy == null)
             return Constants.WorkflowConstants.DefaultRetryDelayMs;
@@ -49,6 +53,7 @@ public class RetryPolicyService
     /// </summary>
     public bool ShouldRetry(string policyId, int currentAttempt, string? exceptionTypeName = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(policyId);
         var policy = GetPolicy(policyId);
         if (policy == null)
             return false;
@@ -89,6 +94,7 @@ public class RetryPolicyService
     /// </summary>
     public List<int> SimulateRetryDelays(string policyId, int maxAttempts)
     {
+        ArgumentException.ThrowIfNullOrEmpty(policyId);
         var delays = new List<int>();
         for (int i = 1; i <= maxAttempts; i++)
         {
@@ -102,6 +108,7 @@ public class RetryPolicyService
     /// </summary>
     public long GetTotalRetryTimeMs(string policyId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(policyId);
         var policy = GetPolicy(policyId);
         if (policy == null)
             return 0;
@@ -119,6 +126,7 @@ public class RetryPolicyService
     /// </summary>
     public bool ValidatePolicy(RetryPolicyConfig config, out List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(config);
         errors = new List<string>();
 
         if (config.MaxAttempts <= 0)
