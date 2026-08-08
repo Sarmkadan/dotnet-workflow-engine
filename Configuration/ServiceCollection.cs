@@ -24,6 +24,8 @@ public static class ServiceCollection
     /// <returns>The service collection</returns>
     public static IServiceCollection AddWorkflowEngine(this IServiceCollection services, string? connectionString = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrEmpty(connectionString);
         // Register database context
         services.AddSingleton(new DatabaseContext(connectionString));
 
@@ -61,6 +63,8 @@ public static class ServiceCollection
         this IServiceCollection services,
         Action<DotnetWorkflowEngineOptions> configureOptions)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
         // Register database context with connection string from options
         services.AddSingleton(sp =>
         {
@@ -91,6 +95,7 @@ public static class ServiceCollection
     /// </summary>
     public static async Task InitializeWorkflowEngineAsync(this IServiceProvider services)
     {
+        ArgumentNullException.ThrowIfNull(services);
         var context = services.GetRequiredService<DatabaseContext>();
         await context.InitializeAsync();
     }
