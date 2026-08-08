@@ -69,8 +69,7 @@ public class MemoryCacheService : ICacheService
     /// </summary>
     public Task<T?> GetAsync<T>(string key) where T : class
     {
-        if (string.IsNullOrEmpty(key))
-            return Task.FromResult<T?>(null);
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         var found = _memoryCache.TryGetValue(key, out T? value);
         _logger.LogDebug("Cache lookup for {Key}: {Result}", key, found ? "HIT" : "MISS");
@@ -82,8 +81,8 @@ public class MemoryCacheService : ICacheService
     /// </summary>
     public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null) where T : class
     {
-        if (string.IsNullOrEmpty(key) || value == null)
-            return Task.CompletedTask;
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(value);
 
         var options = new MemoryCacheEntryOptions
         {
@@ -104,11 +103,10 @@ public class MemoryCacheService : ICacheService
     /// </summary>
     public Task RemoveAsync(string key)
     {
-        if (!string.IsNullOrEmpty(key))
-        {
-            _memoryCache.Remove(key);
-            _logger.LogDebug("Cache entry removed: {Key}", key);
-        }
+        ArgumentException.ThrowIfNullOrEmpty(key);
+
+        _memoryCache.Remove(key);
+        _logger.LogDebug("Cache entry removed: {Key}", key);
 
         return Task.CompletedTask;
     }
@@ -118,6 +116,8 @@ public class MemoryCacheService : ICacheService
     /// </summary>
     public Task<bool> ExistsAsync(string key)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+
         var exists = _memoryCache.TryGetValue(key, out _);
         return Task.FromResult(exists);
     }
@@ -127,6 +127,9 @@ public class MemoryCacheService : ICacheService
     /// </summary>
     public async Task<T> GetOrLoadAsync<T>(string key, Func<Task<T>> provider, TimeSpan? expiration = null) where T : class
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(provider);
+
         var cached = await GetAsync<T>(key);
         if (cached != null)
             return cached;
@@ -166,8 +169,7 @@ public class DistributedCacheService : ICacheService
     /// </summary>
     public async Task<T?> GetAsync<T>(string key) where T : class
     {
-        if (string.IsNullOrEmpty(key))
-            return null;
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         try
         {
@@ -195,8 +197,8 @@ public class DistributedCacheService : ICacheService
     /// </summary>
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null) where T : class
     {
-        if (string.IsNullOrEmpty(key) || value == null)
-            return;
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(value);
 
         try
         {
@@ -225,17 +227,16 @@ public class DistributedCacheService : ICacheService
     /// </summary>
     public async Task RemoveAsync(string key)
     {
-        if (!string.IsNullOrEmpty(key))
+        ArgumentException.ThrowIfNullOrEmpty(key);
+
+        try
         {
-            try
-            {
-                await _distributedCache.RemoveAsync(key);
-                _logger.LogDebug("Cache entry removed from distributed cache: {Key}", key);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing from distributed cache: {Key}", key);
-            }
+            await _distributedCache.RemoveAsync(key);
+            _logger.LogDebug("Cache entry removed from distributed cache: {Key}", key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing from distributed cache: {Key}", key);
         }
     }
 
@@ -244,8 +245,7 @@ public class DistributedCacheService : ICacheService
     /// </summary>
     public async Task<bool> ExistsAsync(string key)
     {
-        if (string.IsNullOrEmpty(key))
-            return false;
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         try
         {
@@ -264,6 +264,9 @@ public class DistributedCacheService : ICacheService
     /// </summary>
     public async Task<T> GetOrLoadAsync<T>(string key, Func<Task<T>> provider, TimeSpan? expiration = null) where T : class
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(provider);
+
         var cached = await GetAsync<T>(key);
         if (cached != null)
             return cached;
