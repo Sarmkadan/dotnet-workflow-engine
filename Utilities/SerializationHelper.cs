@@ -197,8 +197,7 @@ public static class SerializationHelper
     /// </summary>
     public static string PrettyPrintJson(string json)
     {
-        if (string.IsNullOrEmpty(json))
-            return json;
+        ArgumentException.ThrowIfNullOrEmpty(json);
 
         try
         {
@@ -219,8 +218,7 @@ public static class SerializationHelper
     /// </summary>
     public static string MinifyJson(string json)
     {
-        if (string.IsNullOrEmpty(json))
-            return json;
+        ArgumentException.ThrowIfNullOrEmpty(json);
 
         try
         {
