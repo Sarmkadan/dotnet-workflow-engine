@@ -89,6 +89,8 @@ public class WorkflowMetrics : IWorkflowMetrics
     /// </summary>
     public void RecordWorkflowExecution(string workflowId, long durationMs, bool success)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+
         Interlocked.Increment(ref _totalWorkflowsExecuted);
 
         if (success)
@@ -97,7 +99,7 @@ public class WorkflowMetrics : IWorkflowMetrics
             Interlocked.Increment(ref _failedWorkflows);
 
         Interlocked.Add(ref _totalWorkflowDurationMs, durationMs);
-        
+
         UpdateMin(ref _minWorkflowDurationMs, durationMs);
         UpdateMax(ref _maxWorkflowDurationMs, durationMs);
 
