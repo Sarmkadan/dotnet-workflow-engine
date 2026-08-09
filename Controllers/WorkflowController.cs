@@ -87,8 +87,7 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(id))
-                return BadRequest(new { error = "Workflow ID cannot be empty" });
+            ArgumentNullException.ThrowIfNull(id);
 
             _logger.LogInformation("Retrieving workflow: {WorkflowId}", id);
 
@@ -120,8 +119,8 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (workflow == null)
-                return BadRequest(new { error = "Workflow definition is required" });
+            ArgumentNullException.ThrowIfNull(workflow);
+            ArgumentException.ThrowIfNullOrEmpty(workflow.Id);
 
             if (string.IsNullOrWhiteSpace(workflow.Id))
                 workflow.Id = Guid.NewGuid().ToString();
@@ -206,8 +205,7 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(id))
-                return BadRequest(new { error = "Workflow ID cannot be empty" });
+            ArgumentNullException.ThrowIfNull(id);
 
             _logger.LogInformation("Deleting workflow: {WorkflowId}", id);
 
@@ -235,8 +233,8 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (workflow == null)
-                return BadRequest(new { error = "Workflow definition is required" });
+            ArgumentNullException.ThrowIfNull(workflow);
+            ArgumentException.ThrowIfNullOrEmpty(workflow.Id);
 
             _logger.LogInformation("Validating workflow: {WorkflowName}", workflow.Name);
 
@@ -262,8 +260,7 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(id))
-                return BadRequest(new { error = "Workflow ID cannot be empty" });
+            ArgumentNullException.ThrowIfNull(id);
 
             _logger.LogInformation("Exporting workflow definition: {WorkflowId}", id);
 
@@ -297,11 +294,9 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(id))
-                return BadRequest(new { error = "Workflow ID cannot be empty" });
+            ArgumentNullException.ThrowIfNull(id);
 
-            if (string.IsNullOrWhiteSpace(name))
-                return BadRequest(new { error = "Workflow name query parameter is required" });
+            ArgumentException.ThrowIfNullOrEmpty(name);
 
             if (string.IsNullOrWhiteSpace(jsonDefinition))
                 return BadRequest(new { error = "JSON definition is required in request body" });
