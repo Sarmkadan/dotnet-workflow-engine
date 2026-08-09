@@ -22,6 +22,9 @@ public class WorkflowBuilder
     /// </summary>
     public WorkflowBuilder(string id, string name, WorkflowDefinitionService service)
     {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(service);
         _workflow = new Workflow { Id = id, Name = name };
         _service = service;
     }
@@ -31,6 +34,7 @@ public class WorkflowBuilder
     /// </summary>
     public WorkflowBuilder WithDescription(string description)
     {
+        ArgumentException.ThrowIfNullOrEmpty(description);
         _workflow.Description = description;
         return this;
     }
@@ -40,6 +44,7 @@ public class WorkflowBuilder
     /// </summary>
     public WorkflowBuilder AddActivity(Activity activity)
     {
+        ArgumentNullException.ThrowIfNull(activity);
         _workflow.Activities.Add(activity);
         return this;
     }
@@ -59,6 +64,10 @@ public class WorkflowBuilder
     /// </param>
     public WorkflowBuilder AddMessageCatchEvent(string id, string name, string messageName, string correlationProperty)
     {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(messageName);
+        ArgumentException.ThrowIfNullOrEmpty(correlationProperty);
         var activity = new Activity
         {
             Id = id,
@@ -78,6 +87,8 @@ public class WorkflowBuilder
     /// </summary>
     public WorkflowBuilder AddTaskActivity(string id, string name, string? handlerType = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentException.ThrowIfNullOrEmpty(name);
         var activity = new Activity
         {
             Id = id,
@@ -96,6 +107,8 @@ public class WorkflowBuilder
     /// </summary>
     public WorkflowBuilder AddTransition(string fromId, string toId, string? condition = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(fromId);
+        ArgumentException.ThrowIfNullOrEmpty(toId);
         var transition = string.IsNullOrEmpty(condition)
             ? Transition.CreateDefault(fromId, toId)
             : Transition.CreateConditional(fromId, toId, condition);
