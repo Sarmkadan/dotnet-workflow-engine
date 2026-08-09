@@ -19,6 +19,7 @@ public class WorkflowValidator
     /// </summary>
     public static ValidationResult ValidateWorkflow(Workflow workflow)
     {
+        ArgumentNullException.ThrowIfNull(workflow);
         var result = new ValidationResult();
 
         // Basic validation
@@ -94,6 +95,7 @@ public class WorkflowValidator
     /// </summary>
     public static ValidationResult ValidateActivity(Activity activity)
     {
+        ArgumentNullException.ThrowIfNull(activity);
         var result = new ValidationResult();
 
         if (string.IsNullOrWhiteSpace(activity.Id))
@@ -125,6 +127,8 @@ public class WorkflowValidator
     /// </summary>
     public static ValidationResult ValidateTransition(Transition transition, Workflow workflow)
     {
+        ArgumentNullException.ThrowIfNull(transition);
+        ArgumentNullException.ThrowIfNull(workflow);
         var result = new ValidationResult();
 
         if (string.IsNullOrWhiteSpace(transition.FromActivityId))
