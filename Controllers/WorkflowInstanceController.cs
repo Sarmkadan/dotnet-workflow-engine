@@ -116,7 +116,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Retrieving instance: {InstanceId}", instanceId);
@@ -207,7 +214,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Retrying instance: {InstanceId}", instanceId);
@@ -245,7 +259,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Terminating instance: {InstanceId}, reason={Reason}", instanceId, reason);
@@ -281,7 +302,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Retrieving history for instance: {InstanceId}", instanceId);
@@ -311,7 +339,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Pausing instance: {InstanceId}, reason={Reason}", instanceId, reason);
@@ -360,7 +395,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Resuming instance: {InstanceId}", instanceId);
@@ -407,7 +449,14 @@ public class WorkflowInstanceController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(instanceId))
+            if (instanceId == null)
+                {
+                    return BadRequest(new { error = "Instance ID cannot be null" });
+                }
+                if (string.IsNullOrWhiteSpace(instanceId))
+                {
+                    return BadRequest(new { error = "Instance ID cannot be empty" });
+                }
                 return BadRequest(new { error = "Instance ID cannot be empty" });
 
             _logger.LogInformation("Cancelling instance: {InstanceId}, reason={Reason}", instanceId, reason);
