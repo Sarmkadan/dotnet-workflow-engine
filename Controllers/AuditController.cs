@@ -117,6 +117,7 @@ public class AuditController : ControllerBase
         [FromQuery] int skip = 0,
         [FromQuery] int take = 100)
     {
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
         try
         {
             if (string.IsNullOrWhiteSpace(workflowId))
@@ -161,6 +162,7 @@ public class AuditController : ControllerBase
         [FromQuery] int skip = 0,
         [FromQuery] int take = 100)
     {
+        ArgumentException.ThrowIfNullOrEmpty(instanceId);
         try
         {
             if (string.IsNullOrWhiteSpace(instanceId))
@@ -179,7 +181,7 @@ public class AuditController : ControllerBase
 
             if (logs.Count == 0)
                 return NotFound(new { error = $"No audit logs found for instance '{instanceId}'" });
-            
+
             Response.Headers.Add("X-Total-Count", total.ToString());
             return Ok(logs);
         }
@@ -200,6 +202,7 @@ public class AuditController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAuditLogEntry(string auditId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(auditId);
         try
         {
             if (string.IsNullOrWhiteSpace(auditId))
@@ -279,6 +282,7 @@ public class AuditController : ControllerBase
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(format);
         try
         {
             var validFormats = new[] { "json", "csv", "xml" };
