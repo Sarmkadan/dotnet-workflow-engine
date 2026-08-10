@@ -23,14 +23,9 @@ public class MessageSubscriptionRegistry
     /// <param name="instanceId">The ID of the workflow instance.</param>
     public void RegisterSubscription(string correlationKey, string messageName, string instanceId)
     {
-        if (string.IsNullOrWhiteSpace(correlationKey))
-            throw new ArgumentException("Correlation key cannot be empty", nameof(correlationKey));
-
-        if (string.IsNullOrWhiteSpace(messageName))
-            throw new ArgumentException("Message name cannot be empty", nameof(messageName));
-
-        if (string.IsNullOrWhiteSpace(instanceId))
-            throw new ArgumentException("Instance ID cannot be empty", nameof(instanceId));
+        ArgumentException.ThrowIfNullOrEmpty(correlationKey, nameof(correlationKey));
+        ArgumentException.ThrowIfNullOrEmpty(messageName, nameof(messageName));
+        ArgumentException.ThrowIfNullOrEmpty(instanceId, nameof(instanceId));
 
         var correlationDict = _waitingInstances.GetOrAdd(correlationKey, _ => new ConcurrentDictionary<string, string>());
         correlationDict.AddOrUpdate(messageName, instanceId, (_, _) => instanceId);
@@ -45,8 +40,9 @@ public class MessageSubscriptionRegistry
     /// <returns>True if the instance was found and removed, false otherwise.</returns>
     public bool UnregisterSubscription(string correlationKey, string messageName, string instanceId)
     {
-        if (string.IsNullOrWhiteSpace(correlationKey) || string.IsNullOrWhiteSpace(messageName) || string.IsNullOrWhiteSpace(instanceId))
-            return false;
+        ArgumentException.ThrowIfNullOrEmpty(correlationKey, nameof(correlationKey));
+        ArgumentException.ThrowIfNullOrEmpty(messageName, nameof(messageName));
+        ArgumentException.ThrowIfNullOrEmpty(instanceId, nameof(instanceId));
 
         if (_waitingInstances.TryGetValue(correlationKey, out var correlationDict))
         {
@@ -64,8 +60,8 @@ public class MessageSubscriptionRegistry
     /// <returns>A collection of instance IDs waiting for the message.</returns>
     public IEnumerable<string> GetWaitingInstances(string correlationKey, string messageName)
     {
-        if (string.IsNullOrWhiteSpace(correlationKey) || string.IsNullOrWhiteSpace(messageName))
-            return Enumerable.Empty<string>();
+        ArgumentException.ThrowIfNullOrEmpty(correlationKey, nameof(correlationKey));
+        ArgumentException.ThrowIfNullOrEmpty(messageName, nameof(messageName));
 
         if (_waitingInstances.TryGetValue(correlationKey, out var correlationDict))
         {
@@ -84,8 +80,7 @@ public class MessageSubscriptionRegistry
     /// <param name="instanceId">The instance ID to clear subscriptions for.</param>
     public void ClearInstanceSubscriptions(string instanceId)
     {
-        if (string.IsNullOrWhiteSpace(instanceId))
-            return;
+        ArgumentException.ThrowIfNullOrEmpty(instanceId, nameof(instanceId));
 
         foreach (var correlationDict in _waitingInstances.Values)
         {
