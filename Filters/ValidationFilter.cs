@@ -37,6 +37,10 @@ public class ValidationFilter : IAsyncActionFilter
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
 
+        _logger.LogInformation(
+            "Validating model state for action {Action}",
+            context.ActionDescriptor.DisplayName);
+
         if (!context.ModelState.IsValid)
         {
             var errors = context.ModelState
@@ -82,6 +86,10 @@ public class DataAnnotationValidationFilter : IAsyncActionFilter
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
+
+        _logger.LogInformation(
+            "Validating action arguments for action {Action}",
+            context.ActionDescriptor.DisplayName);
 
         // Validate all action arguments that have validation attributes
         foreach (var argument in context.ActionArguments)
