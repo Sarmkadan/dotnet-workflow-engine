@@ -25,6 +25,11 @@ public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequire
         _logger = logger;
     }
 
+    public override string ToString()
+    {
+        return $"WorkflowAuthorizationHandler {{ RequiredClaim = {string.Empty}, RequiredClaimValue = {string.Empty}, RequiredRole = {string.Empty} }}";
+    }
+
     /// <summary>
     /// Handles authorization for workflow-specific requirements.
     /// Checks user claims and resource permissions.
