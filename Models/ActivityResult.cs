@@ -3,6 +3,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Linq;
 using DotNetWorkflowEngine.Enums;
 
 namespace DotNetWorkflowEngine.Models;
@@ -12,6 +13,8 @@ namespace DotNetWorkflowEngine.Models;
 /// </summary>
 public class ActivityResult
 {
+    public override string ToString() => $"ActivityResult {{ ActivityId = {ActivityId}, Status = {Status}, Output = {{ {string.Join(", ", Output.Select(kv => $"{kv.Key}: {kv.Value}"))} }}, ErrorMessage = {ErrorMessage ?? "null"}, StackTrace = {StackTrace ?? "null"}, StartTime = {StartTime} }}";
+
     /// <summary>Gets or sets the ID of the activity that produced this result.</summary>
     public string ActivityId { get; set; } = string.Empty;
 
