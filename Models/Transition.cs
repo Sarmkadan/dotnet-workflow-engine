@@ -62,6 +62,11 @@ public class Transition
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
+    /// Returns a string representation of the transition.
+    /// </summary>
+    public override string ToString() => $"Transition {{ Id = {Id}, FromActivityId = {FromActivityId}, ToActivityId = {ToActivityId}, ConditionExpression = {ConditionExpression}, Label = {Label}, IsDefault = {IsDefault} }}";
+
+    /// <summary>
     /// Validates the transition configuration.
     /// </summary>
     /// <summary>
