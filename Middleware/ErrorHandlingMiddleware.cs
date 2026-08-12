@@ -34,15 +34,18 @@ public class ErrorHandlingMiddleware
     /// </summary>
     public async Task InvokeAsync(HttpContext context)
     {
+        _logger.LogInformation("Entering InvokeAsync for {Path}", context.Request.Path);
         try
         {
             await _next(context);
+            _logger.LogInformation("Successfully processed request for {Path}", context.Request.Path);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception occurred");
+            _logger.LogError(ex, "Unhandled exception occurred while processing request for {Path}", context.Request.Path);
             await HandleExceptionAsync(context, ex);
         }
+        _logger.LogInformation("Leaving InvokeAsync for {Path}", context.Request.Path);
     }
 
     /// <summary>
