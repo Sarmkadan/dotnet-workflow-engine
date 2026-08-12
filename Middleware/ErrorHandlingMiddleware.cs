@@ -108,5 +108,10 @@ public class ErrorHandlingMiddleware
         public string Message { get; set; } = string.Empty;
         public string? Details { get; set; }
         public DateTime Timestamp { get; set; }
+
+        public override string ToString()
+        {
+            return $"ErrorResponse {{ ErrorCode = {ErrorCode}, Message = {Message}, Details = {Details}, Timestamp = {Timestamp} }}";
+        }
     }
 }
