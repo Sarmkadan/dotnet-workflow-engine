@@ -90,6 +90,8 @@ public class DotnetWorkflowEngineOptions
     public bool EnablePrometheusMetrics { get; set; } = false;
     [Range(1024, 65535)]
     public int MetricsPort { get; set; } = 9090;
+
+    public override string ToString() => $"DotnetWorkflowEngineOptions {{ EnableRequestLogging = {EnableRequestLogging}, LogRequestBody = {LogRequestBody}, LogResponseBody = {LogResponseBody}, EnableRateLimiting = {EnableRateLimiting}, RateLimit = {RateLimit}, EnableCors = {EnableCors} }}";
 }
 
 /// <summary>
