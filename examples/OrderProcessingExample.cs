@@ -298,6 +298,9 @@ public class OrderRequest
     public decimal Amount { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
     public List<OrderItem> Items { get; set; } = new();
+
+    public override string ToString() =>
+        $"OrderRequest {{ OrderId = {OrderId}, CustomerId = {CustomerId}, Amount = {Amount}, ShippingAddress = {ShippingAddress}, Items = {Items} }}";
 }
 
 public class OrderItem
@@ -305,4 +308,7 @@ public class OrderItem
     public string ProductId { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+
+    public override string ToString() =>
+        $"OrderItem {{ ProductId = {ProductId}, Quantity = {Quantity}, UnitPrice = {UnitPrice} }}";
 }
