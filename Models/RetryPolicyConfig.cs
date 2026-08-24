@@ -123,4 +123,9 @@ public class RetryPolicyConfig
             JitterFactor = jitterFactor
         };
     }
+
+    /// <summary>
+    /// Returns a concise, informative string representation of the retry policy configuration.
+    /// </summary>
+    public override string ToString() => $"RetryPolicyConfig {{ PolicyType = {PolicyType}, MaxAttempts = {MaxAttempts}, InitialDelayMs = {InitialDelayMs}, MaxDelayMs = {MaxDelayMs}, BackoffMultiplier = {BackoffMultiplier}, JitterFactor = {JitterFactor} }}";
 }
