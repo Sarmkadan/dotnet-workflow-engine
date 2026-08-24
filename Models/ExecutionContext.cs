@@ -146,4 +146,5 @@ public class ExecutionContext
         EndTime = null;
         ExecutionDurationMs = 0;
     }
+    public override string ToString() => $"ExecutionContext {{ WorkflowInstanceId = {WorkflowInstanceId}, ActivityId = {ActivityId}, CorrelationId = {CorrelationId}, Variables = {Variables}, State = {State}, ActivityInput = {ActivityInput} }}";
 }
