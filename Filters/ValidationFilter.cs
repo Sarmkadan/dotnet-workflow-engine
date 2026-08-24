@@ -136,6 +136,7 @@ public class ValidationErrorResponse
     public string? Message { get; set; }
     public List<KeyValuePair<string, string[]>>? Errors { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public override string ToString() => $"ValidationErrorResponse {{ Message = {Message}, Errors = {Errors}, Timestamp = {Timestamp} }}";
 }
 
 /// <summary>
