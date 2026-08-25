@@ -348,4 +348,6 @@ public class ProcessingRequest
 {
     public string DataSourceUrl { get; set; } = string.Empty;
     public Dictionary<string, object> ProcessingRules { get; set; } = new();
+
+    public override string ToString() => $"ErrorHandlingExample {{ DataSourceUrl = {DataSourceUrl}, ProcessingRules = {ProcessingRules} }}";
 }
