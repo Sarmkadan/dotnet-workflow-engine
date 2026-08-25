@@ -1,8 +1,3 @@
-// =============================================================================
-// Author: Vladyslav Zaiets | https://sarmkadan.com
-// CTO & Software Architect
-// =============================================================================
-
 using DotNetWorkflowEngine.Enums;
 
 namespace DotNetWorkflowEngine.Models;
@@ -10,137 +5,98 @@ namespace DotNetWorkflowEngine.Models;
 /// <summary>
 /// Represents an activity/task within a workflow.
 /// </summary>
-/// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public class Activity
+public class Activity
 {
-    /// <summary>Gets or sets the unique identifier of the activity.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string Id { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the name of the activity.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the description of the activity.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? Description { get; set; }
-
-    /// <summary>Gets or sets the type of the activity (e.g., Task, Event, Gateway).</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string Type { get; set; } = "Task";
-
-    /// <summary>Gets or sets how this activity should be executed.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public ExecutionMode ExecutionMode { get; set; } = ExecutionMode.Sequential;
-
-    /// <summary>Gets or sets the handler/implementation type for this activity.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? HandlerType { get; set; }
-
-    /// <summary>Gets or sets input parameters for the activity.</summary>
+    /// Gets or sets the unique identifier of the activity.
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public Dictionary<string, object?> InputParameters { get; set; } = new();
-
-    /// <summary>Gets or sets output mapping for the activity results.</summary>
+    /// Gets or sets the name of the activity.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public Dictionary<string, string> OutputMapping { get; set; } = new();
+    /// Gets or sets the description of the activity.
+    /// </summary>
+    public string? Description { get; set; }
 
-    /// <summary>Gets or sets the retry policy for failed execution.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
+    /// Gets or sets the type of the activity (e.g., Task, Event, Gateway).
+    /// </summary>
+    public string Type { get; set; } = "Task";
 
-    /// <summary>Gets or sets maximum number of retries allowed.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public int MaxRetries { get; set; } = 0;
+    /// Gets or sets how this activity should be executed.
+    /// </summary>
+    public ExecutionMode ExecutionMode { get; set; } = ExecutionMode.Sequential;
+
+    /// <summary>
+    /// Gets or sets the handler/implementation type for this activity.
+    /// </summary>
+    public string? HandlerType { get; set; }
+
+    /// <summary>
+    /// Gets or sets input parameters for the activity.
+    /// </summary>
+    public Dictionary<string, object?> InputParameters { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets output mapping for the activity results.
+    /// </summary>
+    public Dictionary<string, string> OutputMapping { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the retry policy for failed execution.
+    /// </summary>
+    public RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
+
+    /// <summary>
+    /// Gets or sets the maximum number of retries allowed.
+    /// </summary>
+    public int MaxRetries { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets the timeout in seconds for activity execution. A value of zero disables
     /// the timeout entirely.
     /// </summary>
-    /// <remarks>
-    /// This timeout is applied <b>per attempt</b>, not to the total execution time across
-    /// retries: <see cref="ActivityService"/> starts a fresh cancellation window for every
-    /// retry iteration. When combined with <see cref="RetryPolicy"/> and <see cref="MaxRetries"/>,
-    /// the worst-case wall-clock time for the activity is approximately
-    /// <c>MaxRetries * TimeoutSeconds</c> plus the cumulative inter-attempt retry delay -
-    /// e.g. 5 retries with a 30 second timeout can take up to ~2.5 minutes, not 30 seconds.
-    /// Callers that need a hard cap on total execution time must enforce it themselves
-    /// (for example by wrapping the call to <see cref="ActivityService.ExecuteAsync"/> in an
-    /// outer <see cref="CancellationTokenSource"/>).
-    /// </remarks>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public int TimeoutSeconds { get; set; } = 300;
-
-    /// <summary>Gets or sets the message name for MessageCatchEvent.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? MessageName { get; set; }
-
-    /// <summary>Gets or sets the correlation property for MessageCatchEvent.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? CorrelationProperty { get; set; }
-
-    /// <summary>Gets or sets whether this activity is optional.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public bool IsOptional { get; set; } = false;
-
-    /// <summary>Gets or sets the condition expression for conditional execution.</summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public string? ConditionExpression { get; set; }
-
-    /// <summary>Gets or sets custom metadata associated with the activity.</summary>
+    public int TimeoutSeconds { get; set; } = 300;
 
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public Dictionary<string, object?> Metadata { get; set; } = new();
+    /// Gets or sets the message name for MessageCatchEvent.
+    /// </summary>
+    public string? MessageName { get; set; }
 
-    /// <summary>Gets or sets when the activity was created.</summary>
     /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// Gets or sets the correlation property for MessageCatchEvent.
+    /// </summary>
+    public string? CorrelationProperty { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether this activity is optional.
+    /// </summary>
+    public bool IsOptional { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the condition expression for conditional execution.
+    /// </summary>
+    public string? ConditionExpression { get; set; }
+
+    /// <summary>
+    /// Gets or sets custom metadata associated with the activity.
+    /// </summary>
+    public Dictionary<string, object?> Metadata { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets when the activity was created.
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Validates the activity configuration.
     /// </summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public bool Validate(out List<string> errors)
+    public bool Validate(out List<string> errors)
     {
         errors = new List<string>();
 
@@ -165,10 +121,7 @@ namespace DotNetWorkflowEngine.Models;
     /// <summary>
     /// Sets an input parameter for this activity.
     /// </summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public void SetInputParameter(string key, object? value)
+    public void SetInputParameter(string key, object? value)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(value);
@@ -178,10 +131,7 @@ namespace DotNetWorkflowEngine.Models;
     /// <summary>
     /// Gets an input parameter value.
     /// </summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public object? GetInputParameter(string key)
+    public object? GetInputParameter(string key)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         InputParameters.TryGetValue(key, out var value);
@@ -191,10 +141,7 @@ namespace DotNetWorkflowEngine.Models;
     /// <summary>
     /// Adds output mapping from activity output key to context key.
     /// </summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public void AddOutputMapping(string activityOutputKey, string contextKey)
+    public void AddOutputMapping(string activityOutputKey, string contextKey)
     {
         ArgumentException.ThrowIfNullOrEmpty(activityOutputKey);
         ArgumentNullException.ThrowIfNull(contextKey);
@@ -204,10 +151,7 @@ namespace DotNetWorkflowEngine.Models;
     /// <summary>
     /// Checks if this activity is a gateway (fork/join).
     /// </summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public bool IsGateway()
+    public bool IsGateway()
     {
         return ExecutionMode == ExecutionMode.Fork || ExecutionMode == ExecutionMode.Join;
     }
@@ -215,11 +159,10 @@ namespace DotNetWorkflowEngine.Models;
     /// <summary>
     /// Checks if this activity requires a handler implementation.
     /// </summary>
-    /// <summary>
-        /// XML doc comments go here
-        /// </summary>
-        public bool RequiresHandler()
+    public bool RequiresHandler()
     {
         return !IsGateway() && Type != "Event";
     }
+
+    public override string ToString() => $"Activity {{ Id = {Id}, Name = {Name}, Description = {Description}, Type = {Type}, ExecutionMode = {ExecutionMode}, HandlerType = {HandlerType} }}";
 }
