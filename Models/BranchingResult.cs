@@ -44,6 +44,12 @@ public class BranchingResult
     /// <param name="activityId">The ID of the completed activity.</param>
     /// <returns>An empty <see cref="BranchingResult"/>.</returns>
     public static BranchingResult Empty(string activityId) => new() { ActivityId = activityId };
+
+    public override string ToString()
+    {
+        var firstError = EvaluationErrors.Count > 0 ? EvaluationErrors[0] : null;
+        return $"BranchingResult {{ ActivityId = {ActivityId}, AnyConditionMatched = {AnyConditionMatched}, UsedDefaultTransition = {UsedDefaultTransition}, TransitionId = {firstError?.TransitionId ?? string.Empty}, Expression = {firstError?.Expression ?? string.Empty}, ErrorMessage = {firstError?.ErrorMessage ?? string.Empty} }}";
+    }
 }
 
 /// <summary>
