@@ -91,7 +91,7 @@ public class DotnetWorkflowEngineOptions
     [Range(1024, 65535)]
     public int MetricsPort { get; set; } = 9090;
 
-    public override string ToString() => $"DotnetWorkflowEngineOptions {{ EnableRequestLogging = {EnableRequestLogging}, LogRequestBody = {LogRequestBody}, LogResponseBody = {LogResponseBody}, EnableRateLimiting = {EnableRateLimiting}, RateLimit = {RateLimit}, EnableCors = {EnableCors} }}";
+    public override string ToString() => $"DotnetWorkflowEngineOptions {{ ConnectionString = {ConnectionString}, DefaultRetryPolicy = {DefaultRetryPolicy}, EnableAuditLogging = {EnableAuditLogging}, MaxConcurrentWorkflows = {MaxConcurrentWorkflows}, DefaultActivityTimeoutSeconds = {DefaultActivityTimeoutSeconds}, ValidateWorkflowsOnLoad = {ValidateWorkflowsOnLoad} }}";
 }
 
 /// <summary>
