@@ -7,6 +7,8 @@ using System.Collections.Concurrent;
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Services;
@@ -36,6 +38,7 @@ public class WorkflowExecutionService
     private readonly WorkflowDefinitionService _definitionService;
     private readonly AuditService _auditService;
     private readonly ActivityService _activityService;
+    private readonly ILogger<WorkflowExecutionService> _logger;
 
     /// <summary>
     /// Initializes the execution service with required dependencies.
@@ -44,11 +47,13 @@ public class WorkflowExecutionService
     public WorkflowExecutionService(
         WorkflowDefinitionService definitionService,
         AuditService auditService,
-        ActivityService activityService)
+        ActivityService activityService,
+        ILogger<WorkflowExecutionService>? logger = null)
     {
         _definitionService = definitionService ?? throw new ArgumentNullException(nameof(definitionService));
         _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
+        _logger = logger ?? NullLogger<WorkflowExecutionService>.Instance;
     }
 
     /// <summary>
@@ -79,6 +84,9 @@ public class WorkflowExecutionService
 
         _instances[instance.Id] = instance;
         _auditService.LogInstanceCreated(instance.Id, initiatedBy ?? "System").GetAwaiter().GetResult();
+        _logger.LogInformation(
+            "Workflow instance created. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}",
+            instance.WorkflowId, instance.Id, instance.CorrelationId);
 
         return instance;
     }
@@ -109,6 +117,9 @@ public class WorkflowExecutionService
             throw new WorkflowException("Workflow has no start activity", "NO_START_ACTIVITY");
 
         await _auditService.LogInstanceStarted(instance.Id);
+        _logger.LogInformation(
+            "Workflow instance started. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}",
+            instance.WorkflowId, instance.Id, instance.CorrelationId);
 
         // Execute start activity
         await ExecuteActivityAsync(instance, workflow.StartActivityId);
@@ -162,6 +173,9 @@ public class WorkflowExecutionService
             await _auditService.LogCustomEvent(instance.Id, "WorkflowSuspended",
                 $"Workflow suspended at MessageCatchEvent '{activityId}', waiting for message '{activity.MessageName}' with correlation key '{correlationKey}'",
                 "Info", activityId);
+            _logger.LogWarning(
+                "Workflow instance suspended waiting for a message. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, ActivityId: {ActivityId}",
+                instance.WorkflowId, instance.Id, instance.CorrelationId, activityId);
 
             lock (instance.ActiveActivities)
                 instance.ActiveActivities.Remove(activityId);
@@ -232,6 +246,13 @@ public class WorkflowExecutionService
                         branchExceptions);
                     await _auditService.LogActivityFailed(instance.Id, activityId, composite.Message);
                     instance.Fail(composite.Message);
+                    _logger.LogWarning(
+                        "Workflow activity failed. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, ActivityId: {ActivityId}",
+                        instance.WorkflowId, instance.Id, instance.CorrelationId, activityId);
+                    _logger.LogError(
+                        composite,
+                        "Unhandled workflow activity failure. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, ActivityId: {ActivityId}",
+                        instance.WorkflowId, instance.Id, instance.CorrelationId, activityId);
                     throw composite;
                 }
             }
@@ -252,6 +273,13 @@ public class WorkflowExecutionService
         {
             await _auditService.LogActivityFailed(instance.Id, activityId, ex.Message);
             instance.Fail(ex.Message);
+            _logger.LogWarning(
+                "Workflow activity failed. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, ActivityId: {ActivityId}",
+                instance.WorkflowId, instance.Id, instance.CorrelationId, activityId);
+            _logger.LogError(
+                ex,
+                "Unhandled workflow activity failure. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, ActivityId: {ActivityId}",
+                instance.WorkflowId, instance.Id, instance.CorrelationId, activityId);
             throw;
         }
         finally
@@ -276,6 +304,9 @@ public class WorkflowExecutionService
 
         instance.Complete();
         _auditService.LogInstanceCompleted(instanceId).GetAwaiter().GetResult();
+        _logger.LogInformation(
+            "Workflow instance completed. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}",
+            instance.WorkflowId, instance.Id, instance.CorrelationId);
     }
 
     /// <summary>
@@ -296,6 +327,9 @@ public class WorkflowExecutionService
 
         instance.Fail(errorMessage);
         _auditService.LogInstanceFailed(instanceId, errorMessage).GetAwaiter().GetResult();
+        _logger.LogWarning(
+            "Workflow instance failed. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, ErrorMessage: {ErrorMessage}",
+            instance.WorkflowId, instance.Id, instance.CorrelationId, errorMessage);
     }
 
     /// <summary>
@@ -503,6 +537,9 @@ public class WorkflowExecutionService
 
         instance.Suspend(reason);
         await _auditService.LogInstancePaused(instanceId, reason);
+        _logger.LogWarning(
+            "Workflow instance suspended. WorkflowId: {WorkflowId}, InstanceId: {InstanceId}, CorrelationId: {CorrelationId}, Reason: {Reason}",
+            instance.WorkflowId, instance.Id, instance.CorrelationId, reason);
     }
 
     /// <summary>
