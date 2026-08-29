@@ -29,6 +29,17 @@ namespace DotNetWorkflowEngine.Middleware;
 /// </summary>
 public class RateLimitingMiddleware
 {
+    private const int TokensConsumedPerRequest = 1;
+    private const int TooManyRequestsStatusCode = StatusCodes.Status429TooManyRequests;
+    private const string NoTokensRemainingHeaderValue = "0";
+    private const string ForwardedForHeaderName = "X-Forwarded-For";
+    private const string ApiKeyHeaderName = "X-API-Key";
+    private const string RetryAfterHeaderName = "Retry-After";
+    private const string RateLimitLimitHeaderName = "X-RateLimit-Limit";
+    private const string RateLimitRemainingHeaderName = "X-RateLimit-Remaining";
+    private const string RateLimitResetHeaderName = "X-RateLimit-Reset";
+    private static readonly string[] ExemptPaths = { "/health", "/status", "/ping" };
+
     private readonly RequestDelegate _next;
     private readonly ILogger<RateLimitingMiddleware> _logger;
     private readonly RateLimitConfig _config;
@@ -128,7 +139,7 @@ public class RateLimitingMiddleware
     private IPAddress? GetRealClientIpAddress(HttpContext context)
     {
         // Fallback: manually parse X-Forwarded-For with trusted proxy validation
-        if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var xForwardedFor))
+        if (context.Request.Headers.TryGetValue(ForwardedForHeaderName, out var xForwardedFor))
         {
             var forwardedIps = xForwardedFor.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (forwardedIps.Length > 0)
@@ -188,7 +199,7 @@ public class RateLimitingMiddleware
         var clientId = GetClientIdentifier(context);
         var bucket = GetOrCreateBucket(clientId);
 
-        if (!bucket.TryConsume(1))
+        if (!bucket.TryConsume(TokensConsumedPerRequest))
         {
             _logger.LogWarning(
                 "Rate limit exceeded for client {ClientId}. Limit: {Limit} req/{Window}",
@@ -196,10 +207,10 @@ public class RateLimitingMiddleware
                 _config.MaxRequests,
                 _config.WindowSeconds);
 
-            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            context.Response.Headers.Add("Retry-After", _config.RetryAfterSeconds.ToString());
-            context.Response.Headers.Add("X-RateLimit-Limit", _config.MaxRequests.ToString());
-            context.Response.Headers.Add("X-RateLimit-Remaining", "0");
+            context.Response.StatusCode = TooManyRequestsStatusCode;
+            context.Response.Headers.Add(RetryAfterHeaderName, _config.RetryAfterSeconds.ToString());
+            context.Response.Headers.Add(RateLimitLimitHeaderName, _config.MaxRequests.ToString());
+            context.Response.Headers.Add(RateLimitRemainingHeaderName, NoTokensRemainingHeaderValue);
 
             await context.Response.WriteAsJsonAsync(new
             {
@@ -213,9 +224,9 @@ public class RateLimitingMiddleware
         // Add rate limit headers to response
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers.Add("X-RateLimit-Limit", _config.MaxRequests.ToString());
-            context.Response.Headers.Add("X-RateLimit-Remaining", bucket.TokensRemaining.ToString());
-            context.Response.Headers.Add("X-RateLimit-Reset", ((DateTimeOffset)bucket.ResetTime).ToUnixTimeSeconds().ToString());
+            context.Response.Headers.Add(RateLimitLimitHeaderName, _config.MaxRequests.ToString());
+            context.Response.Headers.Add(RateLimitRemainingHeaderName, bucket.TokensRemaining.ToString());
+            context.Response.Headers.Add(RateLimitResetHeaderName, ((DateTimeOffset)bucket.ResetTime).ToUnixTimeSeconds().ToString());
             return Task.CompletedTask;
         });
 
@@ -234,7 +245,7 @@ public class RateLimitingMiddleware
             return $"user:{context.User.Identity.Name}";
 
         // Use API key from header if present
-        if (context.Request.Headers.TryGetValue("X-API-Key", out var apiKey))
+        if (context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKey))
             return $"apikey:{apiKey}";
 
         // Fall back to resolved client IP address (handles trusted proxies and X-Forwarded-For)
@@ -276,8 +287,7 @@ public class RateLimitingMiddleware
     /// </summary>
     private bool IsExemptPath(PathString path)
     {
-        var exemptPaths = new[] { "/health", "/status", "/ping" };
-        return exemptPaths.Any(p => path.StartsWithSegments(p));
+        return ExemptPaths.Any(p => path.StartsWithSegments(p));
     }
 }
 
@@ -286,9 +296,13 @@ public class RateLimitingMiddleware
 /// </summary>
 public class RateLimitConfig
 {
-    public int MaxRequests { get; set; } = 100;
-    public int WindowSeconds { get; set; } = 60;
-    public int RetryAfterSeconds { get; set; } = 60;
+    private const int DefaultMaxRequests = 100;
+    private const int DefaultWindowSeconds = 60;
+    private const int DefaultRetryAfterSeconds = 60;
+
+    public int MaxRequests { get; set; } = DefaultMaxRequests;
+    public int WindowSeconds { get; set; } = DefaultWindowSeconds;
+    public int RetryAfterSeconds { get; set; } = DefaultRetryAfterSeconds;
 }
 
 /// <summary>
