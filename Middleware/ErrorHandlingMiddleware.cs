@@ -22,8 +22,18 @@ public class ErrorHandlingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ErrorHandlingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware in the request pipeline.</param>
+    /// <param name="logger">The logger used to record request processing and errors.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="next"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is <see langword="null"/></exception>
     public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(logger);
+
         _next = next;
         _logger = logger;
     }
@@ -32,8 +42,12 @@ public class ErrorHandlingMiddleware
     /// Invokes the middleware. Wraps the request processing in a try-catch block
     /// to handle any exceptions that occur during request processing.
     /// </summary>
+    /// <param name="context">The HTTP context for the current request.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> is <see langword="null"/></exception>
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         _logger.LogInformation("Entering InvokeAsync for {Path}", context.Request.Path);
         try
         {
