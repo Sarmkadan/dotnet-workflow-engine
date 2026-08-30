@@ -14,6 +14,32 @@ using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 namespace DotNetWorkflowEngine.Services;
 
 /// <summary>
+/// Provides read-only access to workflow instances.
+/// </summary>
+public interface IWorkflowInstanceQuery
+{
+    /// <summary>
+    /// Gets a workflow instance.
+    /// </summary>
+    WorkflowInstance? GetInstance(string instanceId);
+
+    /// <summary>
+    /// Gets all instances for a workflow.
+    /// </summary>
+    List<WorkflowInstance> GetInstancesByWorkflow(string workflowId);
+
+    /// <summary>
+    /// Gets instances by correlation ID.
+    /// </summary>
+    List<WorkflowInstance> GetInstancesByCorrelation(string correlationId);
+
+    /// <summary>
+    /// Gets all active instances.
+    /// </summary>
+    List<WorkflowInstance> GetActiveInstances();
+}
+
+/// <summary>
 /// Core execution engine for workflows. Manages the full lifecycle of workflow instances -
 /// creation, execution, suspension, resumption, completion, and failure handling.
 /// </summary>
@@ -32,7 +58,7 @@ namespace DotNetWorkflowEngine.Services;
 /// and can be queried by workflow ID, correlation ID, or status.
 /// </para>
 /// </remarks>
-public class WorkflowExecutionService
+public class WorkflowExecutionService : IWorkflowInstanceQuery
 {
     private readonly ConcurrentDictionary<string, WorkflowInstance> _instances = new();
     private readonly WorkflowDefinitionService _definitionService;
