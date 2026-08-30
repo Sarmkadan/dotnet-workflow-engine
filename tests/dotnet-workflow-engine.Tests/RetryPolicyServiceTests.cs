@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Enums;
+using DotNetWorkflowEngine.Constants;
 using Xunit;
 
 namespace DotNetWorkflowEngine.Tests
@@ -139,6 +141,7 @@ namespace DotNetWorkflowEngine.Tests
                 MaxDelayMs = 5000,
                 BackoffMultiplier = 2.0,
                 JitterFactor = 0.0,
+                PolicyType = RetryPolicy.ExponentialBackoff,
                 RetryableExceptionTypes = new List<string>()
             };
             service.CreatePolicy(PolicyId, customPolicy);
@@ -160,10 +163,10 @@ namespace DotNetWorkflowEngine.Tests
             var invalidPolicy = new RetryPolicyConfig
             {
                 MaxAttempts = 0,               // invalid
-                InitialDelayMs = -10,          // invalid
-                MaxDelayMs = 5,                // less than InitialDelayMs
+                InitialDelayMs = -5,           // invalid (<=0)
+                MaxDelayMs = -10,              // less than InitialDelayMs (-10 < -5)
                 BackoffMultiplier = 1.0,      // not greater than 1.0
-                JitterFactor = 1.5,            // out of range
+                JitterFactor = 1.5,            // out of range (>1)
                 RetryableExceptionTypes = new List<string>()
             };
 
@@ -175,6 +178,103 @@ namespace DotNetWorkflowEngine.Tests
             Assert.Contains("MaxDelayMs must be greater than or equal to InitialDelayMs", errors);
             Assert.Contains("BackoffMultiplier must be greater than 1.0", errors);
             Assert.Contains("JitterFactor must be between 0 and 1", errors);
+        }
+
+        // New tests for the requested coverage
+
+        [Fact]
+        public void CreatePolicy_NullConfig_ThrowsArgumentNullException()
+        {
+            var service = new RetryPolicyService();
+            Assert.Throws<ArgumentNullException>(() => service.CreatePolicy("test", null!));
+        }
+
+        [Fact]
+        public void CreatePolicy_EmptyPolicyId_ThrowsArgumentException()
+        {
+            var service = new RetryPolicyService();
+            var config = new RetryPolicyConfig();
+            Assert.Throws<ArgumentException>(() => service.CreatePolicy(string.Empty, config));
+        }
+
+        [Fact]
+        public void GetPolicy_ExistingPolicy_ReturnsPolicy()
+        {
+            var service = new RetryPolicyService();
+            var config = new RetryPolicyConfig();
+            service.CreatePolicy("test", config);
+            var result = service.GetPolicy("test");
+            Assert.NotNull(result);
+            Assert.Same(config, result);
+        }
+
+        [Fact]
+        public void GetPolicy_NonExistingPolicy_ReturnsNull()
+        {
+            var service = new RetryPolicyService();
+            var result = service.GetPolicy("unknown");
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void CalculateRetryDelay_UnknownPolicy_ReturnsDefaultRetryDelayMs()
+        {
+            var service = new RetryPolicyService();
+            var delay = service.CalculateRetryDelay("unknown", 1);
+            Assert.Equal(Constants.WorkflowConstants.DefaultRetryDelayMs, delay);
+        }
+
+        [Fact]
+        public void ShouldRetry_UnknownPolicy_ReturnsFalse()
+        {
+            var service = new RetryPolicyService();
+            var result = service.ShouldRetry("unknown", 1, "System.Exception");
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void ShouldRetry_KnownPolicy_ReturnsTrueWhenAttemptLessThanMaxAndExceptionMatches()
+        {
+            var service = new RetryPolicyService();
+            var policy = service.CreateExponentialBackoffPolicy(maxRetries: 3);
+            service.CreatePolicy("test", policy);
+            service.RegisterRetryableException("test", typeof(TestException).FullName!);
+            var result = service.ShouldRetry("test", 1, typeof(TestException).FullName!);
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ShouldRetry_KnownPolicy_ReturnsFalseWhenAttemptExceedsMax()
+        {
+            var service = new RetryPolicyService();
+            var policy = service.CreateExponentialBackoffPolicy(maxRetries: 3);
+            service.CreatePolicy("test", policy);
+            service.RegisterRetryableException("test", typeof(TestException).FullName!);
+            var result = service.ShouldRetry("test", 4, typeof(TestException).FullName!); // attempt 4 > maxRetries 3
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void ShouldRetry_KnownPolicy_ReturnsTrueWhenExceptionNotRetryableButListEmpty()
+        {
+            var service = new RetryPolicyService();
+            var policy = service.CreateExponentialBackoffPolicy(maxRetries: 3);
+            service.CreatePolicy("test", policy);
+            // not registering any exception -> empty list
+            var result = service.ShouldRetry("test", 1, typeof(TestException).FullName!);
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ShouldRetry_KnownPolicy_ReturnsFalseWhenExceptionNotRetryableAndListNotEmpty()
+        {
+            var service = new RetryPolicyService();
+            var policy = service.CreateExponentialBackoffPolicy(maxRetries: 3);
+            service.CreatePolicy("test", policy);
+            // register a different exception
+            service.RegisterRetryableException("test", typeof(ArgumentException).FullName!);
+            var result = service.ShouldRetry("test", 1, typeof(TestException).FullName!);
+            Assert.False(result);
         }
     }
 }
