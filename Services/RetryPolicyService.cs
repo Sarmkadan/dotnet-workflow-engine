@@ -13,6 +13,7 @@ namespace DotNetWorkflowEngine.Services;
 /// </summary>
 public class RetryPolicyService
 {
+    private static readonly Random JitterRandom = Random.Shared;
     private readonly Dictionary<string, RetryPolicyConfig> _policies = new();
 
     /// <summary>
@@ -49,6 +50,19 @@ public class RetryPolicyService
 
         var delay = policy.CalculateDelayMs(attemptNumber);
         return Math.Max(0, delay);
+    }
+
+    /// <summary>
+    /// Calculates the next retry delay with bounded random jitter.
+    /// </summary>
+    public int CalculateRetryDelayWithJitter(string policyId, int attemptNumber, double jitterFactor = 0.2)
+    {
+        if (double.IsNaN(jitterFactor) || jitterFactor < 0 || jitterFactor > 1)
+            throw new ArgumentOutOfRangeException(nameof(jitterFactor), "Jitter factor must be between 0 and 1.");
+
+        var delay = CalculateRetryDelay(policyId, attemptNumber);
+        var jitter = delay * jitterFactor * (JitterRandom.NextDouble() * 2 - 1);
+        return (int)Math.Clamp(delay + jitter, 0, int.MaxValue);
     }
 
     /// <summary>
