@@ -41,11 +41,14 @@ public class RetryPolicyService
     public int CalculateRetryDelay(string policyId, int attemptNumber)
     {
         ArgumentException.ThrowIfNullOrEmpty(policyId);
+        if (attemptNumber < 0)
+            throw new ArgumentOutOfRangeException(nameof(attemptNumber), "Attempt number cannot be negative.");
         var policy = GetPolicy(policyId);
         if (policy == null)
             return Constants.WorkflowConstants.DefaultRetryDelayMs;
 
-        return Math.Min(int.MaxValue, policy.CalculateDelayMs(attemptNumber));
+        var delay = policy.CalculateDelayMs(attemptNumber);
+        return Math.Max(0, delay);
     }
 
     /// <summary>
