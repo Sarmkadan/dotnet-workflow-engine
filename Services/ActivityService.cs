@@ -24,12 +24,19 @@ public class ActivityService
     /// </summary>
     public interface IActivityHandler
     {
+        /// <summary>
+        /// Executes the activity handler.
+        /// </summary>
+        /// <param name="activity">The activity to execute.</param>
+        /// <param name="context">The execution context.</param>
+        /// <returns>A task representing the asynchronous operation, returning the handler output keyed by name.</returns>
         Task<Dictionary<string, object?>> ExecuteAsync(Activity activity, ExecutionContext context);
     }
 
     /// <summary>
     /// Initializes the activity service.
     /// </summary>
+    /// <param name="retryPolicyService">The retry policy service used to build retry configurations.</param>
     /// <exception cref="ArgumentNullException">Thrown when retry policy service is null.</exception>
     public ActivityService(RetryPolicyService retryPolicyService)
     {
@@ -39,6 +46,8 @@ public class ActivityService
     /// <summary>
     /// Registers a handler for a specific activity type.
     /// </summary>
+    /// <param name="handlerType">The activity type to register the handler for.</param>
+    /// <param name="handler">The handler instance to register.</param>
     /// <exception cref="ArgumentNullException">Thrown when handler is null.</exception>
     public void RegisterHandler(string handlerType, IActivityHandler handler)
     {
@@ -244,6 +253,7 @@ public class ActivityService
     /// <summary>
     /// Gets all registered handlers.
     /// </summary>
+    /// <returns>A list of registered handler type names.</returns>
     public List<string> GetRegisteredHandlerTypes()
     {
         return _handlers.Keys.ToList();
@@ -252,6 +262,9 @@ public class ActivityService
     /// <summary>
     /// Validates activity before execution.
     /// </summary>
+    /// <param name="activity">The activity to validate.</param>
+    /// <param name="errors">Output list of validation errors if validation fails.</param>
+    /// <returns>True if the activity is valid, false otherwise.</returns>
     public bool ValidateActivity(Activity activity, out List<string> errors)
     {
         if (activity == null)
