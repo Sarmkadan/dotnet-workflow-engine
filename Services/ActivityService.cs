@@ -40,7 +40,9 @@ public class ActivityService
     /// <exception cref="ArgumentNullException">Thrown when retry policy service is null.</exception>
     public ActivityService(RetryPolicyService retryPolicyService)
     {
-        _retryPolicyService = retryPolicyService ?? throw new ArgumentNullException(nameof(retryPolicyService));
+        ArgumentNullException.ThrowIfNull(retryPolicyService);
+
+        _retryPolicyService = retryPolicyService;
     }
 
     /// <summary>
@@ -51,11 +53,11 @@ public class ActivityService
     /// <exception cref="ArgumentNullException">Thrown when handler is null.</exception>
     public void RegisterHandler(string handlerType, IActivityHandler handler)
     {
+        ArgumentNullException.ThrowIfNull(handlerType);
+        ArgumentNullException.ThrowIfNull(handler);
+
         if (string.IsNullOrWhiteSpace(handlerType))
             throw new ArgumentException("Handler type cannot be null or empty", nameof(handlerType));
-
-        if (handler == null)
-            throw new ArgumentNullException(nameof(handler));
 
         _handlers[handlerType] = handler;
     }
