@@ -87,6 +87,7 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance starts executing.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceStarted(string instanceId)
     {
@@ -104,6 +105,7 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance completes.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceCompleted(string instanceId)
     {
@@ -121,6 +123,8 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance fails.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="errorMessage">The error message describing the failure.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID or error message is invalid.</exception>
     public async Task LogInstanceFailed(string instanceId, string errorMessage)
     {
@@ -141,6 +145,7 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when a workflow instance is resumed.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceResumed(string instanceId)
     {
@@ -177,6 +182,9 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when an activity completes.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="activityId">The ID of the activity.</param>
+    /// <param name="result">The result of the activity execution.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityCompleted(string instanceId, string activityId, ActivityResult result)
     {
@@ -207,6 +215,9 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when an activity fails.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="activityId">The ID of the activity.</param>
+    /// <param name="errorMessage">The error message describing the failure.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityFailed(string instanceId, string activityId, string errorMessage)
     {
@@ -236,6 +247,10 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs when an activity is retried.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="activityId">The ID of the activity.</param>
+    /// <param name="attemptNumber">The current attempt number.</param>
+    /// <param name="reason">Optional reason for the retry.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityRetry(string instanceId, string activityId, int attemptNumber, string? reason = null)
     {
@@ -263,6 +278,11 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Logs a custom event.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="eventType">The type of the event.</param>
+    /// <param name="description">A description of the event.</param>
+    /// <param name="severity">The severity level of the event.</param>
+    /// <param name="activityId">Optional ID of the associated activity.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public virtual async Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
     {
@@ -290,6 +310,7 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Gets audit log entries for a specific workflow instance.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId)
     {
@@ -302,6 +323,9 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Gets audit log entries with filtering.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="since">Optional start date to filter entries from.</param>
+    /// <param name="eventType">Optional event type to filter by.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId, DateTime? since = null, string? eventType = null)
     {
@@ -319,6 +343,8 @@ public class AuditService : IAuditTrailQuery
     /// <summary>
     /// Gets the most recent audit entries.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance.</param>
+    /// <param name="count">The number of recent entries to retrieve.</param>
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetRecentAuditLog(string instanceId, int count = 10)
     {
