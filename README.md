@@ -160,3 +160,75 @@ var csv = await auditService.ExportAuditLogAsCsv(instanceId);
 // 5. Shut down cleanly so buffered entries are flushed.
 await auditService.DisposeAsync();
 ```
+
+## WorkflowExecutionService
+
+`WorkflowExecutionService` (in `Services/WorkflowExecutionService.cs`) is the core execution engine for workflows. It manages the full lifecycle of workflow instances — creation, execution, suspension, resumption, completion, and failure handling — and implements `IWorkflowInstanceQuery` for read-only access. It lives in the `DotNetWorkflowEngine.Services` namespace.
+
+### Execution flow
+
+A workflow instance moves through the following sequence:
+
+1. **Create** — `CreateInstance(workflowId, correlationId, initiatedBy)` looks up the published workflow definition, verifies it is `Active`, and creates a `WorkflowInstance` in an idle state. The instance is stored in a thread-safe `ConcurrentDictionary` keyed by instance ID and an `InstanceCreated` audit event is logged. It must be explicitly started via `StartAsync`.
+
+2. **Start** — `StartAsync(instanceId)` validates the instance is active, marks it started, and runs the workflow's start activity via `ExecuteActivityAsync`. The instance is then driven forward by following the transitions defined in the workflow graph.
+
+3. **Execute an activity** — `ExecuteActivityAsync(instance, activityId)` resolves the activity from the workflow definition, records it as the current/active activity, and seeds an `ExecutionContext` with the instance's current context variables plus the activity's input parameters. It delegates to `ActivityService.ExecuteAsync`, which applies the activity's retry policy and timeout. On success the handler's output variables are persisted back onto the instance (both directly and via `OutputMapping`), the activity execution is recorded, and the next activities are resolved.
+
+4. **Resolve next activities** — `ResolveNextActivities` evaluates the outgoing transitions of the completed activity against the instance's context variables. Conditional transitions are followed only when their `ConditionExpression` evaluates to true, unconditional transitions are always followed, and a default transition (`Transition.IsDefault`) is used only when nothing else matched.
+
+5. **Branch execution** — if the activity's `ExecutionMode` is `Fork`, all resolved next activities run concurrently via `Task.WhenAll` and every branch exception is captured into a composite `AggregateException` so the join barrier never hangs. Otherwise the next activities run sequentially.
+
+6. **Complete or fail** — when no more transitions remain the instance completes (`CompleteInstance`). Any unhandled exception marks the instance as failed (`FailInstance`), logs an `ActivityFailed`/`InstanceFailed` audit event, and propagates.
+
+### Suspension and resumption
+
+- **MessageCatchEvent** — when an activity of type `MessageCatchEvent` is reached, the instance is suspended (`WaitingForMessage`). The message name, correlation key, and waiting activity ID are stored in the instance context, and a `WorkflowSuspended` audit event is logged.
+- **Resume from message** — `ResumeFromMessageAsync(instanceId, messageName, correlationKey, messagePayload)` validates the instance is waiting and that the incoming message name and correlation key match what was stored. It clears the waiting metadata, transitions the instance back to `Active`, injects the message payload into the execution context as `MessagePayload.*` inputs, and re-executes the waiting activity (which now acts as a no-op and continues the workflow).
+- **Resume** — `ResumeInstanceAsync(instanceId)` continues execution from the instance's current activity by resolving and running its next activities.
+- **Pause** — `PauseInstance(instanceId, reason)` suspends the instance and prevents further execution.
+
+### Public API
+
+| Member | Description |
+| --- | --- |
+| `WorkflowExecutionService(WorkflowDefinitionService, AuditService, ActivityService, ILogger<WorkflowExecutionService>? = null)` | Constructor. Throws `ArgumentNullException` if any required dependency is `null`. |
+| `WorkflowInstance CreateInstance(string workflowId, string? correlationId = null, string? initiatedBy = null)` | Creates an idle instance from an active workflow definition. Throws `WorkflowException` if the workflow is not found or not active. |
+| `Task<WorkflowInstance> StartAsync(string instanceId)` | Starts an instance and runs its start activity. |
+| `Task ExecuteActivityAsync(WorkflowInstance instance, string activityId)` | Executes a single activity and follows its transitions. |
+| `void CompleteInstance(string instanceId)` | Marks an instance as completed. |
+| `void FailInstance(string instanceId, string errorMessage)` | Marks an instance as failed with an error message. |
+| `WorkflowInstance? GetInstance(string instanceId)` | Gets a single instance by ID. |
+| `List<WorkflowInstance> GetInstancesByWorkflow(string workflowId)` | Gets all instances for a workflow. |
+| `List<WorkflowInstance> GetInstancesByCorrelation(string correlationId)` | Gets instances by correlation ID. |
+| `List<WorkflowInstance> GetActiveInstances()` | Gets all active instances. |
+| `Task ResumeInstanceAsync(string instanceId)` | Resumes a suspended instance from its current activity. |
+| `Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)` | Resumes a message-waiting instance, injecting the payload and re-running the waiting activity. |
+| `(int Total, int Active, int Completed, int Failed) GetStatistics()` | Returns aggregate instance statistics. |
+| `void CancelInstance(string instanceId, string? reason = null)` | Cancels an instance and prevents further execution. |
+| `Task PauseInstance(string instanceId, string? reason = null)` | Suspends an instance and prevents further execution. |
+
+### Usage example
+
+```csharp
+using DotNetWorkflowEngine.Services;
+
+// 1. Create the execution service with its dependencies.
+var executionService = new WorkflowExecutionService(
+    definitionService, auditService, activityService);
+
+// 2. Create and start an instance of a published workflow.
+var instance = executionService.CreateInstance("onboarding", correlationId: "user-42");
+await executionService.StartAsync(instance.Id);
+
+// 3. Inspect the outcome.
+var stats = executionService.GetStatistics();
+Console.WriteLine($"Active: {stats.Active}, Completed: {stats.Completed}, Failed: {stats.Failed}");
+
+// 4. Resume an instance that was suspended waiting for a message.
+await executionService.ResumeFromMessageAsync(
+    instance.Id, "UserApproved", "user-42", new Dictionary<string, object?>
+    {
+        ["ApprovedBy"] = "admin"
+    });
+```
