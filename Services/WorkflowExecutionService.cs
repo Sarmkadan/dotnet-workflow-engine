@@ -21,21 +21,31 @@ public interface IWorkflowInstanceQuery
     /// <summary>
     /// Gets a workflow instance.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance to retrieve.</param>
+    /// <returns>The matching workflow instance, or <see langword="null"/> if no instance is found.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
     WorkflowInstance? GetInstance(string instanceId);
 
     /// <summary>
     /// Gets all instances for a workflow.
     /// </summary>
+    /// <param name="workflowId">The ID of the workflow whose instances are retrieved.</param>
+    /// <returns>A list of workflow instances associated with the specified workflow.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is null, empty, or consists only of white-space characters.</exception>
     List<WorkflowInstance> GetInstancesByWorkflow(string workflowId);
 
     /// <summary>
     /// Gets instances by correlation ID.
     /// </summary>
+    /// <param name="correlationId">The correlation ID used to identify related instances.</param>
+    /// <returns>A list of workflow instances with the specified correlation ID.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="correlationId"/> is null, empty, or consists only of white-space characters.</exception>
     List<WorkflowInstance> GetInstancesByCorrelation(string correlationId);
 
     /// <summary>
     /// Gets all active instances.
     /// </summary>
+    /// <returns>A list containing all active workflow instances.</returns>
     List<WorkflowInstance> GetActiveInstances();
 }
 
@@ -69,6 +79,10 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Initializes the execution service with required dependencies.
     /// </summary>
+    /// <param name="definitionService">The service used to retrieve workflow definitions.</param>
+    /// <param name="auditService">The service used to record workflow audit events.</param>
+    /// <param name="activityService">The service used to execute workflow activities.</param>
+    /// <param name="logger">The optional logger used to record workflow execution events.</param>
     /// <exception cref="ArgumentNullException">Thrown when any dependency is null.</exception>
     public WorkflowExecutionService(
         WorkflowDefinitionService definitionService,
@@ -90,7 +104,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <param name="correlationId">Optional business correlation ID for grouping related instances.</param>
     /// <param name="initiatedBy">Optional identifier of the user or system that triggered this instance.</param>
     /// <returns>The newly created <see cref="WorkflowInstance"/>.</returns>
-    /// <exception cref="WorkflowException">Thrown when the workflow is not found or not in Active status.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="WorkflowException">Thrown when the workflow is not found.</exception>
+    /// <exception cref="StateException">Thrown when the workflow is not active.</exception>
     public WorkflowInstance CreateInstance(string workflowId, string? correlationId = null, string? initiatedBy = null)
     {
         if (string.IsNullOrWhiteSpace(workflowId))
@@ -123,6 +139,7 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// </summary>
     /// <param name="instanceId">The ID of the instance to start.</param>
     /// <returns>The updated <see cref="WorkflowInstance"/> after the start activity completes.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
     /// <exception cref="WorkflowException">Thrown when the instance is not found or has no start activity.</exception>
     /// <exception cref="StateException">Thrown when the instance is not in an active state.</exception>
     public async Task<WorkflowInstance> StartAsync(string instanceId)
@@ -156,6 +173,11 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Executes a specific activity within an instance.
     /// </summary>
+    /// <param name="instance">The workflow instance in which to execute the activity.</param>
+    /// <param name="activityId">The ID of the activity to execute.</param>
+    /// <returns>A task that represents the asynchronous activity execution.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="instance"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="activityId"/> is null, empty, or consists only of white-space characters.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow or activity not found.</exception>
     /// <exception cref="ActivityException">Thrown when activity execution fails.</exception>
     public async Task ExecuteActivityAsync(WorkflowInstance instance, string activityId)
@@ -318,6 +340,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Completes a workflow instance.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance to complete.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
     /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
     public void CompleteInstance(string instanceId)
     {
@@ -338,6 +362,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Fails a workflow instance with error message.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance to fail.</param>
+    /// <param name="errorMessage">The error message that describes the failure.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> or <paramref name="errorMessage"/> is null, empty, or consists only of white-space characters.</exception>
     /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
     public virtual void FailInstance(string instanceId, string errorMessage)
     {
@@ -361,6 +388,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Gets a workflow instance.
     /// </summary>
+    /// <param name="instanceId">The ID of the workflow instance to retrieve.</param>
+    /// <returns>The matching workflow instance, or <see langword="null"/> if no instance is found.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
     public WorkflowInstance? GetInstance(string instanceId)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
@@ -373,6 +403,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Gets all instances for a workflow.
     /// </summary>
+    /// <param name="workflowId">The ID of the workflow whose instances are retrieved.</param>
+    /// <returns>A list of workflow instances associated with the specified workflow.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is null, empty, or consists only of white-space characters.</exception>
     public List<WorkflowInstance> GetInstancesByWorkflow(string workflowId)
     {
         if (string.IsNullOrWhiteSpace(workflowId))
@@ -384,6 +417,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Gets instances by correlation ID.
     /// </summary>
+    /// <param name="correlationId">The correlation ID used to identify related instances.</param>
+    /// <returns>A list of workflow instances with the specified correlation ID.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="correlationId"/> is null, empty, or consists only of white-space characters.</exception>
     public virtual List<WorkflowInstance> GetInstancesByCorrelation(string correlationId)
     {
         if (string.IsNullOrWhiteSpace(correlationId))
@@ -395,6 +431,7 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Gets all active instances.
     /// </summary>
+    /// <returns>A list containing all active workflow instances.</returns>
     public List<WorkflowInstance> GetActiveInstances()
     {
         return _instances.Values.Where(i => i.IsActive()).ToList();
@@ -403,7 +440,10 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Resumes a suspended or waiting instance.
     /// </summary>
-    /// <exception cref="WorkflowException">Thrown when instance not found or invalid.</exception>
+    /// <param name="instanceId">The ID of the workflow instance to resume.</param>
+    /// <returns>A task that represents the asynchronous resume operation.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="WorkflowException">Thrown when the instance, its current activity, or its workflow start activity is not found.</exception>
     public async Task ResumeInstanceAsync(string instanceId)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
@@ -436,6 +476,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <param name="messageName">The name of the message that arrived.</param>
     /// <param name="correlationKey">The correlation key of the message.</param>
     /// <param name="messagePayload">The payload of the message.</param>
+    /// <returns>A task that represents the asynchronous resume operation.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/>, <paramref name="messageName"/>, or <paramref name="correlationKey"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="messagePayload"/> is <see langword="null"/>.</exception>
     /// <exception cref="WorkflowException">Thrown if the instance is not found, not waiting for a message, or the message details don't match.</exception>
     /// <exception cref="StateException">Thrown if the instance is in an unexpected state.</exception>
     public virtual async Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)
@@ -509,6 +552,7 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <summary>
     /// Gets instance statistics.
     /// </summary>
+    /// <returns>A tuple containing the total, active, completed, and failed instance counts.</returns>
     public (int Total, int Active, int Completed, int Failed) GetStatistics()
     {
         var total = _instances.Count;
@@ -524,7 +568,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// </summary>
     /// <param name="instanceId">The ID of the instance to cancel.</param>
     /// <param name="reason">Optional reason for cancellation.</param>
-    /// <exception cref="WorkflowException">Thrown when instance not found or invalid.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="WorkflowException">Thrown when the instance is not found.</exception>
+    /// <exception cref="StateException">Thrown when the instance is already completed or cancelled.</exception>
     public virtual void CancelInstance(string instanceId, string? reason = null)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
@@ -548,7 +594,10 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// </summary>
     /// <param name="instanceId">The ID of the instance to pause.</param>
     /// <param name="reason">Optional reason for pausing.</param>
-    /// <exception cref="WorkflowException">Thrown when instance not found or invalid.</exception>
+    /// <returns>A task that represents the asynchronous pause operation.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="WorkflowException">Thrown when the instance is not found.</exception>
+    /// <exception cref="StateException">Thrown when the instance is already completed or cancelled.</exception>
     public virtual async Task PauseInstance(string instanceId, string? reason = null)
     {
         if (string.IsNullOrWhiteSpace(instanceId))
