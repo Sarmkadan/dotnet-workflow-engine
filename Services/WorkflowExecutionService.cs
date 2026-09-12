@@ -109,6 +109,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="StateException">Thrown when the workflow is not active.</exception>
     public WorkflowInstance CreateInstance(string workflowId, string? correlationId = null, string? initiatedBy = null)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+
         if (string.IsNullOrWhiteSpace(workflowId))
             throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
 
@@ -144,6 +146,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="StateException">Thrown when the instance is not in an active state.</exception>
     public async Task<WorkflowInstance> StartAsync(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -184,6 +188,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     {
         if (instance == null)
             throw new ArgumentNullException(nameof(instance));
+
+        ArgumentNullException.ThrowIfNull(activityId);
 
         if (string.IsNullOrWhiteSpace(activityId))
             throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
@@ -345,6 +351,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
     public void CompleteInstance(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -368,6 +376,9 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="WorkflowException">Thrown when instance not found.</exception>
     public virtual void FailInstance(string instanceId, string errorMessage)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(errorMessage);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -393,6 +404,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="ArgumentException">Thrown when <paramref name="instanceId"/> is null, empty, or consists only of white-space characters.</exception>
     public WorkflowInstance? GetInstance(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -408,6 +421,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is null, empty, or consists only of white-space characters.</exception>
     public List<WorkflowInstance> GetInstancesByWorkflow(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+
         if (string.IsNullOrWhiteSpace(workflowId))
             throw new ArgumentException("Workflow ID cannot be null or empty", nameof(workflowId));
 
@@ -422,6 +437,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="ArgumentException">Thrown when <paramref name="correlationId"/> is null, empty, or consists only of white-space characters.</exception>
     public virtual List<WorkflowInstance> GetInstancesByCorrelation(string correlationId)
     {
+        ArgumentNullException.ThrowIfNull(correlationId);
+
         if (string.IsNullOrWhiteSpace(correlationId))
             throw new ArgumentException("Correlation ID cannot be null or empty", nameof(correlationId));
 
@@ -446,6 +463,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="WorkflowException">Thrown when the instance, its current activity, or its workflow start activity is not found.</exception>
     public async Task ResumeInstanceAsync(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -483,6 +502,10 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="StateException">Thrown if the instance is in an unexpected state.</exception>
     public virtual async Task ResumeFromMessageAsync(string instanceId, string messageName, string correlationKey, Dictionary<string, object?> messagePayload)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(messageName);
+        ArgumentNullException.ThrowIfNull(correlationKey);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -573,6 +596,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="StateException">Thrown when the instance is already completed or cancelled.</exception>
     public virtual void CancelInstance(string instanceId, string? reason = null)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -600,6 +625,8 @@ public class WorkflowExecutionService : IWorkflowInstanceQuery
     /// <exception cref="StateException">Thrown when the instance is already completed or cancelled.</exception>
     public virtual async Task PauseInstance(string instanceId, string? reason = null)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
