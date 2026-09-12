@@ -26,6 +26,8 @@ public class WorkflowDefinitionService
     /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
     public Workflow CreateWorkflow(string id, string name, string? description = null)
     {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(name);
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
@@ -99,6 +101,7 @@ public class WorkflowDefinitionService
     /// </summary>
     public virtual Workflow? GetWorkflow(string id)
     {
+        ArgumentNullException.ThrowIfNull(id);
         ArgumentException.ThrowIfNullOrEmpty(id);
 
         _workflows.TryGetValue(id, out var workflow);
@@ -113,6 +116,7 @@ public class WorkflowDefinitionService
     /// <returns>The workflow definition with the specified version, or null if not found.</returns>
     public virtual Workflow? GetWorkflowVersion(string id, int version)
     {
+        ArgumentNullException.ThrowIfNull(id);
         ArgumentException.ThrowIfNullOrEmpty(id);
 
         if (_workflowVersions.TryGetValue(id, out var versions))
@@ -137,6 +141,7 @@ public class WorkflowDefinitionService
     /// <returns>List of all versions of the workflow, ordered by version number.</returns>
     public List<Workflow> GetWorkflowVersions(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         if (_workflowVersions.TryGetValue(workflowId, out var versions))
@@ -153,6 +158,7 @@ public class WorkflowDefinitionService
     /// <returns>The latest version number, or 0 if workflow not found.</returns>
     public int GetLatestVersion(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         if (_workflowVersions.TryGetValue(workflowId, out var versions))
@@ -174,8 +180,9 @@ public class WorkflowDefinitionService
     /// <exception cref="ValidationException">Thrown when workflow validation fails.</exception>
     public Workflow UpdateWorkflow(string workflowId, Action<Workflow> updateAction)
     {
-        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentNullException.ThrowIfNull(updateAction);
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         // Get the latest version
         if (!_workflows.TryGetValue(workflowId, out var latestWorkflow))
@@ -213,8 +220,9 @@ public class WorkflowDefinitionService
     /// <exception cref="ValidationException">Thrown when activity is invalid.</exception>
     public void AddActivity(string workflowId, Activity activity)
     {
-        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentNullException.ThrowIfNull(activity);
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         UpdateWorkflow(workflowId, workflow =>
         {
@@ -235,8 +243,9 @@ public class WorkflowDefinitionService
     /// <exception cref="ValidationException">Thrown when transition is invalid.</exception>
     public void AddTransition(string workflowId, Transition transition)
     {
-        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentNullException.ThrowIfNull(transition);
+        ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         UpdateWorkflow(workflowId, workflow =>
         {
@@ -262,6 +271,8 @@ public class WorkflowDefinitionService
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetStartActivity(string workflowId, string activityId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+        ArgumentNullException.ThrowIfNull(activityId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(activityId);
 
@@ -280,6 +291,8 @@ public class WorkflowDefinitionService
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetEndActivity(string workflowId, string activityId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+        ArgumentNullException.ThrowIfNull(activityId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(activityId);
 
@@ -298,6 +311,7 @@ public class WorkflowDefinitionService
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public void PublishWorkflow(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         UpdateWorkflow(workflowId, workflow =>
@@ -311,6 +325,7 @@ public class WorkflowDefinitionService
     /// </summary>
     public bool ValidateWorkflow(string workflowId, out List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(workflowId))
@@ -337,6 +352,7 @@ public class WorkflowDefinitionService
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public List<Activity> GetActivities(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         var workflow = GetWorkflow(workflowId);
@@ -351,6 +367,8 @@ public class WorkflowDefinitionService
     /// </summary>
     public Activity? GetActivity(string workflowId, string activityId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+        ArgumentNullException.ThrowIfNull(activityId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(activityId);
 
@@ -366,6 +384,7 @@ public class WorkflowDefinitionService
     /// </summary>
     public bool DeleteWorkflow(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         var removed = _workflows.Remove(workflowId);
@@ -379,6 +398,9 @@ public class WorkflowDefinitionService
     /// <exception cref="WorkflowException">Thrown when source workflow not found.</exception>
     public Workflow CloneWorkflow(string sourceWorkflowId, string newWorkflowId, string newName)
     {
+        ArgumentNullException.ThrowIfNull(sourceWorkflowId);
+        ArgumentNullException.ThrowIfNull(newWorkflowId);
+        ArgumentNullException.ThrowIfNull(newName);
         ArgumentException.ThrowIfNullOrEmpty(sourceWorkflowId);
         ArgumentException.ThrowIfNullOrEmpty(newWorkflowId);
         ArgumentException.ThrowIfNullOrEmpty(newName);
@@ -417,6 +439,7 @@ public class WorkflowDefinitionService
     /// <exception cref="WorkflowException">Thrown when workflow not found</exception>
     public string ExportWorkflowToJson(string workflowId)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
 
         var workflow = GetWorkflow(workflowId);
@@ -437,6 +460,9 @@ public class WorkflowDefinitionService
     /// <exception cref="ValidationException">Thrown when JSON is invalid or workflow validation fails</exception>
     public Workflow ImportWorkflowFromJson(string workflowId, string workflowName, string jsonDefinition, bool overwriteExisting = false)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+        ArgumentNullException.ThrowIfNull(workflowName);
+        ArgumentNullException.ThrowIfNull(jsonDefinition);
         ArgumentException.ThrowIfNullOrEmpty(workflowId);
         ArgumentException.ThrowIfNullOrEmpty(workflowName);
         ArgumentException.ThrowIfNullOrEmpty(jsonDefinition);
@@ -493,6 +519,7 @@ public class WorkflowDefinitionService
     /// <returns>Validation result with errors if any</returns>
     public bool ValidateWorkflowJson(string jsonDefinition, out List<string> errors)
     {
+        ArgumentNullException.ThrowIfNull(jsonDefinition);
         errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(jsonDefinition))
