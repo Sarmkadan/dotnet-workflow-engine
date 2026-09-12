@@ -44,7 +44,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentNullException">Thrown when audit repository is null.</exception>
     public AuditService(IAuditRepository auditRepository)
     {
-        _auditRepository = auditRepository ?? throw new ArgumentNullException(nameof(auditRepository));
+        ArgumentNullException.ThrowIfNull(auditRepository);
+        _auditRepository = auditRepository;
 
         // Create a bounded channel with drop-oldest policy for overflow handling
         // Capacity of 1000 entries provides good buffering without excessive memory usage
@@ -69,6 +70,9 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceCreated(string instanceId, string createdBy)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(createdBy);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -91,6 +95,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceStarted(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -109,6 +115,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceCompleted(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -128,6 +136,9 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID or error message is invalid.</exception>
     public async Task LogInstanceFailed(string instanceId, string errorMessage)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(errorMessage);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -149,6 +160,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstanceResumed(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -166,6 +179,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task LogInstancePaused(string instanceId, string? reason = null)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -188,14 +203,15 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityCompleted(string instanceId, string activityId, ActivityResult result)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(activityId);
+        ArgumentNullException.ThrowIfNull(result);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
         if (string.IsNullOrWhiteSpace(activityId))
             throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
-
-        if (result == null)
-            throw new ArgumentNullException(nameof(result));
 
         var entry = new AuditLogEntry(instanceId, "ActivityCompleted", $"Activity '{activityId}' completed successfully")
         {
@@ -221,6 +237,10 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityFailed(string instanceId, string activityId, string errorMessage)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(activityId);
+        ArgumentNullException.ThrowIfNull(errorMessage);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -254,6 +274,9 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID or activity ID is invalid.</exception>
     public async Task LogActivityRetry(string instanceId, string activityId, int attemptNumber, string? reason = null)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(activityId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -286,6 +309,11 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public virtual async Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+        ArgumentNullException.ThrowIfNull(eventType);
+        ArgumentNullException.ThrowIfNull(description);
+        ArgumentNullException.ThrowIfNull(severity);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -314,6 +342,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -329,6 +359,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetAuditLog(string instanceId, DateTime? since = null, string? eventType = null)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -348,6 +380,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<List<AuditLogEntry>> GetRecentAuditLog(string instanceId, int count = 10)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -363,6 +397,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task ClearAuditLog(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -375,6 +411,8 @@ public class AuditService : IAuditTrailQuery
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public async Task<string> ExportAuditLogAsCsv(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
+
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
