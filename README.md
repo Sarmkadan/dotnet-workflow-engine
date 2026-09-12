@@ -95,3 +95,68 @@ public class EmailHandler : ActivityService.IActivityHandler
     }
 }
 ```
+
+## AuditService
+
+`AuditService` (in `Services/AuditService.cs`) records workflow and activity lifecycle events as audit log entries and provides querying/export of those entries. It lives in the `DotNetWorkflowEngine.Services` namespace and implements `IAuditTrailQuery`.
+
+### Purpose
+
+The service is the audit trail for a workflow engine. It:
+
+- Logs lifecycle events for workflow instances (created, started, completed, failed, resumed, paused).
+- Logs activity outcomes (completed, failed, retried) and arbitrary custom events.
+- Buffers writes through a bounded channel with a background writer so audit logging is non-blocking and failure-isolated.
+- Drops the oldest entries on overflow (`BoundedChannelFullMode.DropOldest`) and tracks the drop count via `GetDroppedEntryCount()`.
+- Swallows repository failures internally so audit problems never break workflow execution.
+- Persists entries through `IAuditRepository` and exposes filtered/paginated queries, CSV export, and per-instance retrieval.
+
+### Public API
+
+| Member | Description |
+| --- | --- |
+| `AuditService(IAuditRepository auditRepository)` | Constructor. Throws `ArgumentNullException` if the repository is `null`. |
+| `Task LogInstanceCreated(string instanceId, string createdBy)` | Logs that a workflow instance was created. |
+| `Task LogInstanceStarted(string instanceId)` | Logs that a workflow instance started executing. |
+| `Task LogInstanceCompleted(string instanceId)` | Logs that a workflow instance completed successfully. |
+| `Task LogInstanceFailed(string instanceId, string errorMessage)` | Logs that a workflow instance failed. |
+| `Task LogInstanceResumed(string instanceId)` | Logs that a workflow instance resumed from suspension. |
+| `Task LogInstancePaused(string instanceId, string? reason = null)` | Logs that a workflow instance was paused. |
+| `Task LogActivityCompleted(string instanceId, string activityId, ActivityResult result)` | Logs that an activity completed, including execution time, attempts, and output keys. |
+| `Task LogActivityFailed(string instanceId, string activityId, string errorMessage)` | Logs that an activity failed. |
+| `Task LogActivityRetry(string instanceId, string activityId, int attemptNumber, string? reason = null)` | Logs that an activity is being retried. |
+| `Task LogCustomEvent(string instanceId, string eventType, string description, string severity = "Info", string? activityId = null)` | Logs a custom event. |
+| `Task<List<AuditLogEntry>> GetAuditLog(string instanceId)` | Returns all audit entries for an instance. |
+| `Task<List<AuditLogEntry>> GetAuditLog(string instanceId, DateTime? since = null, string? eventType = null)` | Returns filtered audit entries for an instance. |
+| `Task<List<AuditLogEntry>> GetRecentAuditLog(string instanceId, int count = 10)` | Returns the most recent entries for an instance. |
+| `Task ClearAuditLog(string instanceId)` | Clears the audit log for an instance. |
+| `Task<string> ExportAuditLogAsCsv(string instanceId)` | Exports an instance's audit log as a CSV string. |
+| `Task<(List<AuditLogEntry> Items, int Total)> GetFilteredAuditLogsAsync(...)` | Returns filtered, paginated entries across all workflows/instances. |
+| `int GetDroppedEntryCount()` | Returns the number of entries dropped due to channel overflow. |
+| `ValueTask DisposeAsync()` | Stops the background writer and flushes remaining entries. |
+
+The `IAuditTrailQuery` interface (implemented by this service) exposes `QueryAsync`, `GetEventTypesAsync`, and `GetOutcomeSummaryAsync` for read-only audit queries.
+
+### Usage example
+
+```csharp
+using DotNetWorkflowEngine.Services;
+
+// 1. Create the audit service backed by a repository.
+var auditService = new AuditService(myAuditRepository);
+
+// 2. Record lifecycle events.
+await auditService.LogInstanceCreated(instanceId, createdBy: "system");
+await auditService.LogInstanceStarted(instanceId);
+
+// 3. Record activity outcomes.
+await auditService.LogActivityCompleted(instanceId, activityId, result);
+await auditService.LogActivityFailed(instanceId, activityId, "Something went wrong");
+
+// 4. Query and export the trail.
+var entries = await auditService.GetAuditLog(instanceId);
+var csv = await auditService.ExportAuditLogAsCsv(instanceId);
+
+// 5. Shut down cleanly so buffered entries are flushed.
+await auditService.DisposeAsync();
+```
