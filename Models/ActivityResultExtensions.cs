@@ -13,6 +13,19 @@ namespace DotNetWorkflowEngine.Models;
 public static class ActivityResultExtensions
 {
     /// <summary>
+    /// Checks if the activity execution has reached a terminal state.
+    /// </summary>
+    public static bool IsTerminal(this ActivityResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return result.Status is ActivityStatus.Completed
+            or ActivityStatus.Failed
+            or ActivityStatus.Skipped
+            or ActivityStatus.Cancelled
+            or ActivityStatus.Timeout;
+    }
+
+    /// <summary>
     /// Checks if the activity execution was successful.
     /// </summary>
     public static bool Succeeded(this ActivityResult result)
