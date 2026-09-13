@@ -53,6 +53,7 @@ public static class CollectionExtensions
     /// <summary>
     /// Checks if a collection is null or empty without throwing an exception.
     /// </summary>
+    /// <typeparam name="T">The type of elements in the collection.</typeparam>
     /// <param name="collection">The collection to check.</param>
     /// <returns>True if collection is null or empty; otherwise false.</returns>
     public static bool IsNullOrEmpty<T>(this IEnumerable<T>? collection)
