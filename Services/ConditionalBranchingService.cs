@@ -34,7 +34,9 @@ public class ConditionalBranchingService
     /// <exception cref="ArgumentNullException">Thrown when logger is null.</exception>
     public ConditionalBranchingService(ILogger<ConditionalBranchingService> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _logger = logger;
     }
 
     /// <summary>
@@ -59,11 +61,8 @@ public class ConditionalBranchingService
         ExecutionContext context,
         CancellationToken cancellationToken = default)
     {
-        if (workflow == null)
-            throw new ArgumentNullException(nameof(workflow));
-
-        if (context == null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(workflow);
+        ArgumentNullException.ThrowIfNull(context);
 
         if (string.IsNullOrWhiteSpace(activityId))
             throw new ArgumentException("Activity ID is required.", nameof(activityId));
@@ -201,14 +200,12 @@ public class ConditionalBranchingService
         ExecutionContext context,
         CancellationToken cancellationToken = default)
     {
-        if (workflow == null)
-            throw new ArgumentNullException(nameof(workflow));
+        ArgumentNullException.ThrowIfNull(workflow);
 
         if (string.IsNullOrWhiteSpace(activityId))
             throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
 
-        if (context == null)
-            throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
         var branchingResult = await ResolveBranchesAsync(workflow, activityId, context, cancellationToken);
 
@@ -235,8 +232,7 @@ public class ConditionalBranchingService
     /// </exception>
     public List<TransitionEvaluationError> ValidateTransitionExpressions(Workflow workflow)
     {
-        if (workflow == null)
-            throw new ArgumentNullException(nameof(workflow));
+        ArgumentNullException.ThrowIfNull(workflow);
 
         var errors = new List<TransitionEvaluationError>();
 
