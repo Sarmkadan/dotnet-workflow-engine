@@ -232,3 +232,128 @@ await executionService.ResumeFromMessageAsync(
         ["ApprovedBy"] = "admin"
     });
 ```
+
+## ConditionalBranchingService
+
+`ConditionalBranchingService` (in `Services/ConditionalBranchingService.cs`) evaluates conditional expressions on workflow transitions to determine which branches to activate after an activity completes. It lives in the `DotNetWorkflowEngine.Services` namespace.
+
+### Purpose
+
+The service implements the branching logic for workflow transitions. It:
+
+- Evaluates conditional transitions based on expressions in the execution context
+- Processes transitions in priority order (highest priority first)
+- Selects all matching conditional transitions, followed by unconditional transitions
+- Falls back to default transitions only when no other transitions match
+- Handles expression validation and evaluation errors gracefully
+- Provides detailed branching results including selected/skipped transitions and any errors
+
+### Public API
+
+| Member | Description |
+| --- | --- |
+| `ConditionalBranchingService(ILogger<ConditionalBranchingService> logger)` | Constructor. Throws `ArgumentNullException` if logger is `null`. |
+| `Task<BranchingResult> ResolveBranchesAsync(Workflow workflow, string activityId, ExecutionContext context, CancellationToken cancellationToken = default)` | Resolves which transitions to follow from a completed activity based on condition expressions. Returns selected transitions, skipped transitions, and any evaluation errors. |
+| `Task<List<Activity>> GetNextActivitiesAsync(Workflow workflow, string activityId, ExecutionContext context, CancellationToken cancellationToken = default)` | Returns the target activities to execute after a completed activity, honoring conditional transition expressions. |
+| `List<TransitionEvaluationError> ValidateTransitionExpressions(Workflow workflow)` | Validates all conditional transition expressions in a workflow without executing them. Useful for early error detection during workflow loading. |
+
+### Usage example
+
+```csharp
+using DotNetWorkflowEngine.Models;
+using DotNetWorkflowEngine.Services;
+
+// 1. Create the conditional branching service.
+var branchingService = new ConditionalBranchingService(logger);
+
+// 2. Define a workflow with conditional transitions.
+var workflow = new Workflow
+{
+    Id = "approval-workflow",
+    Activities = new List<Activity>
+    {
+        new Activity { Id = "start", Name = "Start" },
+        new Activity { Id = "approve", Name = "Approval" },
+        new Activity { Id = "escalate", Name = "Escalate" },
+        new Activity { Id = "complete", Name = "Complete" }
+    },
+    Transitions = new List<Transition>
+    {
+        // Conditional transition - only if amount > 1000
+        new Transition
+        {
+            Id = "t1",
+            FromActivityId = "start",
+            ToActivityId = "approve",
+            ConditionExpression = "${amount} > 1000",
+            Priority = 1
+        },
+        // Conditional transition - only if amount <= 1000
+        new Transition
+        {
+            Id = "t2",
+            FromActivityId = "start",
+            ToActivityId = "escalate",
+            ConditionExpression = "${amount} <= 1000",
+            Priority = 1
+        },
+        // Default transition (fallback)
+        new Transition
+        {
+            Id = "t3",
+            FromActivityId = "start",
+            ToActivityId = "complete",
+            IsDefault = true,
+            Priority = 0
+        }
+    }
+};
+
+// 3. Create execution context with variables.
+var context = new ExecutionContext
+{
+    Variables = new Dictionary<string, object?>
+    {
+        ["amount"] = 1500
+    }
+};
+
+// 4. Resolve branches after the start activity completes.
+var result = await branchingService.ResolveBranchesAsync(
+    workflow, 
+    "start", 
+    context);
+
+// 5. Check the result.
+if (result.SelectedTransitions.Count > 0)
+{
+    var selectedTransition = result.SelectedTransitions.First();
+    Console.WriteLine($"Selected transition: {selectedTransition.Id} -> {selectedTransition.ToActivityId}");
+    // In this example, t1 should be selected (amount=1500 > 1000)
+}
+else
+{
+    Console.WriteLine("No transitions selected.");
+}
+
+// 6. Get the next activities to execute.
+var nextActivities = await branchingService.GetNextActivitiesAsync(
+    workflow,
+    "start",
+    context);
+
+foreach (var activity in nextActivities)
+{
+    Console.WriteLine($"Next activity: {activity.Id} - {activity.Name}");
+}
+```
+
+### Transition Resolution Order
+
+When resolving branches from a completed activity, the service follows this order:
+
+1. **Conditional transitions** (those with a `ConditionExpression`) - evaluated in descending `Priority` order; all expressions that evaluate to `true` are selected
+2. **Unconditional transitions** (no expression, not marked as default) - always selected regardless of context
+3. **Default transitions** (`Transition.IsDefault = true`) - selected only when no conditional or unconditional transitions were selected
+
+If multiple default transitions exist, the one with the highest `Priority` is chosen.
