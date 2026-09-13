@@ -155,8 +155,10 @@ public class WorkflowBuilder
     /// </summary>
     /// <param name="activityId">The identifier of the activity at which workflow execution starts.</param>
     /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="activityId"/> is <see langword="null"/>.</exception>
     public WorkflowBuilder WithStartActivity(string activityId)
     {
+        ArgumentNullException.ThrowIfNull(activityId);
         _workflow.StartActivityId = activityId;
         return this;
     }
@@ -166,8 +168,10 @@ public class WorkflowBuilder
     /// </summary>
     /// <param name="activityId">The identifier of the activity at which workflow execution ends.</param>
     /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="activityId"/> is <see langword="null"/>.</exception>
     public WorkflowBuilder WithEndActivity(string activityId)
     {
+        ArgumentNullException.ThrowIfNull(activityId);
         _workflow.EndActivityId = activityId;
         return this;
     }
