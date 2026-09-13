@@ -88,7 +88,7 @@ public class RetryPolicyService
     /// Thrown when <paramref name="attemptNumber"/> is negative, or when <paramref name="jitterFactor"/> is not between
     /// <c>0</c> and <c>1</c>, inclusive.
     /// </exception>
-    public int CalculateRetryDelayWithJitter(string policyId, int attemptNumber, double jitterFactor = 0.2)
+    public int CalculateRetryDelayWithJitter(string policyId, int attemptNumber, double jitterFactor = Constants.WorkflowConstants.DefaultJitterFactor)
     {
         if (double.IsNaN(jitterFactor) || jitterFactor < 0 || jitterFactor > 1)
             throw new ArgumentOutOfRangeException(nameof(jitterFactor), "Jitter factor must be between 0 and 1.");
@@ -125,7 +125,7 @@ public class RetryPolicyService
     /// </summary>
     /// <param name="maxRetries">The maximum number of attempts allowed by the policy.</param>
     /// <returns>An exponential backoff retry policy using the engine's default and maximum delay values.</returns>
-    public RetryPolicyConfig CreateExponentialBackoffPolicy(int maxRetries = 3)
+    public RetryPolicyConfig CreateExponentialBackoffPolicy(int maxRetries = Constants.WorkflowConstants.DefaultMaxRetries)
     {
         return RetryPolicyConfig.CreateExponentialBackoff(
             maxRetries,
@@ -140,7 +140,7 @@ public class RetryPolicyService
     /// <param name="maxRetries">The maximum number of attempts allowed by the policy.</param>
     /// <param name="delayMs">The delay between attempts, in milliseconds.</param>
     /// <returns>A fixed-delay retry policy with the specified settings.</returns>
-    public RetryPolicyConfig CreateFixedDelayPolicy(int maxRetries = 3, int delayMs = 1000)
+    public RetryPolicyConfig CreateFixedDelayPolicy(int maxRetries = Constants.WorkflowConstants.DefaultMaxRetries, int delayMs = Constants.WorkflowConstants.DefaultRetryDelayMs)
     {
         return RetryPolicyConfig.CreateFixedDelay(maxRetries, delayMs);
     }

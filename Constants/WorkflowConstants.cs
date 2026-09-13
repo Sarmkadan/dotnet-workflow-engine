@@ -13,8 +13,14 @@ public static class WorkflowConstants
     /// <summary>Maximum number of activity retries allowed</summary>
     public const int MaxRetries = 10;
 
+    /// <summary>Default number of retries for retry policies</summary>
+    public const int DefaultMaxRetries = 3;
+
     /// <summary>Default retry delay in milliseconds</summary>
     public const int DefaultRetryDelayMs = 1000;
+
+    /// <summary>Default jitter factor for retry policies</summary>
+    public const double DefaultJitterFactor = 0.2;
 
     /// <summary>Maximum workflow execution timeout in minutes</summary>
     public const int MaxExecutionTimeoutMinutes = 1440; // 24 hours
