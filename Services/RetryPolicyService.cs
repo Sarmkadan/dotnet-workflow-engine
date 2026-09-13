@@ -9,7 +9,7 @@ using DotNetWorkflowEngine.Models;
 namespace DotNetWorkflowEngine.Services;
 
 /// <summary>
-/// Service for managing and calculating retry policies.
+/// Provides registration, evaluation, validation, and delay calculations for retry policies.
 /// </summary>
 public class RetryPolicyService
 {
@@ -17,8 +17,14 @@ public class RetryPolicyService
     private readonly Dictionary<string, RetryPolicyConfig> _policies = new();
 
     /// <summary>
-    /// Creates and registers a retry policy.
+    /// Creates or replaces the retry policy registered with the specified identifier.
     /// </summary>
+    /// <param name="policyId">The identifier used to register the policy.</param>
+    /// <param name="config">The retry policy configuration to register.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is <see langword="null"/>.</exception>
     public void CreatePolicy(string policyId, RetryPolicyConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
@@ -27,8 +33,13 @@ public class RetryPolicyService
     }
 
     /// <summary>
-    /// Gets a retry policy by ID.
+    /// Gets the retry policy registered with the specified identifier.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy to retrieve.</param>
+    /// <returns>The registered policy, or <see langword="null"/> when no matching policy exists.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
     public RetryPolicyConfig? GetPolicy(string policyId)
     {
         ArgumentException.ThrowIfNullOrEmpty(policyId);
@@ -37,8 +48,17 @@ public class RetryPolicyService
     }
 
     /// <summary>
-    /// Calculates the next retry delay.
+    /// Calculates the delay before the specified retry attempt.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy used to calculate the delay.</param>
+    /// <param name="attemptNumber">The zero-based or positive attempt number.</param>
+    /// <returns>
+    /// The non-negative delay in milliseconds, or the default retry delay when the policy is not registered.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="attemptNumber"/> is negative.</exception>
     public int CalculateRetryDelay(string policyId, int attemptNumber)
     {
         ArgumentException.ThrowIfNullOrEmpty(policyId);
@@ -55,6 +75,19 @@ public class RetryPolicyService
     /// <summary>
     /// Calculates the next retry delay with bounded random jitter.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy used to calculate the delay.</param>
+    /// <param name="attemptNumber">The zero-based or positive attempt number.</param>
+    /// <param name="jitterFactor">
+    /// The maximum proportional variation applied above or below the calculated delay, from <c>0</c> through <c>1</c>.
+    /// </param>
+    /// <returns>The jittered delay in milliseconds, clamped to the range from zero through <see cref="int.MaxValue"/>.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="attemptNumber"/> is negative, or when <paramref name="jitterFactor"/> is not between
+    /// <c>0</c> and <c>1</c>, inclusive.
+    /// </exception>
     public int CalculateRetryDelayWithJitter(string policyId, int attemptNumber, double jitterFactor = 0.2)
     {
         if (double.IsNaN(jitterFactor) || jitterFactor < 0 || jitterFactor > 1)
@@ -66,8 +99,17 @@ public class RetryPolicyService
     }
 
     /// <summary>
-    /// Determines if a retry should be attempted.
+    /// Determines whether another attempt should be made for a registered policy.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy to evaluate.</param>
+    /// <param name="currentAttempt">The current attempt number.</param>
+    /// <param name="exceptionTypeName">The optional exception type name that caused the current attempt to fail.</param>
+    /// <returns>
+    /// <see langword="true"/> when the policy permits another attempt; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
     public bool ShouldRetry(string policyId, int currentAttempt, string? exceptionTypeName = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(policyId);
@@ -81,6 +123,8 @@ public class RetryPolicyService
     /// <summary>
     /// Creates a default exponential backoff policy.
     /// </summary>
+    /// <param name="maxRetries">The maximum number of attempts allowed by the policy.</param>
+    /// <returns>An exponential backoff retry policy using the engine's default and maximum delay values.</returns>
     public RetryPolicyConfig CreateExponentialBackoffPolicy(int maxRetries = 3)
     {
         return RetryPolicyConfig.CreateExponentialBackoff(
@@ -93,6 +137,9 @@ public class RetryPolicyService
     /// <summary>
     /// Creates a fixed delay retry policy.
     /// </summary>
+    /// <param name="maxRetries">The maximum number of attempts allowed by the policy.</param>
+    /// <param name="delayMs">The delay between attempts, in milliseconds.</param>
+    /// <returns>A fixed-delay retry policy with the specified settings.</returns>
     public RetryPolicyConfig CreateFixedDelayPolicy(int maxRetries = 3, int delayMs = 1000)
     {
         return RetryPolicyConfig.CreateFixedDelay(maxRetries, delayMs);
@@ -101,6 +148,7 @@ public class RetryPolicyService
     /// <summary>
     /// Creates a no-retry policy.
     /// </summary>
+    /// <returns>A policy configuration that does not permit retries.</returns>
     public RetryPolicyConfig CreateNoRetryPolicy()
     {
         return RetryPolicyConfig.CreateNoRetry();
@@ -109,6 +157,14 @@ public class RetryPolicyService
     /// <summary>
     /// Simulates retry delays for analysis.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy whose delays are simulated.</param>
+    /// <param name="maxAttempts">The number of attempts to simulate.</param>
+    /// <returns>
+    /// A list containing the calculated delay for each attempt from one through <paramref name="maxAttempts"/>.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
     public List<int> SimulateRetryDelays(string policyId, int maxAttempts)
     {
         ArgumentException.ThrowIfNullOrEmpty(policyId);
@@ -123,6 +179,13 @@ public class RetryPolicyService
     /// <summary>
     /// Gets total estimated time for all retry attempts.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy to estimate.</param>
+    /// <returns>
+    /// The total delay in milliseconds for all attempts after the initial attempt, or zero when the policy is not registered.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
     public long GetTotalRetryTimeMs(string policyId)
     {
         ArgumentException.ThrowIfNullOrEmpty(policyId);
@@ -141,6 +204,10 @@ public class RetryPolicyService
     /// <summary>
     /// Validates a retry policy configuration.
     /// </summary>
+    /// <param name="config">The retry policy configuration to validate.</param>
+    /// <param name="errors">When this method returns, contains descriptions of any validation errors.</param>
+    /// <returns><see langword="true"/> when the configuration is valid; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is <see langword="null"/>.</exception>
     public bool ValidatePolicy(RetryPolicyConfig config, out List<string> errors)
     {
         ArgumentNullException.ThrowIfNull(config);
@@ -167,6 +234,14 @@ public class RetryPolicyService
     /// <summary>
     /// Registers a retryable exception type for a policy.
     /// </summary>
+    /// <param name="policyId">The identifier of the policy to update.</param>
+    /// <param name="exceptionTypeName">The exception type name to add to the policy.</param>
+    /// <remarks>
+    /// This method has no effect when the policy is not registered or the exception type is already present.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="policyId"/> is <see langword="null"/> or empty.
+    /// </exception>
     public void RegisterRetryableException(string policyId, string exceptionTypeName)
     {
         var policy = GetPolicy(policyId);
@@ -177,7 +252,7 @@ public class RetryPolicyService
     }
 
     /// <summary>
-    /// Clears all policies.
+    /// Removes all registered retry policies.
     /// </summary>
     public void ClearPolicies()
     {
