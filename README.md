@@ -580,3 +580,88 @@ if (retryPolicyService.ShouldRetry("send-email", currentAttempt: 1))
     await Task.Delay(retryPolicyService.CalculateRetryDelayWithJitter("send-email", attemptNumber: 2));
 }
 ```
+
+## WorkflowController HTTP API
+
+`WorkflowController` (in `Controllers/WorkflowController.cs`) exposes the REST API for workflow management. It lives in the `DotNetWorkflowEngine.Controllers` namespace and is registered under the route `api/workflow`.
+
+All endpoints require authentication via a JWT bearer token (`[Authorize]`). The controller accepts and returns JSON. A `Workflow` is a directed graph of `Activity` nodes connected by `Transition` edges; a valid workflow requires a non-empty `Id` and `Name`, at least one activity, and a `StartActivityId` referencing an existing activity.
+
+### Endpoints
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `api/workflow` | Lists all workflows with optional filtering and pagination. |
+| `GET` | `api/workflow/{id}` | Retrieves a single workflow by ID. |
+| `POST` | `api/workflow` | Creates a new workflow definition. |
+| `PUT` | `api/workflow/{id}` | Updates an existing workflow definition. |
+| `DELETE` | `api/workflow/{id}` | Deletes a workflow definition by ID. |
+| `POST` | `api/workflow/validate` | Validates a workflow definition without persisting it. |
+| `GET` | `api/workflow/{id}/definition` | Exports a workflow definition to JSON. |
+| `POST` | `api/workflow/{id}/definition` | Imports a workflow definition from JSON. |
+| `POST` | `api/workflow/validate-definition` | Validates a workflow JSON definition without importing it. |
+
+### GET api/workflow
+
+Lists all workflows. Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `skip` | `int` | `0` | Number of workflows to skip for pagination. |
+| `take` | `int` | `100` | Maximum number of workflows to return. |
+| `status` | `string` | — | Filters by workflow status (case-insensitive). Valid values are the `WorkflowStatus` enum members: `Draft`, `Active`, `Deprecated`, `Archived`, `Suspended`, `WaitingForMessage`, `Cancelled`. |
+
+Returns `200 OK` with an array of workflows, or `500` on server error.
+
+### GET api/workflow/{id}
+
+Retrieves a single workflow by ID.
+
+Returns `200 OK` with the workflow, `404` if not found, or `500` on server error.
+
+### POST api/workflow
+
+Creates a new workflow definition. The request body is a `Workflow` object. If `workflow.Id` is empty, a new GUID is assigned automatically. The workflow is validated before creation.
+
+Returns `201 Created` with the created workflow (and a `Location` header pointing to `GET api/workflow/{id}`), `400` if validation fails, `409` if a workflow with the same ID already exists, or `500` on server error.
+
+### PUT api/workflow/{id}
+
+Updates an existing workflow definition. The request body is a `Workflow` object; the route `id` overrides `workflow.Id`.
+
+Returns `200 OK` with the updated workflow, `404` if not found, `400` if the ID/body is missing or validation fails, or `500` on server error.
+
+### DELETE api/workflow/{id}
+
+Deletes a workflow definition by ID. Workflows that have active running instances cannot be deleted.
+
+Returns `204 No Content` on success, `404` if not found, or `500` on server error.
+
+### POST api/workflow/validate
+
+Validates a workflow definition without persisting it. The request body is a `Workflow` object.
+
+Returns `200 OK` with the validation result, or `500` on server error.
+
+### GET api/workflow/{id}/definition
+
+Exports a workflow definition to JSON format.
+
+Returns `200 OK` with the JSON definition, `404` if the workflow is not found, or `500` on server error.
+
+### POST api/workflow/{id}/definition
+
+Imports a workflow definition from JSON. The request body is the raw JSON string. Query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | — | The name for the imported workflow (required). |
+| `overwrite` | `bool` | `false` | Whether to overwrite an existing workflow with the same ID. |
+
+Returns `201 Created` with the imported workflow, `400` if validation fails or the JSON body is empty, `409` if the workflow already exists and `overwrite` is `false`, or `500` on server error.
+
+### POST api/workflow/validate-definition
+
+Validates a workflow JSON definition without importing it. The request body is the raw JSON string.
+
+Returns `200 OK` with `{ "valid": true }` when valid, `400` with `{ "valid": false, "errors": [...] }` when invalid or the body is empty, or `500` on server error.
