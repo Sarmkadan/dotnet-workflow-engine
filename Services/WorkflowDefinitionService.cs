@@ -23,6 +23,13 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Creates a new workflow definition with version 1.
     /// </summary>
+    /// <param name="id">The unique identifier for the workflow.</param>
+    /// <param name="name">The display name of the workflow.</param>
+    /// <param name="description">An optional description of the workflow.</param>
+    /// <returns>The newly created workflow definition.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> or <paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> or <paramref name="name"/> is empty.</exception>
+    /// <exception cref="WorkflowException">Thrown when a workflow with the specified identifier already exists.</exception>
     /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
     public Workflow CreateWorkflow(string id, string name, string? description = null)
     {
@@ -62,8 +69,9 @@ public class WorkflowDefinitionService
     /// Registers an already-constructed workflow definition, overwriting any
     /// existing definition with the same ID.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown when workflow is null.</exception>
-    /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
+    /// <param name="workflow">The workflow definition to register.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflow"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ValidationException">Thrown when the workflow identifier, name, or definition is invalid.</exception>
     public void AddWorkflow(Workflow workflow)
     {
         ArgumentNullException.ThrowIfNull(workflow);
@@ -99,6 +107,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Gets a workflow definition by ID, returning the latest version.
     /// </summary>
+    /// <param name="id">The identifier of the workflow to retrieve.</param>
+    /// <returns>The latest workflow definition, or <see langword="null"/> when no matching workflow exists.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty.</exception>
     public virtual Workflow? GetWorkflow(string id)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -114,6 +126,8 @@ public class WorkflowDefinitionService
     /// <param name="id">The workflow ID.</param>
     /// <param name="version">The specific version number to retrieve.</param>
     /// <returns>The workflow definition with the specified version, or null if not found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty.</exception>
     public virtual Workflow? GetWorkflowVersion(string id, int version)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -129,6 +143,7 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Gets all workflow definitions (latest versions only).
     /// </summary>
+    /// <returns>A list containing the latest version of each workflow definition.</returns>
     public List<Workflow> GetAllWorkflows()
     {
         return _workflows.Values.ToList();
@@ -139,6 +154,8 @@ public class WorkflowDefinitionService
     /// </summary>
     /// <param name="workflowId">The workflow ID.</param>
     /// <returns>List of all versions of the workflow, ordered by version number.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     public List<Workflow> GetWorkflowVersions(string workflowId)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -156,6 +173,8 @@ public class WorkflowDefinitionService
     /// </summary>
     /// <param name="workflowId">The workflow ID.</param>
     /// <returns>The latest version number, or 0 if workflow not found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     public int GetLatestVersion(string workflowId)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -176,6 +195,8 @@ public class WorkflowDefinitionService
     /// <param name="workflowId">The ID of the workflow to update.</param>
     /// <param name="updateAction">Action that modifies the workflow definition.</param>
     /// <returns>The new version of the workflow.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> or <paramref name="updateAction"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     /// <exception cref="ValidationException">Thrown when workflow validation fails.</exception>
     public Workflow UpdateWorkflow(string workflowId, Action<Workflow> updateAction)
@@ -216,6 +237,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Adds an activity to the latest version of a workflow, creating a new version.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to update.</param>
+    /// <param name="activity">The activity to add.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> or <paramref name="activity"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity already exists.</exception>
     /// <exception cref="ValidationException">Thrown when activity is invalid.</exception>
     public void AddActivity(string workflowId, Activity activity)
@@ -239,6 +264,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Adds a transition between activities in the latest version of a workflow, creating a new version.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to update.</param>
+    /// <param name="transition">The transition to add.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> or <paramref name="transition"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activities don't exist.</exception>
     /// <exception cref="ValidationException">Thrown when transition is invalid.</exception>
     public void AddTransition(string workflowId, Transition transition)
@@ -268,6 +297,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Sets the start activity for the latest version of a workflow, creating a new version.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to update.</param>
+    /// <param name="activityId">The identifier of the activity to designate as the start.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> or <paramref name="activityId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> or <paramref name="activityId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetStartActivity(string workflowId, string activityId)
     {
@@ -288,6 +321,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Sets the end activity for the latest version of a workflow, creating a new version.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to update.</param>
+    /// <param name="activityId">The identifier of the activity to designate as the end.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> or <paramref name="activityId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> or <paramref name="activityId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found or activity doesn't exist.</exception>
     public void SetEndActivity(string workflowId, string activityId)
     {
@@ -308,6 +345,9 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Publishes the latest version of a workflow to make it active.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to publish.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public void PublishWorkflow(string workflowId)
     {
@@ -323,6 +363,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Validates a workflow without publishing it.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to validate.</param>
+    /// <param name="errors">When this method returns, contains any workflow validation errors.</param>
+    /// <returns><see langword="true"/> when the workflow exists and is valid; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
     public bool ValidateWorkflow(string workflowId, out List<string> errors)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -349,6 +393,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Gets all activities in the latest version of a workflow.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow.</param>
+    /// <returns>The workflow's activities.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public List<Activity> GetActivities(string workflowId)
     {
@@ -365,6 +413,11 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Gets a specific activity from the latest version of a workflow.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow.</param>
+    /// <param name="activityId">The identifier of the activity to retrieve.</param>
+    /// <returns>The matching activity, or <see langword="null"/> when the workflow or activity does not exist.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> or <paramref name="activityId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> or <paramref name="activityId"/> is empty.</exception>
     public Activity? GetActivity(string workflowId, string activityId)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -382,6 +435,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Deletes a workflow definition and all its versions.
     /// </summary>
+    /// <param name="workflowId">The identifier of the workflow to delete.</param>
+    /// <returns><see langword="true"/> when the workflow existed and was deleted; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
     public bool DeleteWorkflow(string workflowId)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -395,7 +452,14 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Clones a workflow definition, creating a new workflow with a new ID and version 1.
     /// </summary>
+    /// <param name="sourceWorkflowId">The identifier of the workflow to clone.</param>
+    /// <param name="newWorkflowId">The identifier to assign to the cloned workflow.</param>
+    /// <param name="newName">The name to assign to the cloned workflow.</param>
+    /// <returns>The cloned workflow definition.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when any argument is empty.</exception>
     /// <exception cref="WorkflowException">Thrown when source workflow not found.</exception>
+    /// <exception cref="ValidationException">Thrown when the cloned workflow definition is invalid.</exception>
     public Workflow CloneWorkflow(string sourceWorkflowId, string newWorkflowId, string newName)
     {
         ArgumentNullException.ThrowIfNull(sourceWorkflowId);
@@ -434,9 +498,11 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Exports a workflow definition to JSON format.
     /// </summary>
-    /// <param name="workflowId">The ID of the workflow to export</param>
-    /// <returns>JSON string representation of the workflow</returns>
-    /// <exception cref="WorkflowException">Thrown when workflow not found</exception>
+    /// <param name="workflowId">The identifier of the workflow to export.</param>
+    /// <returns>A JSON representation of the workflow.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/> is empty.</exception>
+    /// <exception cref="WorkflowException">Thrown when the workflow is not found.</exception>
     public string ExportWorkflowToJson(string workflowId)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -452,12 +518,15 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Imports a workflow definition from JSON format.
     /// </summary>
-    /// <param name="workflowId">The ID to assign to the imported workflow</param>
-    /// <param name="workflowName">The name to assign to the imported workflow</param>
-    /// <param name="jsonDefinition">JSON string containing the workflow definition</param>
-    /// <param name="overwriteExisting">Whether to overwrite existing workflow with same ID</param>
-    /// <returns>The imported workflow</returns>
-    /// <exception cref="ValidationException">Thrown when JSON is invalid or workflow validation fails</exception>
+    /// <param name="workflowId">The identifier to assign to the imported workflow.</param>
+    /// <param name="workflowName">The name to assign to the imported workflow.</param>
+    /// <param name="jsonDefinition">The JSON workflow definition to import.</param>
+    /// <param name="overwriteExisting">Whether to overwrite an existing workflow with the same identifier.</param>
+    /// <returns>The imported workflow.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="workflowId"/>, <paramref name="workflowName"/>, or <paramref name="jsonDefinition"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="workflowId"/>, <paramref name="workflowName"/>, or <paramref name="jsonDefinition"/> is empty.</exception>
+    /// <exception cref="ValidationException">Thrown when the JSON or deserialized workflow definition is invalid.</exception>
+    /// <exception cref="WorkflowException">Thrown when the workflow already exists and <paramref name="overwriteExisting"/> is <see langword="false"/>.</exception>
     public Workflow ImportWorkflowFromJson(string workflowId, string workflowName, string jsonDefinition, bool overwriteExisting = false)
     {
         ArgumentNullException.ThrowIfNull(workflowId);
@@ -515,8 +584,10 @@ public class WorkflowDefinitionService
     /// <summary>
     /// Validates JSON workflow definition without importing it.
     /// </summary>
-    /// <param name="jsonDefinition">JSON string containing the workflow definition</param>
-    /// <returns>Validation result with errors if any</returns>
+    /// <param name="jsonDefinition">The JSON workflow definition to validate.</param>
+    /// <param name="errors">When this method returns, contains any JSON or workflow validation errors.</param>
+    /// <returns><see langword="true"/> when the JSON contains a valid workflow definition; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="jsonDefinition"/> is <see langword="null"/>.</exception>
     public bool ValidateWorkflowJson(string jsonDefinition, out List<string> errors)
     {
         ArgumentNullException.ThrowIfNull(jsonDefinition);
