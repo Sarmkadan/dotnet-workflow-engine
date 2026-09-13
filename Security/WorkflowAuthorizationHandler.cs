@@ -46,6 +46,9 @@ public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequire
         AuthorizationHandlerContext context,
         WorkflowRequirement requirement)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(requirement);
+
         var user = context.User;
 
         if (user == null || user.Identity?.IsAuthenticated != true)
@@ -127,6 +130,7 @@ public class WorkflowRequirement : IAuthorizationRequirement
     /// <param name="requiredClaimValue">The optional value that the required claim must contain.</param>
     public WorkflowRequirement(string requiredClaim, string? requiredClaimValue = null)
     {
+        ArgumentNullException.ThrowIfNull(requiredClaim);
         RequiredClaim = requiredClaim;
         RequiredClaimValue = requiredClaimValue;
     }
@@ -139,6 +143,9 @@ public class WorkflowRequirement : IAuthorizationRequirement
     /// <param name="requiredRole">The role required for authorization.</param>
     public WorkflowRequirement(string requiredClaim, string requiredClaimValue, string requiredRole)
     {
+        ArgumentNullException.ThrowIfNull(requiredClaim);
+        ArgumentNullException.ThrowIfNull(requiredClaimValue);
+        ArgumentNullException.ThrowIfNull(requiredRole);
         RequiredClaim = requiredClaim;
         RequiredClaimValue = requiredClaimValue;
         RequiredRole = requiredRole;
@@ -179,6 +186,7 @@ public static class AuthorizationPolicies
     public static IServiceCollection AddWorkflowAuthorizationPolicies(
         this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
         services.AddAuthorization(options =>
         {
             // Policy to create workflows - requires "workflow:create" claim
@@ -221,6 +229,7 @@ public class ClaimsHelper
     /// <returns>The name identifier or subject claim value, or <see langword="null"/> if neither is present.</returns>
     public static string? GetUserId(ClaimsPrincipal user)
     {
+        ArgumentNullException.ThrowIfNull(user);
         return user.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? user.FindFirst("sub")?.Value;
     }
@@ -232,6 +241,7 @@ public class ClaimsHelper
     /// <returns>The email claim value, or <see langword="null"/> if it is not present.</returns>
     public static string? GetUserEmail(ClaimsPrincipal user)
     {
+        ArgumentNullException.ThrowIfNull(user);
         return user.FindFirst(ClaimTypes.Email)?.Value;
     }
 
@@ -242,6 +252,7 @@ public class ClaimsHelper
     /// <returns>The identity name or name claim value, or <see langword="null"/> if neither is present.</returns>
     public static string? GetUserName(ClaimsPrincipal user)
     {
+        ArgumentNullException.ThrowIfNull(user);
         return user.Identity?.Name
             ?? user.FindFirst(ClaimTypes.Name)?.Value;
     }
@@ -288,6 +299,7 @@ public class WorkflowAuthorizeAttribute : Microsoft.AspNetCore.Authorization.Aut
     /// <param name="policy">The name of the authorization policy to require.</param>
     public WorkflowAuthorizeAttribute(string policy)
     {
+        ArgumentNullException.ThrowIfNull(policy);
         Policy = policy;
     }
 }
