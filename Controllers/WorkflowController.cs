@@ -176,8 +176,8 @@ public class WorkflowController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(id) || workflow == null)
-                return BadRequest(new { error = "Workflow ID and definition are required" });
+            ArgumentException.ThrowIfNullOrEmpty(id);
+            ArgumentNullException.ThrowIfNull(workflow);
 
             workflow.Id = id;
 
@@ -360,6 +360,8 @@ public class WorkflowController : ControllerBase
     {
         try
         {
+            ArgumentNullException.ThrowIfNull(jsonDefinition);
+
             if (string.IsNullOrWhiteSpace(jsonDefinition))
                 return BadRequest(new { error = "JSON definition is required" });
 
