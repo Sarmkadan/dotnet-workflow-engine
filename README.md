@@ -161,6 +161,77 @@ var csv = await auditService.ExportAuditLogAsCsv(instanceId);
 await auditService.DisposeAsync();
 ```
 
+## WorkflowDefinitionService
+
+`WorkflowDefinitionService` (in `Services/WorkflowDefinitionService.cs`) manages workflow definitions with versioning support. It lives in the `DotNetWorkflowEngine.Services` namespace and is the component `WorkflowExecutionService` uses to look up the workflow a new instance is created from.
+
+### Purpose
+
+The service is the registry and authoring surface for workflow definitions. Workflow definitions are immutable once created — updates create new versions instead of mutating existing workflows, so in-flight instances always execute against the version they were created with. It:
+
+- Creates new workflow definitions (`CreateWorkflow`) and registers already-constructed ones (`AddWorkflow`).
+- Validates every workflow through `WorkflowValidator` before it is stored, throwing `ValidationException` on failure.
+- Tracks all versions of a workflow and exposes the latest version, a specific version, or the full version history.
+- Updates a workflow by cloning the latest version, incrementing the version, and applying an `Action<Workflow>` (`UpdateWorkflow`).
+- Provides convenience mutation helpers (`AddActivity`, `AddTransition`, `SetStartActivity`, `SetEndActivity`, `PublishWorkflow`) that each create a new version.
+- Supports cloning (`CloneWorkflow`), JSON export/import (`ExportWorkflowToJson`, `ImportWorkflowFromJson`), JSON validation (`ValidateWorkflowJson`), and deletion (`DeleteWorkflow`).
+
+### Public API
+
+| Member | Description |
+| --- | --- |
+| `Workflow CreateWorkflow(string id, string name, string? description = null)` | Creates a new workflow definition with version 1. Throws `ValidationException` when the workflow ID is invalid and `WorkflowException` when the ID already exists. |
+| `void AddWorkflow(Workflow workflow)` | Registers an already-constructed workflow, overwriting any existing definition with the same ID. Throws `ValidationException` when the workflow is invalid. |
+| `Workflow? GetWorkflow(string id)` | Gets a workflow definition by ID, returning the latest version. |
+| `Workflow? GetWorkflowVersion(string id, int version)` | Gets a specific version of a workflow by ID and version number, or `null` if not found. |
+| `List<Workflow> GetAllWorkflows()` | Gets all workflow definitions (latest versions only). |
+| `List<Workflow> GetWorkflowVersions(string workflowId)` | Gets all versions of a workflow, ordered by version number. |
+| `int GetLatestVersion(string workflowId)` | Gets the latest version number for a workflow, or `0` if not found. |
+| `Workflow UpdateWorkflow(string workflowId, Action<Workflow> updateAction)` | Creates a new version by cloning the latest and applying the update. Throws `WorkflowException` when the workflow is not found and `ValidationException` when validation fails. |
+| `void AddActivity(string workflowId, Activity activity)` | Adds an activity to the latest version, creating a new version. |
+| `void AddTransition(string workflowId, Transition transition)` | Adds a transition between activities, creating a new version. |
+| `void SetStartActivity(string workflowId, string activityId)` | Sets the start activity, creating a new version. |
+| `void SetEndActivity(string workflowId, string activityId)` | Sets the end activity, creating a new version. |
+| `void PublishWorkflow(string workflowId)` | Publishes the latest version to make it active, creating a new version. |
+| `bool ValidateWorkflow(string workflowId, out List<string> errors)` | Validates a workflow without publishing it. |
+| `List<Activity> GetActivities(string workflowId)` | Gets all activities in the latest version. |
+| `Activity? GetActivity(string workflowId, string activityId)` | Gets a specific activity from the latest version. |
+| `bool DeleteWorkflow(string workflowId)` | Deletes a workflow definition and all its versions. |
+| `Workflow CloneWorkflow(string sourceWorkflowId, string newWorkflowId, string newName)` | Clones a workflow definition into a new workflow with a new ID and version 1. |
+| `string ExportWorkflowToJson(string workflowId)` | Exports a workflow definition to a JSON string. |
+| `Workflow ImportWorkflowFromJson(string workflowId, string workflowName, string jsonDefinition, bool overwriteExisting = false)` | Imports a workflow definition from JSON. |
+| `bool ValidateWorkflowJson(string jsonDefinition, out List<string> errors)` | Validates a JSON workflow definition without importing it. |
+
+### Usage example
+
+```csharp
+using DotNetWorkflowEngine.Services;
+
+// 1. Create the definition service.
+var definitionService = new WorkflowDefinitionService();
+
+// 2. Create a workflow definition (version 1).
+var workflow = definitionService.CreateWorkflow("onboarding", "Onboarding");
+
+// 3. Add activities and transitions, each producing a new version.
+definitionService.AddActivity(workflow.Id, new Activity { Id = "start", Name = "Start" });
+definitionService.AddActivity(workflow.Id, new Activity { Id = "complete", Name = "Complete" });
+definitionService.AddTransition(workflow.Id, new Transition
+{
+    Id = "t1",
+    FromActivityId = "start",
+    ToActivityId = "complete"
+});
+definitionService.SetStartActivity(workflow.Id, "start");
+definitionService.SetEndActivity(workflow.Id, "complete");
+
+// 4. Publish the latest version so it can be executed.
+definitionService.PublishWorkflow(workflow.Id);
+
+// 5. Retrieve the published definition for execution.
+var published = definitionService.GetWorkflow(workflow.Id);
+```
+
 ## WorkflowExecutionService
 
 `WorkflowExecutionService` (in `Services/WorkflowExecutionService.cs`) is the core execution engine for workflows. It manages the full lifecycle of workflow instances — creation, execution, suspension, resumption, completion, and failure handling — and implements `IWorkflowInstanceQuery` for read-only access. It lives in the `DotNetWorkflowEngine.Services` namespace.
