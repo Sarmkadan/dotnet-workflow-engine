@@ -34,10 +34,17 @@ public class MessageEventService
     /// </exception>
     public MessageEventService(IEventBus eventBus, WorkflowExecutionService workflowExecutionService, AuditService auditService, MessageSubscriptionRegistry subscriptionRegistry)
     {
-        _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        _workflowExecutionService = workflowExecutionService ?? throw new ArgumentNullException(nameof(workflowExecutionService));
-        _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
-        _subscriptionRegistry = subscriptionRegistry ?? throw new ArgumentNullException(nameof(subscriptionRegistry));
+        ArgumentNullException.ThrowIfNull(eventBus);
+        _eventBus = eventBus;
+
+        ArgumentNullException.ThrowIfNull(workflowExecutionService);
+        _workflowExecutionService = workflowExecutionService;
+
+        ArgumentNullException.ThrowIfNull(auditService);
+        _auditService = auditService;
+
+        ArgumentNullException.ThrowIfNull(subscriptionRegistry);
+        _subscriptionRegistry = subscriptionRegistry;
     }
 
     /// <summary>
@@ -56,8 +63,7 @@ public class MessageEventService
     /// <exception cref="WorkflowException">Thrown when workflow message processing fails.</exception>
     public async Task<bool> PublishMessageAsync(IWorkflowMessage message)
     {
-        if (message == null)
-            throw new ArgumentNullException(nameof(message));
+        ArgumentNullException.ThrowIfNull(message);
 
         if (string.IsNullOrWhiteSpace(message.MessageName))
             throw new ValidationException("Message name cannot be empty", "MESSAGE_NAME_REQUIRED");
