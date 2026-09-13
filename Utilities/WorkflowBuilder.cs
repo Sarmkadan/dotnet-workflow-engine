@@ -18,8 +18,15 @@ public class WorkflowBuilder
     private readonly WorkflowDefinitionService _service;
 
     /// <summary>
-    /// Initializes a new workflow builder.
+    /// Initializes a new instance of the <see cref="WorkflowBuilder"/> class.
     /// </summary>
+    /// <param name="id">The unique identifier for the workflow.</param>
+    /// <param name="name">The display name of the workflow.</param>
+    /// <param name="service">The service used to register the completed workflow.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="id"/>, <paramref name="name"/>, or <paramref name="service"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> or <paramref name="name"/> is empty.</exception>
     public WorkflowBuilder(string id, string name, WorkflowDefinitionService service)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
@@ -32,6 +39,10 @@ public class WorkflowBuilder
     /// <summary>
     /// Sets the description of the workflow.
     /// </summary>
+    /// <param name="description">The workflow description.</param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="description"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="description"/> is empty.</exception>
     public WorkflowBuilder WithDescription(string description)
     {
         ArgumentException.ThrowIfNullOrEmpty(description);
@@ -42,6 +53,9 @@ public class WorkflowBuilder
     /// <summary>
     /// Adds an activity to the workflow.
     /// </summary>
+    /// <param name="activity">The activity to add.</param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="activity"/> is <see langword="null"/>.</exception>
     public WorkflowBuilder AddActivity(Activity activity)
     {
         ArgumentNullException.ThrowIfNull(activity);
@@ -62,6 +76,9 @@ public class WorkflowBuilder
     /// The workflow context variable whose value is used as the correlation key when
     /// matching the incoming message to this instance.
     /// </param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when any parameter is empty.</exception>
     public WorkflowBuilder AddMessageCatchEvent(string id, string name, string messageName, string correlationProperty)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
@@ -85,6 +102,14 @@ public class WorkflowBuilder
     /// <summary>
     /// Adds a simple task activity.
     /// </summary>
+    /// <param name="id">The unique identifier for the activity.</param>
+    /// <param name="name">The display name of the activity.</param>
+    /// <param name="handlerType">The optional type name of the activity handler.</param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="id"/> or <paramref name="name"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> or <paramref name="name"/> is empty.</exception>
     public WorkflowBuilder AddTaskActivity(string id, string name, string? handlerType = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
@@ -105,6 +130,14 @@ public class WorkflowBuilder
     /// <summary>
     /// Adds a transition between activities.
     /// </summary>
+    /// <param name="fromId">The identifier of the source activity.</param>
+    /// <param name="toId">The identifier of the destination activity.</param>
+    /// <param name="condition">The optional condition that must be satisfied for the transition to be followed.</param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="fromId"/> or <paramref name="toId"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="fromId"/> or <paramref name="toId"/> is empty.</exception>
     public WorkflowBuilder AddTransition(string fromId, string toId, string? condition = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(fromId);
@@ -120,6 +153,8 @@ public class WorkflowBuilder
     /// <summary>
     /// Sets the start activity.
     /// </summary>
+    /// <param name="activityId">The identifier of the activity at which workflow execution starts.</param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
     public WorkflowBuilder WithStartActivity(string activityId)
     {
         _workflow.StartActivityId = activityId;
@@ -129,6 +164,8 @@ public class WorkflowBuilder
     /// <summary>
     /// Sets the end activity.
     /// </summary>
+    /// <param name="activityId">The identifier of the activity at which workflow execution ends.</param>
+    /// <returns>This builder instance, so additional operations can be chained.</returns>
     public WorkflowBuilder WithEndActivity(string activityId)
     {
         _workflow.EndActivityId = activityId;
@@ -138,6 +175,8 @@ public class WorkflowBuilder
     /// <summary>
     /// Builds and validates the workflow.
     /// </summary>
+    /// <returns>The validated workflow.</returns>
+    /// <exception cref="Exceptions.ValidationException">Thrown when the workflow definition is invalid.</exception>
     public Workflow Build()
     {
         if (!_workflow.Validate(out var errors))
@@ -151,6 +190,12 @@ public class WorkflowBuilder
     /// <summary>
     /// Builds and registers the workflow with the service.
     /// </summary>
+    /// <returns>The validated workflow that was registered.</returns>
+    /// <exception cref="Exceptions.ValidationException">Thrown when the workflow definition is invalid.</exception>
+    /// <exception cref="Exceptions.WorkflowException">
+    /// Thrown when a workflow with the same identifier is already registered or registration otherwise conflicts with
+    /// an existing definition.
+    /// </exception>
     public Workflow BuildAndRegister()
     {
         var workflow = Build();
@@ -178,6 +223,17 @@ public class WorkflowBuilder
     /// <summary>
     /// Creates a new builder for a serial workflow (activities connected in sequence).
     /// </summary>
+    /// <param name="id">The unique identifier for the workflow.</param>
+    /// <param name="name">The display name of the workflow.</param>
+    /// <param name="service">The service used to register the completed workflow.</param>
+    /// <param name="activityNames">The activity names to add in execution order.</param>
+    /// <returns>A builder containing task activities connected in the specified order.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="id"/>, <paramref name="name"/>, or <paramref name="service"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="id"/>, <paramref name="name"/>, or an activity name is empty.
+    /// </exception>
     public static WorkflowBuilder CreateSerial(string id, string name, WorkflowDefinitionService service, params string[] activityNames)
     {
         var builder = new WorkflowBuilder(id, name, service);
