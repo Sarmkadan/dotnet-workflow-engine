@@ -17,6 +17,9 @@ public class WorkflowValidator
     /// <summary>
     /// Validates a complete workflow definition.
     /// </summary>
+    /// <param name="workflow">The workflow definition to validate.</param>
+    /// <returns>A result containing any validation errors and warnings.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="workflow"/> is <see langword="null"/>.</exception>
     public static ValidationResult ValidateWorkflow(Workflow workflow)
     {
         ArgumentNullException.ThrowIfNull(workflow);
@@ -93,6 +96,9 @@ public class WorkflowValidator
     /// <summary>
     /// Validates an activity definition.
     /// </summary>
+    /// <param name="activity">The activity definition to validate.</param>
+    /// <returns>A result containing any validation errors and warnings.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="activity"/> is <see langword="null"/>.</exception>
     public static ValidationResult ValidateActivity(Activity activity)
     {
         ArgumentNullException.ThrowIfNull(activity);
@@ -125,6 +131,12 @@ public class WorkflowValidator
     /// <summary>
     /// Validates a transition.
     /// </summary>
+    /// <param name="transition">The transition to validate.</param>
+    /// <param name="workflow">The workflow containing the transition and its referenced activities.</param>
+    /// <returns>A result containing any validation errors and warnings.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="transition"/> or <paramref name="workflow"/> is <see langword="null"/>.
+    /// </exception>
     public static ValidationResult ValidateTransition(Transition transition, Workflow workflow)
     {
         ArgumentNullException.ThrowIfNull(transition);
@@ -379,18 +391,28 @@ public class WorkflowValidator
         private readonly List<string> _errors = new();
         private readonly List<string> _warnings = new();
 
-        /// <summary>Gets validation errors.</summary>
+        /// <summary>
+        /// Gets the validation errors.
+        /// </summary>
+        /// <value>A read-only list of validation error messages.</value>
         public IReadOnlyList<string> Errors => _errors;
 
-        /// <summary>Gets validation warnings.</summary>
+        /// <summary>
+        /// Gets the validation warnings.
+        /// </summary>
+        /// <value>A read-only list of validation warning messages.</value>
         public IReadOnlyList<string> Warnings => _warnings;
 
-        /// <summary>Gets whether validation passed.</summary>
+        /// <summary>
+        /// Gets a value indicating whether validation passed without errors.
+        /// </summary>
+        /// <value><see langword="true"/> when no errors have been added; otherwise, <see langword="false"/>.</value>
         public bool IsValid => _errors.Count == 0;
 
         /// <summary>
         /// Adds an error to the result.
         /// </summary>
+        /// <param name="error">The validation error message to add.</param>
         public void AddError(string error)
         {
             _errors.Add(error);
@@ -399,6 +421,7 @@ public class WorkflowValidator
         /// <summary>
         /// Adds a warning to the result.
         /// </summary>
+        /// <param name="warning">The validation warning message to add.</param>
         public void AddWarning(string warning)
         {
             _warnings.Add(warning);
@@ -407,6 +430,7 @@ public class WorkflowValidator
         /// <summary>
         /// Gets a formatted report of the validation result.
         /// </summary>
+        /// <returns>A report containing the validation status, errors, and warnings.</returns>
         public string GetReport()
         {
             var report = new System.Text.StringBuilder();
