@@ -1,4 +1,3 @@
-<full file content here>
 ## RateLimitingMiddlewareTests
 The `RateLimitingMiddlewareTests` class provides a set of tests for the rate limiting middleware. It tests various scenarios such as requests under the limit, requests over the limit, and exempt paths. Here is an example of how to use it:
 ```csharp
@@ -500,168 +499,55 @@ When resolving branches from a completed activity, the service follows this orde
 
 If multiple default transitions exist, the one with the highest `Priority` is chosen.
 
-## RetryPolicyService
+## WorkflowBuilder
 
-`RetryPolicyService` (in `Services/RetryPolicyService.cs`) manages named retry policies and computes the delay to wait before each retry attempt. It lives in the `DotNetWorkflowEngine.Services` namespace and is the component `ActivityService` uses to apply an activity's retry policy on failure.
+`WorkflowBuilder` (in `Utilities/WorkflowBuilder.cs`) provides a fluent API for constructing workflows programmatically. It lives in the `DotNetWorkflowEngine.Utilities` namespace.
 
 ### Purpose
 
-The service is a registry plus a delay calculator for retry behavior. It:
-
-- Stores named policies in a dictionary keyed by `policyId` (`CreatePolicy` / `GetPolicy`).
-- Computes the next retry delay for a given attempt via `CalculateRetryDelay`.
-- Optionally adds bounded random jitter via `CalculateRetryDelayWithJitter`.
-- Decides whether another attempt should be made via `ShouldRetry`.
-- Provides factory helpers for common policy shapes (exponential backoff, fixed delay, no-retry).
-- Supports simulation (`SimulateRetryDelays`), total-time estimation (`GetTotalRetryTimeMs`), and validation (`ValidatePolicy`).
-
-### Retry policies
-
-A policy is modeled by `RetryPolicyConfig` (in `Models/RetryPolicyConfig.cs`), whose `PolicyType` selects the delay formula:
-
-| PolicyType | Delay formula (attempt `n`, `n > 1`) |
-| --- | --- |
-| `FixedDelay` | `InitialDelayMs` (constant) |
-| `ExponentialBackoff` | `InitialDelayMs * BackoffMultiplier^(n - 1)` |
-| `LinearBackoff` | `InitialDelayMs * n` |
-| `NoRetry` | Never retries; `ShouldRetry` always returns `false` |
-
-Key `RetryPolicyConfig` fields: `MaxAttempts`, `InitialDelayMs`, `MaxDelayMs` (cap, default 5 minutes), `BackoffMultiplier` (default `2.0`), `JitterFactor` (default `0.1`), `RetryableExceptionTypes`, and `RetryOnTimeout`.
-
-### How CalculateRetryDelay works
-
-`CalculateRetryDelay(policyId, attemptNumber)`:
-
-1. Looks up the policy by ID. If no policy is registered, it returns `Constants.WorkflowConstants.DefaultRetryDelayMs` (1000 ms).
-2. Otherwise it calls `RetryPolicyConfig.CalculateDelayMs(attemptNumber)`:
-   - Attempt `1` (or less) returns `InitialDelayMs` immediately.
-   - Attempts `> 1` apply the formula above for the policy's `PolicyType`.
-   - If `JitterFactor > 0`, a symmetric ±jitter spread (`delay * JitterFactor`) is applied using `Random.Shared`, floored at 1 ms.
-   - The result is capped at `MaxDelayMs`.
-3. `CalculateRetryDelay` clamps the result to be non-negative (`Math.Max(0, delay)`).
-
-`CalculateRetryDelayWithJitter(policyId, attemptNumber, jitterFactor = 0.2)` layers an additional bounded jitter on top of `CalculateRetryDelay` and clamps the final value to `[0, int.MaxValue]`. It throws `ArgumentOutOfRangeException` if `jitterFactor` is outside `[0, 1]`.
+The builder simplifies the creation of workflow definitions by allowing method chaining to set properties, add activities, transitions, and more.
 
 ### Public API
 
 | Member | Description |
 | --- | --- |
-| `void CreatePolicy(string policyId, RetryPolicyConfig config)` | Registers a policy by ID. Throws `ArgumentNullException` for a null config and `ArgumentException` for a null/empty ID. |
-| `RetryPolicyConfig? GetPolicy(string policyId)` | Returns the policy for an ID, or `null` if not registered. |
-| `int CalculateRetryDelay(string policyId, int attemptNumber)` | Returns the delay in ms for the given attempt. Throws `ArgumentOutOfRangeException` for a negative attempt number. |
-| `int CalculateRetryDelayWithJitter(string policyId, int attemptNumber, double jitterFactor = 0.2)` | Returns the delay with bounded random jitter applied. |
-| `bool ShouldRetry(string policyId, int currentAttempt, string? exceptionTypeName = null)` | Returns whether another attempt should be made, honoring `MaxAttempts` and `RetryableExceptionTypes`. |
-| `RetryPolicyConfig CreateExponentialBackoffPolicy(int maxRetries = 3)` | Creates an exponential backoff policy using the workflow defaults. |
-| `RetryPolicyConfig CreateFixedDelayPolicy(int maxRetries = 3, int delayMs = 1000)` | Creates a fixed-delay policy. |
-| `RetryPolicyConfig CreateNoRetryPolicy()` | Creates a no-retry policy. |
-| `List<int> SimulateRetryDelays(string policyId, int maxAttempts)` | Returns the delays for attempts `1..maxAttempts`. |
-| `long GetTotalRetryTimeMs(string policyId)` | Returns the sum of delays for attempts `1..MaxAttempts - 1`. |
-| `bool ValidatePolicy(RetryPolicyConfig config, out List<string> errors)` | Validates a policy configuration, returning a list of error messages. |
-| `void RegisterRetryableException(string policyId, string exceptionTypeName)` | Adds an exception type that should trigger a retry for a policy. |
-| `void ClearPolicies()` | Removes all registered policies. |
+| `new WorkflowBuilder(string id, string name, WorkflowDefinitionService service)` | Constructor. Throws `ArgumentException` if `id` or `name` is null or empty, and `ArgumentNullException` if `service` is null. |
+| `WorkflowBuilder WithDescription(string description)` | Sets the workflow description. Throws `ArgumentException` if `description` is null or empty. |
+| `WorkflowBuilder AddActivity(Activity activity)` | Adds an activity to the workflow. Throws `ArgumentNullException` if `activity` is null. |
+| `WorkflowBuilder AddMessageCatchEvent(string id, string name, string messageName, string correlationProperty)` | Adds a message catch event activity. Throws `ArgumentException` if any string argument is null or empty. |
+| `WorkflowBuilder AddTaskActivity(string id, string name, string? handlerType = null)` | Adds a simple task activity. Throws `ArgumentException` if `id` or `name` is null or empty. |
+| `WorkflowBuilder AddTransition(string fromId, string toId, string? condition = null)` | Adds a transition between activities. Throws `ArgumentException` if `fromId` or `toId` is null or empty. If `condition` is null or empty, creates an unconditional transition; otherwise, a conditional transition. |
+| `WorkflowBuilder WithStartActivity(string activityId)` | Sets the start activity by its ID. |
+| `WorkflowBuilder WithEndActivity(string activityId)` | Sets the end activity by its ID. |
+| `Workflow Build()` | Builds and validates the workflow. Throws `ValidationException` if validation fails. |
+| `Workflow BuildAndRegister()` | Builds, validates, and registers the workflow with the provided `WorkflowDefinitionService`. |
 
 ### Usage example
 
 ```csharp
+using DotNetWorkflowEngine.Enums;
+using DotNetWorkflowEngine.Models;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Utilities;
 
-// 1. Create the service and register an exponential backoff policy.
-var retryPolicyService = new RetryPolicyService();
-var policy = retryPolicyService.CreateExponentialBackoffPolicy(maxRetries: 3);
-retryPolicyService.CreatePolicy("send-email", policy);
+// 1. Create the definition service.
+var definitionService = new WorkflowDefinitionService();
 
-// 2. Compute the delay before each retry attempt.
-int firstRetryDelay = retryPolicyService.CalculateRetryDelay("send-email", attemptNumber: 1);
-int secondRetryDelay = retryPolicyService.CalculateRetryDelay("send-email", attemptNumber: 2);
+// 2. Use the builder to create a workflow.
+var workflow = new WorkflowBuilder("order-processing", "Order Processing", definitionService)
+    .WithDescription("Processes customer orders from payment to shipment.")
+    .AddTaskActivity("validate-order", "Validate Order", "order-validation-handler")
+    .AddTaskActivity("process-payment", "Process Payment", "payment-processing-handler")
+    .AddMessageCatchEvent("wait-for-shipment", "Wait for Shipment", "ShipmentConfirmed", "orderId")
+    .AddTaskActivity("update-inventory", "Update Inventory", "inventory-update-handler")
+    .AddTransition("validate-order", "process-payment")
+    .AddTransition("process-payment", "wait-for-shipment", "${paymentStatus} == 'Paid'")
+    .AddTransition("process-payment", "update-inventory", "${paymentStatus} == 'Failed'")
+    .AddTransition("wait-for-shipment", "update-inventory")
+    .WithStartActivity("validate-order")
+    .WithEndActivity("update-inventory")
+    .BuildAndRegister();
 
-// 3. Decide whether to retry after a failure.
-if (retryPolicyService.ShouldRetry("send-email", currentAttempt: 1))
-{
-    await Task.Delay(retryPolicyService.CalculateRetryDelayWithJitter("send-email", attemptNumber: 2));
-}
+// 3. The workflow is now registered and can be used to create instances.
+var workflowDefinition = definitionService.GetWorkflow("order-processing");
 ```
-
-## WorkflowController HTTP API
-
-`WorkflowController` (in `Controllers/WorkflowController.cs`) exposes the REST API for workflow management. It lives in the `DotNetWorkflowEngine.Controllers` namespace and is registered under the route `api/workflow`.
-
-All endpoints require authentication via a JWT bearer token (`[Authorize]`). The controller accepts and returns JSON. A `Workflow` is a directed graph of `Activity` nodes connected by `Transition` edges; a valid workflow requires a non-empty `Id` and `Name`, at least one activity, and a `StartActivityId` referencing an existing activity.
-
-### Endpoints
-
-| Method | Route | Description |
-| --- | --- | --- |
-| `GET` | `api/workflow` | Lists all workflows with optional filtering and pagination. |
-| `GET` | `api/workflow/{id}` | Retrieves a single workflow by ID. |
-| `POST` | `api/workflow` | Creates a new workflow definition. |
-| `PUT` | `api/workflow/{id}` | Updates an existing workflow definition. |
-| `DELETE` | `api/workflow/{id}` | Deletes a workflow definition by ID. |
-| `POST` | `api/workflow/validate` | Validates a workflow definition without persisting it. |
-| `GET` | `api/workflow/{id}/definition` | Exports a workflow definition to JSON. |
-| `POST` | `api/workflow/{id}/definition` | Imports a workflow definition from JSON. |
-| `POST` | `api/workflow/validate-definition` | Validates a workflow JSON definition without importing it. |
-
-### GET api/workflow
-
-Lists all workflows. Supports optional query parameters:
-
-| Query parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `skip` | `int` | `0` | Number of workflows to skip for pagination. |
-| `take` | `int` | `100` | Maximum number of workflows to return. |
-| `status` | `string` | — | Filters by workflow status (case-insensitive). Valid values are the `WorkflowStatus` enum members: `Draft`, `Active`, `Deprecated`, `Archived`, `Suspended`, `WaitingForMessage`, `Cancelled`. |
-
-Returns `200 OK` with an array of workflows, or `500` on server error.
-
-### GET api/workflow/{id}
-
-Retrieves a single workflow by ID.
-
-Returns `200 OK` with the workflow, `404` if not found, or `500` on server error.
-
-### POST api/workflow
-
-Creates a new workflow definition. The request body is a `Workflow` object. If `workflow.Id` is empty, a new GUID is assigned automatically. The workflow is validated before creation.
-
-Returns `201 Created` with the created workflow (and a `Location` header pointing to `GET api/workflow/{id}`), `400` if validation fails, `409` if a workflow with the same ID already exists, or `500` on server error.
-
-### PUT api/workflow/{id}
-
-Updates an existing workflow definition. The request body is a `Workflow` object; the route `id` overrides `workflow.Id`.
-
-Returns `200 OK` with the updated workflow, `404` if not found, `400` if the ID/body is missing or validation fails, or `500` on server error.
-
-### DELETE api/workflow/{id}
-
-Deletes a workflow definition by ID. Workflows that have active running instances cannot be deleted.
-
-Returns `204 No Content` on success, `404` if not found, or `500` on server error.
-
-### POST api/workflow/validate
-
-Validates a workflow definition without persisting it. The request body is a `Workflow` object.
-
-Returns `200 OK` with the validation result, or `500` on server error.
-
-### GET api/workflow/{id}/definition
-
-Exports a workflow definition to JSON format.
-
-Returns `200 OK` with the JSON definition, `404` if the workflow is not found, or `500` on server error.
-
-### POST api/workflow/{id}/definition
-
-Imports a workflow definition from JSON. The request body is the raw JSON string. Query parameters:
-
-| Query parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `name` | `string` | — | The name for the imported workflow (required). |
-| `overwrite` | `bool` | `false` | Whether to overwrite an existing workflow with the same ID. |
-
-Returns `201 Created` with the imported workflow, `400` if validation fails or the JSON body is empty, `409` if the workflow already exists and `overwrite` is `false`, or `500` on server error.
-
-### POST api/workflow/validate-definition
-
-Validates a workflow JSON definition without importing it. The request body is the raw JSON string.
-
-Returns `200 OK` with `{ "valid": true }` when valid, `400` with `{ "valid": false, "errors": [...] }` when invalid or the body is empty, or `500` on server error.
