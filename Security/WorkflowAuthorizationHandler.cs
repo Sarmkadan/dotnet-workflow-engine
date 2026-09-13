@@ -19,12 +19,20 @@ public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequire
 {
     private readonly ILogger<WorkflowAuthorizationHandler> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowAuthorizationHandler"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record authorization failures.</param>
     public WorkflowAuthorizationHandler(ILogger<WorkflowAuthorizationHandler> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
+    /// <summary>
+    /// Returns a string representation of the authorization handler.
+    /// </summary>
+    /// <returns>A string that represents the authorization handler.</returns>
     public override string ToString()
     {
         return $"WorkflowAuthorizationHandler {{ RequiredClaim = {string.Empty}, RequiredClaimValue = {string.Empty}, RequiredRole = {string.Empty} }}";
@@ -92,18 +100,43 @@ public class WorkflowAuthorizationHandler : AuthorizationHandler<WorkflowRequire
 /// </summary>
 public class WorkflowRequirement : IAuthorizationRequirement
 {
+    /// <summary>
+    /// Gets or sets the claim type required for authorization.
+    /// </summary>
     public string? RequiredClaim { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value that the required claim must contain.
+    /// </summary>
     public string? RequiredClaimValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the role required for authorization.
+    /// </summary>
     public string? RequiredRole { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowRequirement"/> class.
+    /// </summary>
     public WorkflowRequirement() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowRequirement"/> class with a required claim.
+    /// </summary>
+    /// <param name="requiredClaim">The claim type required for authorization.</param>
+    /// <param name="requiredClaimValue">The optional value that the required claim must contain.</param>
     public WorkflowRequirement(string requiredClaim, string? requiredClaimValue = null)
     {
         RequiredClaim = requiredClaim;
         RequiredClaimValue = requiredClaimValue;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowRequirement"/> class with a required claim and role.
+    /// </summary>
+    /// <param name="requiredClaim">The claim type required for authorization.</param>
+    /// <param name="requiredClaimValue">The value that the required claim must contain.</param>
+    /// <param name="requiredRole">The role required for authorization.</param>
     public WorkflowRequirement(string requiredClaim, string requiredClaimValue, string requiredRole)
     {
         RequiredClaim = requiredClaim;
@@ -117,15 +150,32 @@ public class WorkflowRequirement : IAuthorizationRequirement
 /// </summary>
 public static class AuthorizationPolicies
 {
+    /// <summary>
+    /// The name of the policy that authorizes workflow creation.
+    /// </summary>
     public const string CanCreateWorkflow = "CanCreateWorkflow";
+
+    /// <summary>
+    /// The name of the policy that authorizes workflow execution.
+    /// </summary>
     public const string CanExecuteWorkflow = "CanExecuteWorkflow";
+
+    /// <summary>
+    /// The name of the policy that authorizes access to audit information.
+    /// </summary>
     public const string CanViewAudit = "CanViewAudit";
+
+    /// <summary>
+    /// The name of the policy that requires the administrator role.
+    /// </summary>
     public const string IsAdministrator = "IsAdministrator";
 
     /// <summary>
     /// Registers workflow-specific authorization policies.
     /// Call this during startup in ConfigureServices.
     /// </summary>
+    /// <param name="services">The service collection to which authorization services are added.</param>
+    /// <returns>The service collection so that additional calls can be chained.</returns>
     public static IServiceCollection AddWorkflowAuthorizationPolicies(
         this IServiceCollection services)
     {
@@ -167,6 +217,8 @@ public class ClaimsHelper
     /// <summary>
     /// Gets the user ID from JWT claims.
     /// </summary>
+    /// <param name="user">The claims principal whose identifier is retrieved.</param>
+    /// <returns>The name identifier or subject claim value, or <see langword="null"/> if neither is present.</returns>
     public static string? GetUserId(ClaimsPrincipal user)
     {
         return user.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -176,6 +228,8 @@ public class ClaimsHelper
     /// <summary>
     /// Gets the user's email from JWT claims.
     /// </summary>
+    /// <param name="user">The claims principal whose email is retrieved.</param>
+    /// <returns>The email claim value, or <see langword="null"/> if it is not present.</returns>
     public static string? GetUserEmail(ClaimsPrincipal user)
     {
         return user.FindFirst(ClaimTypes.Email)?.Value;
@@ -184,6 +238,8 @@ public class ClaimsHelper
     /// <summary>
     /// Gets the user's name from JWT claims.
     /// </summary>
+    /// <param name="user">The claims principal whose name is retrieved.</param>
+    /// <returns>The identity name or name claim value, or <see langword="null"/> if neither is present.</returns>
     public static string? GetUserName(ClaimsPrincipal user)
     {
         return user.Identity?.Name
@@ -193,6 +249,10 @@ public class ClaimsHelper
     /// <summary>
     /// Checks if a user has a specific claim with a value.
     /// </summary>
+    /// <param name="user">The claims principal to inspect.</param>
+    /// <param name="claimType">The claim type to find.</param>
+    /// <param name="claimValue">The value that the claim must contain.</param>
+    /// <returns><see langword="true"/> if the user has a matching claim; otherwise, <see langword="false"/>.</returns>
     public static bool HasClaim(ClaimsPrincipal user, string claimType, string claimValue)
     {
         return user.HasClaim(c => c.Type == claimType && c.Value == claimValue);
@@ -201,6 +261,9 @@ public class ClaimsHelper
     /// <summary>
     /// Checks if a user has any claim of a specific type.
     /// </summary>
+    /// <param name="user">The claims principal to inspect.</param>
+    /// <param name="claimType">The claim type to find.</param>
+    /// <returns><see langword="true"/> if the user has a claim of the specified type; otherwise, <see langword="false"/>.</returns>
     public static bool HasClaimType(ClaimsPrincipal user, string claimType)
     {
         return user.HasClaim(c => c.Type == claimType);
@@ -214,8 +277,15 @@ public class ClaimsHelper
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class WorkflowAuthorizeAttribute : Microsoft.AspNetCore.Authorization.AuthorizeAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowAuthorizeAttribute"/> class.
+    /// </summary>
     public WorkflowAuthorizeAttribute() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowAuthorizeAttribute"/> class for a policy.
+    /// </summary>
+    /// <param name="policy">The name of the authorization policy to require.</param>
     public WorkflowAuthorizeAttribute(string policy)
     {
         Policy = policy;
