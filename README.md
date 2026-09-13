@@ -428,3 +428,84 @@ When resolving branches from a completed activity, the service follows this orde
 3. **Default transitions** (`Transition.IsDefault = true`) - selected only when no conditional or unconditional transitions were selected
 
 If multiple default transitions exist, the one with the highest `Priority` is chosen.
+
+## RetryPolicyService
+
+`RetryPolicyService` (in `Services/RetryPolicyService.cs`) manages named retry policies and computes the delay to wait before each retry attempt. It lives in the `DotNetWorkflowEngine.Services` namespace and is the component `ActivityService` uses to apply an activity's retry policy on failure.
+
+### Purpose
+
+The service is a registry plus a delay calculator for retry behavior. It:
+
+- Stores named policies in a dictionary keyed by `policyId` (`CreatePolicy` / `GetPolicy`).
+- Computes the next retry delay for a given attempt via `CalculateRetryDelay`.
+- Optionally adds bounded random jitter via `CalculateRetryDelayWithJitter`.
+- Decides whether another attempt should be made via `ShouldRetry`.
+- Provides factory helpers for common policy shapes (exponential backoff, fixed delay, no-retry).
+- Supports simulation (`SimulateRetryDelays`), total-time estimation (`GetTotalRetryTimeMs`), and validation (`ValidatePolicy`).
+
+### Retry policies
+
+A policy is modeled by `RetryPolicyConfig` (in `Models/RetryPolicyConfig.cs`), whose `PolicyType` selects the delay formula:
+
+| PolicyType | Delay formula (attempt `n`, `n > 1`) |
+| --- | --- |
+| `FixedDelay` | `InitialDelayMs` (constant) |
+| `ExponentialBackoff` | `InitialDelayMs * BackoffMultiplier^(n - 1)` |
+| `LinearBackoff` | `InitialDelayMs * n` |
+| `NoRetry` | Never retries; `ShouldRetry` always returns `false` |
+
+Key `RetryPolicyConfig` fields: `MaxAttempts`, `InitialDelayMs`, `MaxDelayMs` (cap, default 5 minutes), `BackoffMultiplier` (default `2.0`), `JitterFactor` (default `0.1`), `RetryableExceptionTypes`, and `RetryOnTimeout`.
+
+### How CalculateRetryDelay works
+
+`CalculateRetryDelay(policyId, attemptNumber)`:
+
+1. Looks up the policy by ID. If no policy is registered, it returns `Constants.WorkflowConstants.DefaultRetryDelayMs` (1000 ms).
+2. Otherwise it calls `RetryPolicyConfig.CalculateDelayMs(attemptNumber)`:
+   - Attempt `1` (or less) returns `InitialDelayMs` immediately.
+   - Attempts `> 1` apply the formula above for the policy's `PolicyType`.
+   - If `JitterFactor > 0`, a symmetric ±jitter spread (`delay * JitterFactor`) is applied using `Random.Shared`, floored at 1 ms.
+   - The result is capped at `MaxDelayMs`.
+3. `CalculateRetryDelay` clamps the result to be non-negative (`Math.Max(0, delay)`).
+
+`CalculateRetryDelayWithJitter(policyId, attemptNumber, jitterFactor = 0.2)` layers an additional bounded jitter on top of `CalculateRetryDelay` and clamps the final value to `[0, int.MaxValue]`. It throws `ArgumentOutOfRangeException` if `jitterFactor` is outside `[0, 1]`.
+
+### Public API
+
+| Member | Description |
+| --- | --- |
+| `void CreatePolicy(string policyId, RetryPolicyConfig config)` | Registers a policy by ID. Throws `ArgumentNullException` for a null config and `ArgumentException` for a null/empty ID. |
+| `RetryPolicyConfig? GetPolicy(string policyId)` | Returns the policy for an ID, or `null` if not registered. |
+| `int CalculateRetryDelay(string policyId, int attemptNumber)` | Returns the delay in ms for the given attempt. Throws `ArgumentOutOfRangeException` for a negative attempt number. |
+| `int CalculateRetryDelayWithJitter(string policyId, int attemptNumber, double jitterFactor = 0.2)` | Returns the delay with bounded random jitter applied. |
+| `bool ShouldRetry(string policyId, int currentAttempt, string? exceptionTypeName = null)` | Returns whether another attempt should be made, honoring `MaxAttempts` and `RetryableExceptionTypes`. |
+| `RetryPolicyConfig CreateExponentialBackoffPolicy(int maxRetries = 3)` | Creates an exponential backoff policy using the workflow defaults. |
+| `RetryPolicyConfig CreateFixedDelayPolicy(int maxRetries = 3, int delayMs = 1000)` | Creates a fixed-delay policy. |
+| `RetryPolicyConfig CreateNoRetryPolicy()` | Creates a no-retry policy. |
+| `List<int> SimulateRetryDelays(string policyId, int maxAttempts)` | Returns the delays for attempts `1..maxAttempts`. |
+| `long GetTotalRetryTimeMs(string policyId)` | Returns the sum of delays for attempts `1..MaxAttempts - 1`. |
+| `bool ValidatePolicy(RetryPolicyConfig config, out List<string> errors)` | Validates a policy configuration, returning a list of error messages. |
+| `void RegisterRetryableException(string policyId, string exceptionTypeName)` | Adds an exception type that should trigger a retry for a policy. |
+| `void ClearPolicies()` | Removes all registered policies. |
+
+### Usage example
+
+```csharp
+using DotNetWorkflowEngine.Services;
+
+// 1. Create the service and register an exponential backoff policy.
+var retryPolicyService = new RetryPolicyService();
+var policy = retryPolicyService.CreateExponentialBackoffPolicy(maxRetries: 3);
+retryPolicyService.CreatePolicy("send-email", policy);
+
+// 2. Compute the delay before each retry attempt.
+int firstRetryDelay = retryPolicyService.CalculateRetryDelay("send-email", attemptNumber: 1);
+int secondRetryDelay = retryPolicyService.CalculateRetryDelay("send-email", attemptNumber: 2);
+
+// 3. Decide whether to retry after a failure.
+if (retryPolicyService.ShouldRetry("send-email", currentAttempt: 1))
+{
+    await Task.Delay(retryPolicyService.CalculateRetryDelayWithJitter("send-email", attemptNumber: 2));
+}
+```
