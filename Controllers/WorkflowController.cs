@@ -47,6 +47,10 @@ public class WorkflowController : ControllerBase
     /// Retrieves all workflow definitions with optional filtering and pagination.
     /// Returns 200 OK with array of workflows, or 500 on server error.
     /// </summary>
+    /// <param name="skip">The number of workflow definitions to skip.</param>
+    /// <param name="take">The maximum number of workflow definitions to return.</param>
+    /// <param name="status">An optional workflow status by which to filter the results.</param>
+    /// <returns>An action result containing the requested workflow definitions or an error response.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<Workflow>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -79,6 +83,8 @@ public class WorkflowController : ControllerBase
     /// Retrieves a specific workflow definition by ID. Returns 200 OK with the
     /// workflow, 404 if not found, or 500 on server error.
     /// </summary>
+    /// <param name="id">The identifier of the workflow to retrieve.</param>
+    /// <returns>An action result containing the workflow definition or an error response.</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(Workflow), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -110,6 +116,8 @@ public class WorkflowController : ControllerBase
     /// workflow configuration. Returns 201 Created with the created workflow,
     /// 400 if validation fails, or 500 on server error.
     /// </summary>
+    /// <param name="workflow">The workflow definition to create.</param>
+    /// <returns>An action result containing the created workflow or an error response.</returns>
     [HttpPost]
     [ProducesResponseType(typeof(Workflow), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -156,6 +164,9 @@ public class WorkflowController : ControllerBase
     /// Updates an existing workflow definition. Returns 200 OK with the updated
     /// workflow, 404 if not found, 400 if validation fails, or 500 on error.
     /// </summary>
+    /// <param name="id">The identifier of the workflow to update.</param>
+    /// <param name="workflow">The updated workflow definition.</param>
+    /// <returns>An action result containing the updated workflow or an error response.</returns>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(Workflow), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -196,6 +207,8 @@ public class WorkflowController : ControllerBase
     /// 404 if not found, or 500 on server error. Note: cannot delete workflows
     /// that have active running instances.
     /// </summary>
+    /// <param name="id">The identifier of the workflow to delete.</param>
+    /// <returns>An action result indicating whether the workflow was deleted or an error response.</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -226,6 +239,8 @@ public class WorkflowController : ControllerBase
     /// Validates a workflow definition without persisting it. Useful for pre-flight
     /// checks before creation. Returns validation result with detailed error messages.
     /// </summary>
+    /// <param name="workflow">The workflow definition to validate.</param>
+    /// <returns>An action result containing the validation result or an error response.</returns>
     [HttpPost("validate")]
     [ProducesResponseType(typeof(WorkflowValidator.ValidationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -252,6 +267,8 @@ public class WorkflowController : ControllerBase
     /// Exports a workflow definition to JSON format. Returns 200 OK with the JSON definition,
     /// 404 if workflow not found, or 500 on server error.
     /// </summary>
+    /// <param name="id">The identifier of the workflow to export.</param>
+    /// <returns>An action result containing the JSON workflow definition or an error response.</returns>
     [HttpGet("{id}/definition")]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -284,6 +301,11 @@ public class WorkflowController : ControllerBase
     /// Imports a workflow definition from JSON format. Returns 201 Created with the imported workflow,
     /// 400 if validation fails, 409 if workflow already exists and overwrite is false, or 500 on server error.
     /// </summary>
+    /// <param name="id">The identifier to assign to the imported workflow.</param>
+    /// <param name="jsonDefinition">The JSON workflow definition to import.</param>
+    /// <param name="name">The name to assign to the imported workflow.</param>
+    /// <param name="overwrite">Whether to replace an existing workflow with the same identifier.</param>
+    /// <returns>An action result containing the imported workflow or an error response.</returns>
     [HttpPost("{id}/definition")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(Workflow), StatusCodes.Status201Created)]
@@ -328,6 +350,8 @@ public class WorkflowController : ControllerBase
     /// Validates a workflow JSON definition without importing it. Useful for pre-flight
     /// checks before actual import. Returns validation result with detailed error messages.
     /// </summary>
+    /// <param name="jsonDefinition">The JSON workflow definition to validate.</param>
+    /// <returns>An action result indicating whether the workflow definition is valid or containing an error response.</returns>
     [HttpPost("validate-definition")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
