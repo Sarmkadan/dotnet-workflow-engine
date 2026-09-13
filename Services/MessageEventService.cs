@@ -11,8 +11,8 @@ using DotNetWorkflowEngine.Exceptions;
 namespace DotNetWorkflowEngine.Services;
 
 /// <summary>
-/// Service responsible for handling external messages, correlating them with
-/// waiting workflow instances, and resuming those instances.
+/// Handles external workflow messages by correlating them with waiting workflow
+/// instances and resuming the matching instances.
 /// </summary>
 public class MessageEventService
 {
@@ -22,9 +22,16 @@ public class MessageEventService
     private readonly MessageSubscriptionRegistry _subscriptionRegistry;
 
     /// <summary>
-    /// Initializes the message event service.
+    /// Initializes a new instance of the <see cref="MessageEventService"/> class.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown when any dependency is null.</exception>
+    /// <param name="eventBus">The event bus used to publish message-received events.</param>
+    /// <param name="workflowExecutionService">The service used to locate and resume workflow instances.</param>
+    /// <param name="auditService">The service used to record message-processing outcomes.</param>
+    /// <param name="subscriptionRegistry">The registry that tracks workflow message subscriptions.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="eventBus"/>, <paramref name="workflowExecutionService"/>,
+    /// <paramref name="auditService"/>, or <paramref name="subscriptionRegistry"/> is <see langword="null"/>.
+    /// </exception>
     public MessageEventService(IEventBus eventBus, WorkflowExecutionService workflowExecutionService, AuditService auditService, MessageSubscriptionRegistry subscriptionRegistry)
     {
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
@@ -34,13 +41,19 @@ public class MessageEventService
     }
 
     /// <summary>
-    /// Publishes an external message to the workflow engine, attempting to correlate it
-    /// with a waiting workflow instance and resume its execution.
+    /// Publishes an external message and attempts to resume a waiting workflow instance
+    /// with the same message name and correlation key.
     /// </summary>
-    /// <param name="message">The incoming message.</param>
-    /// <returns>True if a workflow was successfully correlated and resumed, false otherwise.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when message is null.</exception>
-    /// <exception cref="WorkflowException">Thrown when message processing fails.</exception>
+    /// <param name="message">The workflow message to publish and correlate.</param>
+    /// <returns>
+    /// A task whose result is <see langword="true"/> when a matching workflow instance is resumed;
+    /// otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="message"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ValidationException">
+    /// Thrown when the message name or correlation key is missing or consists only of white-space characters.
+    /// </exception>
+    /// <exception cref="WorkflowException">Thrown when workflow message processing fails.</exception>
     public async Task<bool> PublishMessageAsync(IWorkflowMessage message)
     {
         if (message == null)
