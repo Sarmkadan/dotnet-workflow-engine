@@ -413,8 +413,10 @@ public class WorkflowValidator
         /// Adds an error to the result.
         /// </summary>
         /// <param name="error">The validation error message to add.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="error"/> is <see langword="null"/>.</exception>
         public void AddError(string error)
         {
+            ArgumentNullException.ThrowIfNull(error);
             _errors.Add(error);
         }
 
@@ -422,8 +424,10 @@ public class WorkflowValidator
         /// Adds a warning to the result.
         /// </summary>
         /// <param name="warning">The validation warning message to add.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="warning"/> is <see langword="null"/>.</exception>
         public void AddWarning(string warning)
         {
+            ArgumentNullException.ThrowIfNull(warning);
             _warnings.Add(warning);
         }
 
