@@ -293,4 +293,19 @@ public static class StringExtensions
 
         yield return current.ToString();
     }
+
+    /// <summary>
+    /// Determines whether a string contains the specified value using ordinal, case-insensitive comparison.
+    /// </summary>
+    /// <param name="input">The string to search.</param>
+    /// <param name="value">The value to locate within the string.</param>
+    /// <returns><see langword="true"/> if <paramref name="value"/> occurs within <paramref name="input"/>; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> or <paramref name="value"/> is null.</exception>
+    public static bool ContainsIgnoreCase(this string input, string value)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(value);
+
+        return input.Contains(value, StringComparison.OrdinalIgnoreCase);
+    }
 }
