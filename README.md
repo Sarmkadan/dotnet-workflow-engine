@@ -233,6 +233,77 @@ await executionService.ResumeFromMessageAsync(
     });
 ```
 
+## MessageEventService
+
+`MessageEventService` (in `Services/MessageEventService.cs`) handles external messages, correlates them with waiting workflow instances, and resumes those instances. It lives in the `DotNetWorkflowEngine.Services` namespace.
+
+### Purpose
+
+The service processes incoming messages and attempts to correlate them with workflow instances waiting for those messages. It:
+
+- Publishes a `MessageReceivedEvent` to the event bus for every incoming message
+- Attempts to find a waiting workflow instance matching the message's correlation key and message name
+- Resumes the waiting instance using `WorkflowExecutionService.ResumeFromMessageAsync` if a match is found
+- Logs appropriate audit events for successful correlations, uncorrelated messages, and resume failures
+- Handles error cases by logging failures and marking instances as failed when resume operations fail
+
+### Public API
+
+| Member | Description |
+| --- | --- |
+| `MessageEventService(IEventBus eventBus, WorkflowExecutionService workflowExecutionService, AuditService auditService, MessageSubscriptionRegistry subscriptionRegistry)` | Constructor. Throws `ArgumentNullException` if any dependency is null. |
+| `Task<bool> PublishMessageAsync(IWorkflowMessage message)` | Publishes an external message to the workflow engine, attempting to correlate it with a waiting workflow instance and resume its execution. Returns true if a workflow was successfully correlated and resumed, false otherwise. Throws `ArgumentNullException` when message is null. Throws `ValidationException` when message name or correlation key is empty. Throws `WorkflowException` when message processing fails. |
+
+### Usage example
+
+```csharp
+using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Events;
+
+// 1. Create dependencies (typically via dependency injection)
+var eventBus = new EventBus(); // or your implementation
+var workflowExecutionService = new WorkflowExecutionService(definitionService, auditService, activityService);
+var auditService = new AuditService(auditRepository);
+var subscriptionRegistry = new MessageSubscriptionRegistry();
+
+// 2. Create the message event service
+var messageEventService = new MessageEventService(
+    eventBus, 
+    workflowExecutionService, 
+    auditService, 
+    subscriptionRegistry);
+
+// 3. Create and publish a message
+var message = new WorkflowMessage
+{
+    MessageName = "UserApproved",
+    CorrelationKey = "user-42",
+    Payload = new Dictionary<string, object?>
+    {
+        ["ApprovedBy"] = "admin"
+    }
+};
+
+bool wasHandled = await messageEventService.PublishMessageAsync(message);
+if (wasHandled)
+{
+    Console.WriteLine("Message was successfully correlated and workflow resumed.");
+}
+else
+{
+    Console.WriteLine("Message was received but no waiting workflow instance was found.");
+}
+```
+
+### Message Handling Flow
+
+1. **Validation** - Checks that the message and its required properties (MessageName, CorrelationKey) are not null or empty
+2. **Event Publishing** - Publishes a `MessageReceivedEvent` to the event bus with the message details
+3. **Correlation Attempt** - Searches for workflow instances with matching correlation key that are waiting for the specific message name
+4. **Resume Operation** - If a waiting instance is found, attempts to resume it using `ResumeFromMessageAsync`
+5. **Audit Logging** - Logs appropriate events for success, failure, or uncorrelated messages
+6. **Error Handling** - If resume fails, logs the error, marks the instance as failed, and re-throws the exception
+
 ## ConditionalBranchingService
 
 `ConditionalBranchingService` (in `Services/ConditionalBranchingService.cs`) evaluates conditional expressions on workflow transitions to determine which branches to activate after an activity completes. It lives in the `DotNetWorkflowEngine.Services` namespace.
