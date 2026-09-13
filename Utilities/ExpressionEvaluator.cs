@@ -12,8 +12,12 @@ using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 namespace DotNetWorkflowEngine.Utilities;
 
 /// <summary>
-/// Evaluates conditional expressions in workflows with security hardening against injection and resource exhaustion.
+/// Provides operations for evaluating and validating conditional workflow expressions.
 /// </summary>
+/// <remarks>
+/// Expressions can reference variables from an <see cref="ExecutionContext"/> and use
+/// comparison, logical, containment, and allowlisted function syntax.
+/// </remarks>
 public class ExpressionEvaluator
 {
     /// <summary>
@@ -56,13 +60,17 @@ public class ExpressionEvaluator
     };
 
     /// <summary>
-    /// Evaluates a boolean expression against a context.
+    /// Evaluates a conditional expression using variables from the specified execution context.
     /// </summary>
-    /// <param name="expression">The expression to evaluate.</param>
-    /// <param name="context">The execution context containing variables.</param>
-    /// <returns>The evaluation result.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if context is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if expression is too long or null.</exception>
+    /// <param name="expression">
+    /// The expression to evaluate. A <see langword="null"/>, empty, or whitespace-only expression
+    /// is treated as satisfied.
+    /// </param>
+    /// <param name="context">The execution context that supplies referenced variables.</param>
+    /// <returns><see langword="true"/> when the expression is satisfied; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="expression"/> exceeds the maximum supported length.</exception>
+    /// <exception cref="InvalidOperationException">The expression exceeds the maximum supported function nesting depth.</exception>
     public static bool Evaluate(string expression, ExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -681,11 +689,18 @@ public class ExpressionEvaluator
     }
 
     /// <summary>
-    /// Validates an expression for syntax errors.
+    /// Validates the syntax and permitted function names of an expression.
     /// </summary>
-    /// <param name="expression">The expression to validate.</param>
-    /// <param name="errors">Output list of validation errors.</param>
-    /// <returns>True if valid, false otherwise.</returns>
+    /// <param name="expression">
+    /// The expression to validate. A <see langword="null"/>, empty, or whitespace-only expression is valid.
+    /// </param>
+    /// <param name="errors">
+    /// When this method returns, contains descriptions of any validation errors that were found.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="expression"/> is valid; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
     public static bool ValidateExpression(string expression, out List<string> errors)
     {
         errors = new List<string>();
