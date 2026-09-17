@@ -79,8 +79,8 @@ public class StandardHttpClientFactory : IHttpClientFactory
         IHttpClientFactory httpClientFactory,
         ILogger<StandardHttpClientFactory> logger)
     {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
+        _httpClientFactory = ArgumentNullException.ThrowIfNull(httpClientFactory);
+        _logger = ArgumentNullException.ThrowIfNull(logger);
     }
 
     /// <summary>
@@ -136,6 +136,9 @@ public class StandardHttpClientFactory : IHttpClientFactory
     /// <exception cref="ConfigurationException">Thrown when configuration is invalid.</exception>
     public void RegisterClient(string name, HttpClientConfig config)
     {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(config);
+
         if (string.IsNullOrEmpty(name))
             throw new ArgumentException("Client name cannot be null or empty");
 
