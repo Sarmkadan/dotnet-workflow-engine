@@ -90,6 +90,7 @@ public class StandardHttpClientFactory : IHttpClientFactory
     /// <exception cref="ConfigurationException">Thrown when client configuration is invalid.</exception>
     public HttpClient GetClient(string name = "default")
     {
+        ArgumentNullException.ThrowIfNull(name);
         if (string.IsNullOrEmpty(name))
             throw new ArgumentException("Client name cannot be null or empty", nameof(name));
 
