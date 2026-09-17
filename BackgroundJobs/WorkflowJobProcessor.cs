@@ -136,6 +136,8 @@ public class WorkflowJobProcessor : BackgroundService, IWorkflowJobProcessor
         ILogger<WorkflowJobProcessor> logger,
         IServiceProvider serviceProvider)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
         _logger = logger;
         _serviceProvider = serviceProvider;
     }
