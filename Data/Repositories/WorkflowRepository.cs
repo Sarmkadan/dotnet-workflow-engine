@@ -45,8 +45,7 @@ public class WorkflowRepository : IRepository<Workflow>
     /// <exception cref="ValidationException">Thrown when workflow ID is invalid.</exception>
     public Task AddAsync(Workflow entity)
     {
-        if (entity == null)
-            throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
         if (string.IsNullOrWhiteSpace(entity.Id))
             throw new ValidationException("Workflow ID cannot be empty", "INVALID_ID");
@@ -69,8 +68,7 @@ public class WorkflowRepository : IRepository<Workflow>
     /// <exception cref="WorkflowException">Thrown when workflow not found.</exception>
     public Task UpdateAsync(Workflow entity)
     {
-        if (entity == null)
-            throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
         if (string.IsNullOrWhiteSpace(entity.Id))
             throw new ValidationException("Workflow ID cannot be empty", "INVALID_ID");
