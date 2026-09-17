@@ -800,3 +800,89 @@ Returns `202 Accepted` on success, `400` if the instance ID is empty, `404` if n
 Cancels a running workflow instance, transitioning it to `Cancelled`. The optional request body is a string `reason`.
 
 Returns `202 Accepted` on success, `400` if the instance ID is empty, `404` if not found, `409` if the instance cannot be cancelled, or `500` on server error.
+
+## AuditController HTTP API
+
+`AuditController` (in `Controllers/AuditController.cs`) exposes the REST API for audit trail management. It lives in the `DotNetWorkflowEngine.Controllers` namespace and is registered under the route `api/audit`.
+
+All endpoints require authentication via a JWT bearer token (`[Authorize]`). The controller provides read-only access to audit log entries for compliance, debugging, and monitoring. Audit logs are immutable — no delete or update operations are supported. Responses are JSON by default; the export endpoint additionally supports CSV.
+
+### Endpoints
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `api/audit` | Retrieves audit log entries with advanced filtering and pagination. |
+| `GET` | `api/audit/workflow/{workflowId}` | Retrieves all audit entries for a specific workflow and its instances. |
+| `GET` | `api/audit/instance/{instanceId}` | Retrieves all operations and state changes for a specific workflow instance. |
+| `GET` | `api/audit/{auditId}` | Retrieves a single audit log entry by ID. |
+| `GET` | `api/audit/stats/summary` | Returns summary statistics about audit log activity. |
+| `GET` | `api/audit/export` | Exports audit logs in the specified format (json, csv, xml). |
+
+### GET api/audit
+
+Retrieves audit log entries with advanced filtering and pagination. Results are sorted by timestamp in descending order (newest first). Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `workflowId` | `string` | — | Filters by workflow ID. |
+| `instanceId` | `string` | — | Filters by workflow instance ID. |
+| `action` | `string` | — | Filters by action/event type (mapped to `eventType`). |
+| `executedBy` | `string` | — | Filters by the actor who performed the action (mapped to `actor`). |
+| `fromDate` | `DateTime` | — | Filters entries on or after this date. |
+| `toDate` | `DateTime` | — | Filters entries on or before this date. |
+| `skip` | `int` | `0` | Number of entries to skip for pagination. |
+| `take` | `int` | `100` | Maximum number of entries to return (1–1000). |
+
+Returns `200 OK` with an array of `AuditLogEntry` and an `X-Total-Count` header with the total matching count, `400` if pagination or date-range validation fails, or `500` on server error.
+
+### GET api/audit/workflow/{workflowId}
+
+Retrieves all audit entries related to a workflow and its instances. Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `skip` | `int` | `0` | Number of entries to skip for pagination. |
+| `take` | `int` | `100` | Maximum number of entries to return (1–1000). |
+
+Returns `200 OK` with an array of `AuditLogEntry` and an `X-Total-Count` header, `400` if the workflow ID is empty or pagination is invalid, `404` if no audit logs are found for the workflow, or `500` on server error.
+
+### GET api/audit/instance/{instanceId}
+
+Retrieves all operations and state changes for a specific workflow instance. Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `skip` | `int` | `0` | Number of entries to skip for pagination. |
+| `take` | `int` | `100` | Maximum number of entries to return (1–1000). |
+
+Returns `200 OK` with an array of `AuditLogEntry` and an `X-Total-Count` header, `400` if the instance ID is empty or pagination is invalid, `404` if no audit logs are found for the instance, or `500` on server error.
+
+### GET api/audit/{auditId}
+
+Retrieves a single audit log entry by ID, useful for referencing a specific action or change documented in the audit trail.
+
+Returns `200 OK` with the `AuditLogEntry`, `400` if the audit ID is empty, `404` if the entry is not found, or `500` on server error.
+
+### GET api/audit/stats/summary
+
+Returns summary statistics about audit log activity for monitoring and analytics. Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fromDate` | `DateTime` | — | Filters entries on or after this date. |
+| `toDate` | `DateTime` | — | Filters entries on or before this date. |
+
+Returns `200 OK` with an object containing `totalEntries`, the requested `dateRange`, `entriesByAction` (counts keyed by event type), and `entriesByDay` (counts keyed by `yyyy-MM-dd`), or `500` on server error.
+
+### GET api/audit/export
+
+Exports audit logs in the specified format for compliance reporting and external analysis. Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `format` | `string` | `json` | Export format. Supported: `json`, `csv`, `xml`. |
+| `workflowId` | `string` | — | Filters by workflow ID. |
+| `fromDate` | `DateTime` | — | Filters entries on or after this date. |
+| `toDate` | `DateTime` | — | Filters entries on or before this date. |
+
+Returns `200 OK` as a file download (`text/csv` for CSV, `application/json` for JSON) with a timestamped filename, `400` if the format is invalid or unsupported, or `500` on server error.
