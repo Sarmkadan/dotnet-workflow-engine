@@ -54,6 +54,15 @@ public class MemoryCacheService : ICacheService
     private readonly ILogger<MemoryCacheService> _logger;
     private readonly TimeSpan _defaultExpiration;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MemoryCacheService"/> class.
+    /// </summary>
+    /// <param name="memoryCache">The underlying in-memory cache.</param>
+    /// <param name="logger">The logger used to record cache operations.</param>
+    /// <param name="defaultExpiration">
+    /// The default expiration applied when no explicit expiration is provided.
+    /// Defaults to one hour when not specified.
+    /// </param>
     public MemoryCacheService(
         IMemoryCache memoryCache,
         ILogger<MemoryCacheService> logger,
@@ -154,6 +163,15 @@ public class DistributedCacheService : ICacheService
     private readonly ILogger<DistributedCacheService> _logger;
     private readonly TimeSpan _defaultExpiration;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedCacheService"/> class.
+    /// </summary>
+    /// <param name="distributedCache">The underlying distributed cache.</param>
+    /// <param name="logger">The logger used to record cache operations.</param>
+    /// <param name="defaultExpiration">
+    /// The default expiration applied when no explicit expiration is provided.
+    /// Defaults to one hour when not specified.
+    /// </param>
     public DistributedCacheService(
         IDistributedCache distributedCache,
         ILogger<DistributedCacheService> logger,
