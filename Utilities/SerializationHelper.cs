@@ -154,6 +154,8 @@ public static class SerializationHelper
     /// </summary>
     public static T? FromJsonElement<T>(JsonElement element) where T : class
     {
+        ArgumentNullException.ThrowIfNull(element);
+
         var json = element.GetRawText();
         return FromJson<T>(json);
     }
@@ -163,6 +165,8 @@ public static class SerializationHelper
     /// </summary>
     public static JsonElement ToJsonElement<T>(T? obj) where T : class
     {
+        ArgumentNullException.ThrowIfNull(obj);
+
         var json = ToJson(obj);
         using (var doc = JsonDocument.Parse(json))
         {
