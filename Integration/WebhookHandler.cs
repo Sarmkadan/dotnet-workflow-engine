@@ -143,8 +143,10 @@ public class WebhookHandler : IWebhookHandler
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="httpClient"/> or <paramref name="logger"/> is null.</exception>
     public WebhookHandler(HttpClient httpClient, ILogger<WebhookHandler> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(logger);
+        _httpClient = httpClient;
+        _logger = logger;
     }
 
     /// <summary>
@@ -153,8 +155,7 @@ public class WebhookHandler : IWebhookHandler
     /// <exception cref="ConfigurationException">Thrown when webhook configuration is invalid.</exception>
     public async Task RegisterWebhookAsync(WebhookRegistration registration)
     {
-        if (registration == null)
-            throw new ArgumentNullException(nameof(registration));
+        ArgumentNullException.ThrowIfNull(registration);
 
         if (string.IsNullOrEmpty(registration.Url))
             throw new ConfigurationException("Webhook URL is required", "WEBHOOK_URL_REQUIRED");
@@ -181,8 +182,10 @@ public class WebhookHandler : IWebhookHandler
     /// </summary>
     public async Task UnregisterWebhookAsync(string webhookId)
     {
+        ArgumentNullException.ThrowIfNull(webhookId);
+
         if (string.IsNullOrEmpty(webhookId))
-            throw new ArgumentException("Webhook ID cannot be null or empty", nameof(webhookId));
+            throw new ArgumentException("Webhook ID cannot be empty", nameof(webhookId));
 
         var registration = _registrations.FirstOrDefault(w => w.Id == webhookId);
         if (registration != null)
@@ -201,8 +204,7 @@ public class WebhookHandler : IWebhookHandler
     /// <exception cref="WorkflowException">Thrown when webhook delivery fails.</exception>
     public async Task FireWebhookAsync(WorkflowEvent workflowEvent)
     {
-        if (workflowEvent == null)
-            throw new ArgumentNullException(nameof(workflowEvent));
+        ArgumentNullException.ThrowIfNull(workflowEvent);
 
         if (string.IsNullOrEmpty(workflowEvent.EventType))
             throw new ConfigurationException("Event type is required", "EVENT_TYPE_REQUIRED");
@@ -230,8 +232,10 @@ public class WebhookHandler : IWebhookHandler
     /// </summary>
     public async Task<IEnumerable<WebhookDelivery>> GetDeliveryHistoryAsync(string webhookId, int limit = 100)
     {
+        ArgumentNullException.ThrowIfNull(webhookId);
+
         if (string.IsNullOrEmpty(webhookId))
-            throw new ArgumentException("Webhook ID cannot be null or empty", nameof(webhookId));
+            throw new ArgumentException("Webhook ID cannot be empty", nameof(webhookId));
 
         if (limit <= 0)
             throw new ArgumentException("Limit must be positive", nameof(limit));
