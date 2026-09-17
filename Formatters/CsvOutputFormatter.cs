@@ -23,9 +23,21 @@ public class CsvOutputFormatter : IOutputFormatter
     private readonly ILogger<CsvOutputFormatter> _logger;
     private readonly string _delimiter;
 
+    /// <summary>
+    /// Gets the format identifier for this formatter.
+    /// </summary>
     public string Format => "csv";
+
+    /// <summary>
+    /// Gets the MIME content type produced by this formatter.
+    /// </summary>
     public string ContentType => "text/csv";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvOutputFormatter"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used for diagnostic output.</param>
+    /// <param name="delimiter">The field delimiter to use (defaults to a comma).</param>
     public CsvOutputFormatter(ILogger<CsvOutputFormatter> logger, string delimiter = ",")
     {
         _logger = logger;
