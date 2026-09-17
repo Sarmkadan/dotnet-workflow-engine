@@ -239,7 +239,18 @@ public static class SerializationHelper
 /// </summary>
 public class SerializationException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SerializationException"/> class with a specified error message.
+    /// </summary>
+    /// <param name="message">The message that describes the error.</param>
     public SerializationException(string message) : base(message) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SerializationException"/> class with a specified error message
+    /// and a reference to the inner exception that is the cause of this exception.
+    /// </summary>
+    /// <param name="message">The message that describes the error.</param>
+    /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public SerializationException(string message, Exception innerException) : base(message, innerException) { }
 }
 
@@ -252,6 +263,13 @@ public class SerializationException : Exception
 /// </summary>
 public class ObjectToInferredTypesConverter : JsonConverter<object?>
 {
+    /// <summary>
+    /// Reads a JSON value and converts it to its natural CLR type.
+    /// </summary>
+    /// <param name="reader">The reader to read the JSON value from.</param>
+    /// <param name="typeToConvert">The type to convert to.</param>
+    /// <param name="options">The serializer options to use.</param>
+    /// <returns>The converted value, or <c>null</c> for JSON null.</returns>
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         return ReadValue(ref reader, options);
@@ -295,6 +313,12 @@ public class ObjectToInferredTypesConverter : JsonConverter<object?>
         }
     }
 
+    /// <summary>
+    /// Writes a value to JSON, serializing it using its runtime type.
+    /// </summary>
+    /// <param name="writer">The writer to write the JSON value to.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="options">The serializer options to use.</param>
     public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
     {
         JsonSerializer.Serialize(writer, value, value?.GetType() ?? typeof(object), options);
