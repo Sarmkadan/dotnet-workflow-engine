@@ -117,7 +117,7 @@ public class AuditController : ControllerBase
         [FromQuery] int skip = 0,
         [FromQuery] int take = 100)
     {
-        ArgumentException.ThrowIfNullOrEmpty(workflowId);
+        ArgumentNullException.ThrowIfNull(workflowId);
         try
         {
             if (string.IsNullOrWhiteSpace(workflowId))
@@ -162,7 +162,7 @@ public class AuditController : ControllerBase
         [FromQuery] int skip = 0,
         [FromQuery] int take = 100)
     {
-        ArgumentException.ThrowIfNullOrEmpty(instanceId);
+        ArgumentNullException.ThrowIfNull(instanceId);
         try
         {
             if (string.IsNullOrWhiteSpace(instanceId))
@@ -293,7 +293,7 @@ public class AuditController : ControllerBase
 
             var (logs, total) = await _auditService.GetFilteredAuditLogsAsync(
                 workflowId: workflowId,
-                eventType: action,
+                eventType: null,
                 fromDate: fromDate,
                 toDate: toDate,
                 take: int.MaxValue // Get all filtered logs for export
