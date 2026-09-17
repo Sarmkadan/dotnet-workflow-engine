@@ -20,10 +20,38 @@ namespace DotNetWorkflowEngine.Monitoring;
 /// </summary>
 public interface IWorkflowMetrics
 {
+    /// <summary>
+    /// Records the execution of a workflow.
+    /// </summary>
+    /// <param name="workflowId">The identifier of the executed workflow.</param>
+    /// <param name="durationMs">The execution duration in milliseconds.</param>
+    /// <param name="success">Whether the workflow completed successfully.</param>
     void RecordWorkflowExecution(string workflowId, long durationMs, bool success);
+
+    /// <summary>
+    /// Records the execution of an activity within a workflow.
+    /// </summary>
+    /// <param name="activityId">The identifier of the executed activity.</param>
+    /// <param name="durationMs">The execution duration in milliseconds.</param>
+    /// <param name="success">Whether the activity completed successfully.</param>
     void RecordActivityExecution(string activityId, long durationMs, bool success);
+
+    /// <summary>
+    /// Records the occurrence of an error.
+    /// </summary>
+    /// <param name="errorType">The type or category of the error.</param>
+    /// <param name="details">Optional additional details about the error.</param>
     void RecordError(string errorType, string? details = null);
+
+    /// <summary>
+    /// Gets a snapshot of the current metrics.
+    /// </summary>
+    /// <returns>A task that resolves to the current metrics snapshot.</returns>
     Task<WorkflowMetricsSnapshot> GetMetricsAsync();
+
+    /// <summary>
+    /// Resets all metrics to their initial state.
+    /// </summary>
     void Reset();
 }
 
@@ -32,19 +60,33 @@ public interface IWorkflowMetrics
 /// </summary>
 public class WorkflowMetricsSnapshot
 {
+    /// <summary>Total number of workflow executions recorded.</summary>
     public long TotalWorkflowsExecuted { get; set; }
+    /// <summary>Number of successfully completed workflows.</summary>
     public long SuccessfulWorkflows { get; set; }
+    /// <summary>Number of failed workflows.</summary>
     public long FailedWorkflows { get; set; }
+    /// <summary>Percentage of workflows that completed successfully.</summary>
     public double SuccessRate { get; set; }
+    /// <summary>Average workflow execution duration in milliseconds.</summary>
     public long AverageWorkflowDurationMs { get; set; }
+    /// <summary>Minimum workflow execution duration in milliseconds.</summary>
     public long MinWorkflowDurationMs { get; set; }
+    /// <summary>Maximum workflow execution duration in milliseconds.</summary>
     public long MaxWorkflowDurationMs { get; set; }
+    /// <summary>Total number of activity executions recorded.</summary>
     public long TotalActivitiesExecuted { get; set; }
+    /// <summary>Number of successfully completed activities.</summary>
     public long SuccessfulActivities { get; set; }
+    /// <summary>Number of failed activities.</summary>
     public long FailedActivities { get; set; }
+    /// <summary>Average activity execution duration in milliseconds.</summary>
     public long AverageActivityDurationMs { get; set; }
+    /// <summary>Map of error types to their occurrence counts.</summary>
     public Dictionary<string, long> ErrorCount { get; set; } = new();
+    /// <summary>Timestamp of the last metrics update.</summary>
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    /// <summary>Timestamp when this snapshot was captured.</summary>
     public DateTime SnapshotTime { get; set; } = DateTime.UtcNow;
 }
 
@@ -79,6 +121,10 @@ public class WorkflowMetrics : IWorkflowMetrics
     private readonly ConcurrentDictionary<string, AtomicCounter> _errorCounts = new();
     private readonly object _lock = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowMetrics"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used for diagnostic output.</param>
     public WorkflowMetrics(ILogger<WorkflowMetrics> logger)
     {
         _logger = logger;
@@ -245,6 +291,11 @@ public class MetricsEndpoint
     private readonly IWorkflowMetrics _metrics;
     private readonly ILogger<MetricsEndpoint> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MetricsEndpoint"/> class.
+    /// </summary>
+    /// <param name="metrics">The metrics source to expose.</param>
+    /// <param name="logger">The logger used for diagnostic output.</param>
     public MetricsEndpoint(IWorkflowMetrics metrics, ILogger<MetricsEndpoint> logger)
     {
         _metrics = metrics;
