@@ -434,7 +434,6 @@ public class WorkflowInstanceController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
-}
 
     /// <summary>
     /// Cancels a running workflow instance. Transitions the instance to Cancelled status.
@@ -467,7 +466,7 @@ public class WorkflowInstanceController : ControllerBase
             {
                 InstanceId = instanceId,
                 Action = "INSTANCE_CANCELLED",
-                Details = $"Instance cancelled by {User.Identity?.Name ?? \"unknown\"}. Reason: {reason ?? \"No reason provided\"}",
+                Details = $"Instance cancelled by {User.Identity?.Name ?? "unknown"}. Reason: {reason ?? "No reason provided"}",
                 Timestamp = DateTime.UtcNow
             });
 
@@ -487,9 +486,4 @@ public class WorkflowInstanceController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
         }
     }
-
-    /// <summary>
-    /// Pauses a running workflow instance. Transitions the instance to Suspended status.
-    /// Can only pause instances in Active status. Returns 202 Accepted on success.
-    /// </summary>
 }
