@@ -238,6 +238,14 @@ public class WorkflowInstance
     };
 
     /// <summary>
+    /// Returns a string summarizing this instance's id, status and current activity.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"WorkflowInstance {{ Id = {Id}, Status = {Status}, CurrentActivityId = {CurrentActivityId ?? "(none)"} }}";
+    }
+
+    /// <summary>
     /// Validates and performs a state transition to the specified status.
     /// This method enforces the explicit state machine rules and ensures only valid transitions are allowed.
     /// </summary>
