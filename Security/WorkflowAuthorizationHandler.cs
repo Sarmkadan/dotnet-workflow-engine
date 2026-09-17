@@ -178,6 +178,31 @@ public static class AuthorizationPolicies
     public const string IsAdministrator = "IsAdministrator";
 
     /// <summary>
+    /// The claim type required to create workflows.
+    /// </summary>
+    public const string WorkflowCreateClaim = "workflow:create";
+
+    /// <summary>
+    /// The claim type required to execute workflows.
+    /// </summary>
+    public const string WorkflowExecuteClaim = "workflow:execute";
+
+    /// <summary>
+    /// The claim type required to read audit information.
+    /// </summary>
+    public const string AuditReadClaim = "audit:read";
+
+    /// <summary>
+    /// The role required for administrator access.
+    /// </summary>
+    public const string AdministratorRole = "Administrator";
+
+    /// <summary>
+    /// The JWT subject claim type.
+    /// </summary>
+    public const string SubjectClaim = "sub";
+
+    /// <summary>
     /// Registers workflow-specific authorization policies.
     /// Call this during startup in ConfigureServices.
     /// </summary>
@@ -192,23 +217,23 @@ public static class AuthorizationPolicies
             // Policy to create workflows - requires "workflow:create" claim
             options.AddPolicy(CanCreateWorkflow,
                 policy => policy.Requirements.Add(
-                    new WorkflowRequirement("workflow:create")));
+                    new WorkflowRequirement(WorkflowCreateClaim)));
 
             // Policy to execute workflows - requires "workflow:execute" claim or admin role
             options.AddPolicy(CanExecuteWorkflow,
                 policy =>
                 {
-                    policy.Requirements.Add(new WorkflowRequirement("workflow:execute"));
+                    policy.Requirements.Add(new WorkflowRequirement(WorkflowExecuteClaim));
                 });
 
             // Policy to view audit logs - requires "audit:read" claim
             options.AddPolicy(CanViewAudit,
                 policy => policy.Requirements.Add(
-                    new WorkflowRequirement("audit:read")));
+                    new WorkflowRequirement(AuditReadClaim)));
 
             // Policy for administrators
             options.AddPolicy(IsAdministrator,
-                policy => policy.RequireRole("Administrator"));
+                policy => policy.RequireRole(AdministratorRole));
         });
 
         services.AddScoped<IAuthorizationHandler, WorkflowAuthorizationHandler>();
@@ -231,7 +256,7 @@ public class ClaimsHelper
     {
         ArgumentNullException.ThrowIfNull(user);
         return user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? user.FindFirst("sub")?.Value;
+            ?? user.FindFirst(AuthorizationPolicies.SubjectClaim)?.Value;
     }
 
     /// <summary>
