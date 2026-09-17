@@ -22,6 +22,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when ID is invalid.</exception>
     public Task<AuditLogEntry?> GetByIdAsync(string id)
     {
+        ArgumentNullException.ThrowIfNull(id);
         if (string.IsNullOrWhiteSpace(id))
             throw new ArgumentException("ID cannot be null or empty", nameof(id));
 
@@ -43,8 +44,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentNullException">Thrown when entry is null.</exception>
     public Task AddAsync(AuditLogEntry entity)
     {
-        if (entity == null)
-            throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
         if (string.IsNullOrWhiteSpace(entity.WorkflowInstanceId))
             throw new ValidationException("Audit log entry must have a workflow instance ID", "INVALID_INSTANCE_ID");
@@ -69,6 +69,7 @@ public class AuditRepository : IAuditRepository
     /// </summary>
     public Task UpdateAsync(AuditLogEntry entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
         // Audit entries are immutable, but allow updates for metadata
         return Task.CompletedTask;
     }
@@ -79,6 +80,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when ID is invalid.</exception>
     public Task DeleteAsync(string id)
     {
+        ArgumentNullException.ThrowIfNull(id);
         if (string.IsNullOrWhiteSpace(id))
             throw new ArgumentException("ID cannot be null or empty", nameof(id));
 
@@ -100,6 +102,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when ID is invalid.</exception>
     public Task<bool> ExistsAsync(string id)
     {
+        ArgumentNullException.ThrowIfNull(id);
         if (string.IsNullOrWhiteSpace(id))
             throw new ArgumentException("ID cannot be null or empty", nameof(id));
 
@@ -141,6 +144,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public Task<List<AuditLogEntry>> GetByInstanceIdAsync(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -153,6 +157,7 @@ public class AuditRepository : IAuditRepository
     /// </summary>
     public Task<List<AuditLogEntry>> GetByEventTypeAsync(string eventType)
     {
+        ArgumentNullException.ThrowIfNull(eventType);
         if (string.IsNullOrWhiteSpace(eventType))
             throw new ArgumentException("Event type cannot be null or empty", nameof(eventType));
 
@@ -165,6 +170,7 @@ public class AuditRepository : IAuditRepository
     /// </summary>
     public Task<List<AuditLogEntry>> GetBySeverityAsync(string severity)
     {
+        ArgumentNullException.ThrowIfNull(severity);
         if (string.IsNullOrWhiteSpace(severity))
             throw new ArgumentException("Severity cannot be null or empty", nameof(severity));
 
@@ -198,6 +204,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public Task<List<AuditLogEntry>> GetRecentForInstanceAsync(string instanceId, int count = 10)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
@@ -219,6 +226,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when activity ID is invalid.</exception>
     public Task<List<AuditLogEntry>> GetByActivityIdAsync(string activityId)
     {
+        ArgumentNullException.ThrowIfNull(activityId);
         if (string.IsNullOrWhiteSpace(activityId))
             throw new ArgumentException("Activity ID cannot be null or empty", nameof(activityId));
 
@@ -232,6 +240,7 @@ public class AuditRepository : IAuditRepository
     /// <exception cref="ArgumentException">Thrown when instance ID is invalid.</exception>
     public Task ClearInstanceAsync(string instanceId)
     {
+        ArgumentNullException.ThrowIfNull(instanceId);
         if (string.IsNullOrWhiteSpace(instanceId))
             throw new ArgumentException("Instance ID cannot be null or empty", nameof(instanceId));
 
