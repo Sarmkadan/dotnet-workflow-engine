@@ -202,7 +202,7 @@ public class AuditController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAuditLogEntry(string auditId)
     {
-        ArgumentException.ThrowIfNullOrEmpty(auditId);
+        ArgumentNullException.ThrowIfNull(auditId);
         try
         {
             if (string.IsNullOrWhiteSpace(auditId))
@@ -282,7 +282,7 @@ public class AuditController : ControllerBase
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(format);
+        ArgumentNullException.ThrowIfNull(format);
         try
         {
             var validFormats = new[] { "json", "csv", "xml" };
