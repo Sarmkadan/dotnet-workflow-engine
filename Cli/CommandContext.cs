@@ -33,6 +33,7 @@ public class CommandContext
     /// <returns>The option value, or <see langword="null"/> if the option is not set.</returns>
     public string? GetOption(string key)
     {
+        ArgumentNullException.ThrowIfNull(key);
         var normalizedKey = key.ToLowerInvariant();
         return Options.TryGetValue(normalizedKey, out var value) ? value : null;
     }
@@ -44,6 +45,7 @@ public class CommandContext
     /// <returns><see langword="true"/> if the flag exists and its value is "true", "1", empty string, or "yes"; otherwise, <see langword="false"/>.</returns>
     public bool HasFlag(string flagName)
     {
+        ArgumentNullException.ThrowIfNull(flagName);
         var normalizedKey = flagName.ToLowerInvariant();
         if (!Options.TryGetValue(normalizedKey, out var value))
             return false;
