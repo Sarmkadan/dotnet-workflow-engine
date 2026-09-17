@@ -3,10 +3,10 @@
 // CTO & Software Architect
 // ===================================================================
 
+using System.Threading;
 using DotNetWorkflowEngine.Enums;
 using DotNetWorkflowEngine.Exceptions;
 using DotNetWorkflowEngine.Models;
-using System.Threading;
 using ExecutionContext = DotNetWorkflowEngine.Models.ExecutionContext;
 
 namespace DotNetWorkflowEngine.Services;
@@ -213,7 +213,7 @@ public class ActivityService
             return false;
 
         // Check if it's a variable reference
-        if (expression.StartsWith("${" ) && expression.EndsWith("}"))
+        if (expression.StartsWith("${") && expression.EndsWith("}"))
         {
             var varName = expression.Substring(2, expression.Length - 3);
             var value = context.GetVariable(varName);
