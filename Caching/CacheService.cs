@@ -50,6 +50,8 @@ public interface ICacheService
 /// </summary>
 public class MemoryCacheService : ICacheService
 {
+    private const int DefaultExpirationHours = 1;
+
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<MemoryCacheService> _logger;
     private readonly TimeSpan _defaultExpiration;
@@ -72,7 +74,7 @@ public class MemoryCacheService : ICacheService
         ArgumentNullException.ThrowIfNull(logger);
         _memoryCache = memoryCache;
         _logger = logger;
-        _defaultExpiration = defaultExpiration ?? TimeSpan.FromHours(1);
+        _defaultExpiration = defaultExpiration ?? TimeSpan.FromHours(DefaultExpirationHours);
     }
 
     /// <summary>
@@ -161,6 +163,8 @@ public class MemoryCacheService : ICacheService
 /// </summary>
 public class DistributedCacheService : ICacheService
 {
+    private const int DefaultExpirationHours = 1;
+
     private readonly IDistributedCache _distributedCache;
     private readonly ILogger<DistributedCacheService> _logger;
     private readonly TimeSpan _defaultExpiration;
@@ -183,7 +187,7 @@ public class DistributedCacheService : ICacheService
         ArgumentNullException.ThrowIfNull(logger);
         _distributedCache = distributedCache;
         _logger = logger;
-        _defaultExpiration = defaultExpiration ?? TimeSpan.FromHours(1);
+        _defaultExpiration = defaultExpiration ?? TimeSpan.FromHours(DefaultExpirationHours);
     }
 
     /// <summary>
