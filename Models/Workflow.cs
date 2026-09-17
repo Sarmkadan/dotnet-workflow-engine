@@ -268,4 +268,10 @@ namespace DotNetWorkflowEngine.Models;
             ModifiedBy = ModifiedBy
         };
     }
+
+    /// <summary>Returns a string representation of the workflow summarizing its id, name, and status.</summary>
+    public override string ToString()
+    {
+        return $"Workflow {{ Id = {Id}, Name = {Name}, Status = {Status} }}";
+    }
 }
