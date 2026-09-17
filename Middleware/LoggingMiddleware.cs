@@ -24,6 +24,13 @@ public class LoggingMiddleware
     private readonly bool _logRequestBody;
     private readonly bool _logResponseBody;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoggingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware delegate in the request pipeline.</param>
+    /// <param name="logger">The logger used to record request/response details.</param>
+    /// <param name="logRequestBody">Whether to log request bodies (defaults to <c>false</c>).</param>
+    /// <param name="logResponseBody">Whether to log response bodies (defaults to <c>false</c>).</param>
     public LoggingMiddleware(
         RequestDelegate next,
         ILogger<LoggingMiddleware> logger,
