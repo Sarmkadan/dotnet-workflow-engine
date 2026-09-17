@@ -66,4 +66,49 @@ public static class WorkflowConstants
 
     /// <summary>Maximum length for event type to prevent memory amplification</summary>
     public const int MaxEventTypeLength = 128; // Reasonable limit for event types
+
+    /// <summary>Boolean true literal</summary>
+    public const string BooleanTrue = "true";
+
+    /// <summary>Boolean false literal</summary>
+    public const string BooleanFalse = "false";
+
+    /// <summary>Numeric one literal</summary>
+    public const string NumericOne = "1";
+
+    /// <summary>Numeric zero literal</summary>
+    public const string NumericZero = "0";
+
+    /// <summary>Logical AND operator</summary>
+    public const string LogicalAnd = "&&";
+
+    /// <summary>Logical OR operator</summary>
+    public const string LogicalOr = "||";
+
+    /// <summary>Equality operator</summary>
+    public const string EqualityOperator = "==";
+
+    /// <summary>Inequality operator</summary>
+    public const string InequalityOperator = "!=";
+
+    /// <summary>Greater than or equal operator</summary>
+    public const string GreaterThanOrEqualOperator = ">=";
+
+    /// <summary>Less than or equal operator</summary>
+    public const string LessThanOrEqualOperator = "<=";
+
+    /// <summary>Greater than operator</summary>
+    public const string GreaterThanOperator = ">";
+
+    /// <summary>Less than operator</summary>
+    public const string LessThanOperator = "<";
+
+    /// <summary>Variable reference start delimiter</summary>
+    public const string VariableReferenceStart = "${";
+
+    /// <summary>Variable reference end delimiter</summary>
+    public const string VariableReferenceEnd = "}";
+
+    /// <summary>String contains operator</summary>
+    public const string StringContainsOperator = " contains ";
 }
