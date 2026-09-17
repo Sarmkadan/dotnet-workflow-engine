@@ -294,6 +294,9 @@ public class WorkflowInstanceRepository : IRepository<WorkflowInstance>
         int pageNumber = 1,
         int pageSize = 50)
     {
+        ArgumentNullException.ThrowIfNull(workflowId);
+        ArgumentNullException.ThrowIfNull(status);
+
         List<WorkflowInstance> snapshot;
         lock (_syncRoot)
         {
