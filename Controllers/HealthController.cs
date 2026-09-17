@@ -47,6 +47,7 @@ public class HealthController : ControllerBase
     /// Does not perform any dependency checks. Used by orchestrators to determine
     /// if the container should be restarted.
     /// </summary>
+    /// <returns>200 OK with health status, or 503 Service Unavailable if the check fails.</returns>
     [HttpGet("liveness")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -79,6 +80,7 @@ public class HealthController : ControllerBase
     /// to receive traffic. Performs dependency checks including database, cache,
     /// and other critical services.
     /// </summary>
+    /// <returns>200 OK when all dependencies are healthy, or 503 Service Unavailable otherwise.</returns>
     [HttpGet("readiness")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -140,6 +142,7 @@ public class HealthController : ControllerBase
     /// Comprehensive health check endpoint. Returns detailed status of all
     /// components including database, cache, metrics, and system health.
     /// </summary>
+    /// <returns>200 OK when all components are healthy, or 503 Service Unavailable otherwise.</returns>
     [HttpGet] // Maps to /health
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
