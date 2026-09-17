@@ -22,6 +22,10 @@ public class ValidationFilter : IAsyncActionFilter
 {
     private readonly ILogger<ValidationFilter> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValidationFilter"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record validation activity.</param>
     public ValidationFilter(ILogger<ValidationFilter> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -76,6 +80,10 @@ public class DataAnnotationValidationFilter : IAsyncActionFilter
 {
     private readonly ILogger<DataAnnotationValidationFilter> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DataAnnotationValidationFilter"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record validation activity.</param>
     public DataAnnotationValidationFilter(ILogger<DataAnnotationValidationFilter> logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -133,9 +141,25 @@ public class DataAnnotationValidationFilter : IAsyncActionFilter
 /// </summary>
 public class ValidationErrorResponse
 {
+    /// <summary>
+    /// Gets or sets the top-level validation error message.
+    /// </summary>
     public string? Message { get; set; }
+
+    /// <summary>
+    /// Gets or sets the collection of validation errors keyed by member name.
+    /// </summary>
     public List<KeyValuePair<string, string[]>>? Errors { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp when the validation error response was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Returns a string representation of the validation error response.
+    /// </summary>
+    /// <returns>A string containing the message, errors, and timestamp.</returns>
     public override string ToString() => $"ValidationErrorResponse {{ Message = {Message}, Errors = {Errors}, Timestamp = {Timestamp} }}";
 }
 
@@ -183,6 +207,11 @@ public class AllowedValuesAttribute : ValidationAttribute
 {
     private readonly string[] _allowedValues;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AllowedValuesAttribute"/> class
+    /// with the set of allowed values.
+    /// </summary>
+    /// <param name="allowedValues">The values that the validated property is allowed to take.</param>
     public AllowedValuesAttribute(params string[] allowedValues)
     {
         _allowedValues = allowedValues;
