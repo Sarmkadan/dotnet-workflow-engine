@@ -68,6 +68,8 @@ public class MemoryCacheService : ICacheService
         ILogger<MemoryCacheService> logger,
         TimeSpan? defaultExpiration = null)
     {
+        ArgumentNullException.ThrowIfNull(memoryCache);
+        ArgumentNullException.ThrowIfNull(logger);
         _memoryCache = memoryCache;
         _logger = logger;
         _defaultExpiration = defaultExpiration ?? TimeSpan.FromHours(1);
@@ -177,6 +179,8 @@ public class DistributedCacheService : ICacheService
         ILogger<DistributedCacheService> logger,
         TimeSpan? defaultExpiration = null)
     {
+        ArgumentNullException.ThrowIfNull(distributedCache);
+        ArgumentNullException.ThrowIfNull(logger);
         _distributedCache = distributedCache;
         _logger = logger;
         _defaultExpiration = defaultExpiration ?? TimeSpan.FromHours(1);
