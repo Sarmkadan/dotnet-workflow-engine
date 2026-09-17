@@ -13,7 +13,17 @@ namespace DotNetWorkflowEngine.Models;
 /// </summary>
 public class ActivityResult
 {
-    public override string ToString() => $"ActivityResult {{ ActivityId = {ActivityId}, Status = {Status}, Output = {{ {string.Join(", ", Output.Select(kv => $"{kv.Key}: {kv.Value}"))} }}, ErrorMessage = {ErrorMessage ?? "null"}, StackTrace = {StackTrace ?? "null"}, StartTime = {StartTime} }}";
+    public override string ToString()
+{
+    var outputSummary = Output.Count > 0
+        ? $"{Output.Count} items"
+        : "empty";
+    var errorSummary = string.IsNullOrWhiteSpace(ErrorMessage)
+        ? "no error"
+        : $"error: {(ErrorMessage.Length > 50 ? ErrorMessage.Substring(0, 50) + "..." : ErrorMessage)}";
+
+    return $"ActivityResult {{ ActivityId = {ActivityId}, Status = {Status}, Output = {outputSummary}, {errorSummary}, Duration = {ExecutionDurationMs}ms }}";
+}
 
     /// <summary>Gets or sets the ID of the activity that produced this result.</summary>
     public string ActivityId { get; set; } = string.Empty;
