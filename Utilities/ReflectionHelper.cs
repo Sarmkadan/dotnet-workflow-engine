@@ -54,6 +54,8 @@ public static class ReflectionHelper
         if (instance == null)
             throw new ArgumentNullException(nameof(instance));
 
+        ArgumentNullException.ThrowIfNull(propertyName);
+
         var property = instance.GetType().GetProperty(
             propertyName,
             System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.IgnoreCase);
@@ -71,6 +73,8 @@ public static class ReflectionHelper
     {
         if (instance == null)
             throw new ArgumentNullException(nameof(instance));
+
+        ArgumentNullException.ThrowIfNull(propertyName);
 
         var property = instance.GetType().GetProperty(
             propertyName,
@@ -100,6 +104,8 @@ public static class ReflectionHelper
         bool includePrivate = false,
         bool includeStatic = false)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         var bindingFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
 
         if (includePrivate)
@@ -119,6 +125,8 @@ public static class ReflectionHelper
         bool includePrivate = false,
         bool includeStatic = false)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         var bindingFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
 
         if (includePrivate)
@@ -135,6 +143,9 @@ public static class ReflectionHelper
     /// </summary>
     public static IEnumerable<Type> FindTypesImplementing(Assembly assembly, Type targetType)
     {
+        ArgumentNullException.ThrowIfNull(assembly);
+        ArgumentNullException.ThrowIfNull(targetType);
+
         return assembly.GetTypes()
             .Where(t => targetType.IsAssignableFrom(t) && t != targetType);
     }
@@ -145,6 +156,8 @@ public static class ReflectionHelper
     /// </summary>
     public static object? CreateInstance(Type type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         try
         {
             return Activator.CreateInstance(type);
@@ -160,6 +173,8 @@ public static class ReflectionHelper
     /// </summary>
     public static object CreateInstanceWithParameters(Type type, params object?[] parameters)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         try
         {
             return Activator.CreateInstance(type, parameters)
@@ -176,6 +191,8 @@ public static class ReflectionHelper
     /// </summary>
     public static bool HasAttribute<T>(Type type) where T : Attribute
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         return type.GetCustomAttribute<T>() != null;
     }
 
@@ -184,6 +201,8 @@ public static class ReflectionHelper
     /// </summary>
     public static T? GetAttribute<T>(Type type) where T : Attribute
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         return type.GetCustomAttribute<T>();
     }
 
@@ -192,6 +211,8 @@ public static class ReflectionHelper
     /// </summary>
     public static IEnumerable<T> GetAttributes<T>(MemberInfo member) where T : Attribute
     {
+        ArgumentNullException.ThrowIfNull(member);
+
         return member.GetCustomAttributes<T>();
     }
 
@@ -200,6 +221,8 @@ public static class ReflectionHelper
     /// </summary>
     public static bool IsNullable(Type type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         if (!type.IsValueType)
             return true; // Reference types are nullable
 
@@ -211,6 +234,8 @@ public static class ReflectionHelper
     /// </summary>
     public static Type GetUnderlyingType(Type type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         return Nullable.GetUnderlyingType(type) ?? type;
     }
 
@@ -219,6 +244,8 @@ public static class ReflectionHelper
     /// </summary>
     public static bool IsSimpleType(Type type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         return type.IsValueType || type == typeof(string) || type == typeof(object);
     }
 
@@ -227,6 +254,8 @@ public static class ReflectionHelper
     /// </summary>
     public static bool IsCollectionType(Type type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         if (type.IsArray)
             return true;
 
@@ -239,6 +268,8 @@ public static class ReflectionHelper
     /// </summary>
     public static Type? GetCollectionElementType(Type type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         if (type.IsArray)
             return type.GetElementType();
 
