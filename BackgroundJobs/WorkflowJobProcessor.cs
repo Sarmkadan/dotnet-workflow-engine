@@ -41,13 +41,44 @@ public interface IWorkflowJobProcessor
 /// </summary>
 public class WorkflowJob
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
     public string? Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow definition to execute.
+    /// </summary>
     public string? WorkflowId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance created for this job.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the input data passed to the workflow instance.
+    /// </summary>
     public Dictionary<string, object>? InputData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the job was created.
+    /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp before which the job should not be processed.
+    /// </summary>
     public DateTime? ScheduledFor { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of times the job has been retried.
+    /// </summary>
     public int RetryCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the priority of the job. Valid values: high, normal, low.
+    /// </summary>
     public string? Priority { get; set; } = "normal"; // high, normal, low
 }
 
@@ -56,10 +87,29 @@ public class WorkflowJob
 /// </summary>
 public class JobProcessorStats
 {
+    /// <summary>
+    /// Gets or sets the total number of jobs successfully processed.
+    /// </summary>
     public int TotalProcessed { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of jobs that failed permanently.
+    /// </summary>
     public int TotalFailed { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of jobs that were retried.
+    /// </summary>
     public int TotalRetried { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp of the last successfully processed job.
+    /// </summary>
     public DateTime? LastProcessedAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average processing time of successfully processed jobs.
+    /// </summary>
     public TimeSpan AvgProcessingTime { get; set; }
 }
 
@@ -77,6 +127,11 @@ public class WorkflowJobProcessor : BackgroundService, IWorkflowJobProcessor
     private readonly int _maxRetries = 3;
     private readonly int _processingDelayMs = 100; // Poll queue every 100ms
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkflowJobProcessor"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record processing activity.</param>
+    /// <param name="serviceProvider">The service provider used to resolve workflow services.</param>
     public WorkflowJobProcessor(
         ILogger<WorkflowJobProcessor> logger,
         IServiceProvider serviceProvider)
