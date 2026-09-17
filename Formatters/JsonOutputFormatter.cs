@@ -20,7 +20,14 @@ public class JsonOutputFormatter : IOutputFormatter
     private readonly ILogger<JsonOutputFormatter> _logger;
     private readonly bool _prettyPrint;
 
+    /// <summary>
+    /// Gets the format identifier for this formatter.
+    /// </summary>
     public string Format => "json";
+
+    /// <summary>
+    /// Gets the MIME content type produced by this formatter.
+    /// </summary>
     public string ContentType => "application/json";
 
     public JsonOutputFormatter(ILogger<JsonOutputFormatter> logger, bool prettyPrint = true)
