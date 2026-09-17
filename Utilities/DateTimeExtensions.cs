@@ -211,6 +211,19 @@ public static class DateTimeExtensions
     }
 
     /// <summary>
+    /// Converts a DateTime to a Unix timestamp in milliseconds since epoch.
+    /// Example: 2026-05-04T12:30:45.123Z -> 1785750645123
+    /// </summary>
+    /// <param name="dateTime">The DateTime to convert</param>
+    /// <returns>Unix timestamp in milliseconds</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="dateTime"/> is null</exception>
+    public static long ToUnixTimeMilliseconds(this DateTime dateTime)
+    {
+        ArgumentNullException.ThrowIfNull(dateTime);
+        return (long)(dateTime.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+    }
+
+    /// <summary>
     /// Converts a Unix timestamp (seconds since epoch) to DateTime.
     /// </summary>
     /// <param name="timestamp">The Unix timestamp to convert</param>
