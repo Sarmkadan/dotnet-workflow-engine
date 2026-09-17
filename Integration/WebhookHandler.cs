@@ -49,12 +49,25 @@ public interface IWebhookHandler
 /// </summary>
 public class WebhookRegistration
 {
+    /// <summary>Gets or sets the unique identifier of the webhook registration.</summary>
     public string? Id { get; set; }
+
+    /// <summary>Gets or sets the endpoint URL that will receive webhook notifications.</summary>
     public string? Url { get; set; }
-    public List<string> Events { get; set; } = new(); // e.g., "workflow.started", "instance.completed"
-    public string? Secret { get; set; } // Used for HMAC signing
+
+    /// <summary>Gets or sets the list of event types this webhook subscribes to (e.g., "workflow.started", "instance.completed").</summary>
+    public List<string> Events { get; set; } = new();
+
+    /// <summary>Gets or sets the secret used for HMAC payload signing.</summary>
+    public string? Secret { get; set; }
+
+    /// <summary>Gets or sets custom HTTP headers to include with each webhook delivery.</summary>
     public Dictionary<string, string>? CustomHeaders { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether the webhook is active and receiving notifications.</summary>
     public bool Active { get; set; } = true;
+
+    /// <summary>Gets or sets the UTC timestamp when the webhook was registered.</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -63,11 +76,22 @@ public class WebhookRegistration
 /// </summary>
 public class WorkflowEvent
 {
+    /// <summary>Gets or sets the type of event that triggered the webhook notification.</summary>
     public string? EventType { get; set; }
+
+    /// <summary>Gets or sets the identifier of the workflow associated with the event.</summary>
     public string? WorkflowId { get; set; }
+
+    /// <summary>Gets or sets the identifier of the workflow instance associated with the event.</summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>Gets or sets the identifier of the activity associated with the event.</summary>
     public string? ActivityId { get; set; }
+
+    /// <summary>Gets or sets the UTC timestamp when the event occurred.</summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Gets or sets additional event-specific data.</summary>
     public Dictionary<string, object>? Data { get; set; }
 }
 
@@ -76,13 +100,28 @@ public class WorkflowEvent
 /// </summary>
 public class WebhookDelivery
 {
+    /// <summary>Gets or sets the unique identifier of the delivery attempt.</summary>
     public string? Id { get; set; }
+
+    /// <summary>Gets or sets the identifier of the webhook that was delivered.</summary>
     public string? WebhookId { get; set; }
+
+    /// <summary>Gets or sets the event type that was delivered.</summary>
     public string? EventType { get; set; }
+
+    /// <summary>Gets or sets the UTC timestamp when the delivery was attempted.</summary>
     public DateTime AttemptedAt { get; set; }
+
+    /// <summary>Gets or sets the HTTP status code returned by the delivery attempt.</summary>
     public int StatusCode { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether the delivery attempt succeeded.</summary>
     public bool Success { get; set; }
+
+    /// <summary>Gets or sets the error message when the delivery attempt failed.</summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>Gets or sets the zero-based attempt number for this delivery.</summary>
     public int AttemptNumber { get; set; }
 }
 
@@ -96,6 +135,12 @@ public class WebhookHandler : IWebhookHandler
     private readonly List<WebhookRegistration> _registrations = new();
     private readonly List<WebhookDelivery> _deliveryHistory = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebhookHandler"/> class.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used for webhook delivery.</param>
+    /// <param name="logger">The logger used for diagnostic output.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="httpClient"/> or <paramref name="logger"/> is null.</exception>
     public WebhookHandler(HttpClient httpClient, ILogger<WebhookHandler> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
