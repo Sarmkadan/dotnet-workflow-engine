@@ -277,6 +277,7 @@ public class EventBus : IEventBus
     /// <param name="logger">The logger used to record event bus activity.</param>
     public EventBus(ILogger<EventBus> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
