@@ -40,6 +40,31 @@ public class RateLimitingMiddleware
     private const string RateLimitResetHeaderName = "X-RateLimit-Reset";
     private static readonly string[] ExemptPaths = { "/health", "/status", "/ping" };
 
+    // Trusted proxy IP ranges (private and link-local networks)
+    private static readonly IPAddress PrivateNetwork10Start = IPAddress.Parse("10.0.0.0");
+    private static readonly IPAddress PrivateNetwork10End = IPAddress.Parse("10.255.255.255");
+    private static readonly IPAddress PrivateNetwork172Start = IPAddress.Parse("172.16.0.0");
+    private static readonly IPAddress PrivateNetwork172End = IPAddress.Parse("172.31.255.255");
+    private static readonly IPAddress PrivateNetwork192Start = IPAddress.Parse("192.168.0.0");
+    private static readonly IPAddress PrivateNetwork192End = IPAddress.Parse("192.168.255.255");
+    private static readonly IPAddress LoopbackStart = IPAddress.Parse("127.0.0.0");
+    private static readonly IPAddress LoopbackEnd = IPAddress.Parse("127.255.255.255");
+    private static readonly IPAddress LinkLocalStart = IPAddress.Parse("169.254.0.0");
+    private static readonly IPAddress LinkLocalEnd = IPAddress.Parse("169.254.255.255");
+    private static readonly IPAddress Ipv6Loopback = IPAddress.Parse("::1");
+    private static readonly IPAddress Ipv6LinkLocalStart = IPAddress.Parse("fe80::");
+    private static readonly IPAddress Ipv6LinkLocalEnd = IPAddress.Parse("febf::");
+
+    // Integer range bounds for trusted proxy checks
+    private const ulong Ipv6LinkLocalRangeStart = 0xfe80000000000000;
+    private const ulong Ipv6LinkLocalRangeEnd = 0xfebfffffffffffff;
+    private const uint PrivateNetwork10RangeStart = 0x0A000000;
+    private const uint PrivateNetwork10RangeEnd = 0x0AFFFFFF;
+    private const uint PrivateNetwork172RangeStart = 0xAC100000;
+    private const uint PrivateNetwork172RangeEnd = 0xAC1FFFFF;
+    private const uint PrivateNetwork192RangeStart = 0xC0A80000;
+    private const uint PrivateNetwork192RangeEnd = 0xC0A8FFFF;
+
     private readonly RequestDelegate _next;
     private readonly ILogger<RateLimitingMiddleware> _logger;
     private readonly RateLimitConfig _config;
@@ -64,13 +89,13 @@ public class RateLimitingMiddleware
 
         // Initialize with common private network ranges for trusted proxies
         // These are safe defaults that can be overridden via configuration if needed
-        AddTrustedProxyRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.255.255.255")); // 10.0.0.0/8
-        AddTrustedProxyRange(IPAddress.Parse("172.16.0.0"), IPAddress.Parse("172.31.255.255")); // 172.16.0.0/12
-        AddTrustedProxyRange(IPAddress.Parse("192.168.0.0"), IPAddress.Parse("192.168.255.255")); // 192.168.0.0/16
-        AddTrustedProxyRange(IPAddress.Parse("127.0.0.0"), IPAddress.Parse("127.255.255.255")); // localhost
-        AddTrustedProxyRange(IPAddress.Parse("169.254.0.0"), IPAddress.Parse("169.254.255.255")); // link-local
-        AddTrustedProxyRange(IPAddress.Parse("::1"), IPAddress.Parse("::1")); // IPv6 localhost
-        AddTrustedProxyRange(IPAddress.Parse("fe80::"), IPAddress.Parse("febf::")); // IPv6 link-local
+        AddTrustedProxyRange(PrivateNetwork10Start, PrivateNetwork10End); // 10.0.0.0/8
+        AddTrustedProxyRange(PrivateNetwork172Start, PrivateNetwork172End); // 172.16.0.0/12
+        AddTrustedProxyRange(PrivateNetwork192Start, PrivateNetwork192End); // 192.168.0.0/16
+        AddTrustedProxyRange(LoopbackStart, LoopbackEnd); // localhost
+        AddTrustedProxyRange(LinkLocalStart, LinkLocalEnd); // link-local
+        AddTrustedProxyRange(Ipv6Loopback, Ipv6Loopback); // IPv6 localhost
+        AddTrustedProxyRange(Ipv6LinkLocalStart, Ipv6LinkLocalEnd); // IPv6 link-local
     }
 
     /// <summary>
@@ -121,7 +146,7 @@ public class RateLimitingMiddleware
             var bytes = ipAddress.GetAddressBytes();
             var longValue = BitConverter.ToUInt64(bytes, 0);
             return _trustedProxies.Contains(ipAddress) ||
-                   (longValue >= 0xfe80000000000000 && longValue <= 0xfebfffffffffffff); // link-local check
+                   (longValue >= Ipv6LinkLocalRangeStart && longValue <= Ipv6LinkLocalRangeEnd); // link-local check
         }
         else
         {
@@ -131,9 +156,9 @@ public class RateLimitingMiddleware
                 Array.Reverse(bytes);
             var ip = BitConverter.ToUInt32(bytes, 0);
             return _trustedProxies.Contains(ipAddress) ||
-                   (ip >= 0x0A000000 && ip <= 0x0AFFFFFF) || // 10.0.0.0/8
-                   (ip >= 0xAC100000 && ip <= 0xAC1FFFFF) || // 172.16.0.0/12
-                   (ip >= 0xC0A80000 && ip <= 0xC0A8FFFF);   // 192.168.0.0/16
+                   (ip >= PrivateNetwork10RangeStart && ip <= PrivateNetwork10RangeEnd) || // 10.0.0.0/8
+                   (ip >= PrivateNetwork172RangeStart && ip <= PrivateNetwork172RangeEnd) || // 172.16.0.0/12
+                   (ip >= PrivateNetwork192RangeStart && ip <= PrivateNetwork192RangeEnd);   // 192.168.0.0/16
         }
     }
 
