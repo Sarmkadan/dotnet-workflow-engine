@@ -717,3 +717,86 @@ Returns `201 Created` with the imported workflow, `400` if validation fails or t
 Validates a workflow JSON definition without importing it. The request body is the raw JSON string.
 
 Returns `200 OK` with `{ "valid": true }` when valid, `400` with `{ "valid": false, "errors": [...] }` when invalid or the body is empty, or `500` on server error.
+
+## WorkflowInstanceController HTTP API
+
+`WorkflowInstanceController` (in `Controllers/WorkflowInstanceController.cs`) exposes the REST API for workflow instance management: execution, state transitions (pause/resume/retry/terminate/cancel), and instance lifecycle operations. It lives in the `DotNetWorkflowEngine.Controllers` namespace and is registered under the route `api/workflowinstance`.
+
+All endpoints require authentication via a JWT bearer token (`[Authorize]`). The controller accepts and returns JSON. A `WorkflowInstance` represents a single execution of a workflow; its `Status` is a `WorkflowStatus` enum member (`Active`, `Suspended`, `WaitingForMessage`, `Cancelled`, `Archived`, etc.). Mutating endpoints write an audit-log entry via `AuditService`.
+
+### Endpoints
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `POST` | `api/workflowinstance/{workflowId}/execute` | Executes a workflow, creating a new instance and beginning execution. |
+| `GET` | `api/workflowinstance/{instanceId}` | Retrieves the current state and history of a workflow instance. |
+| `GET` | `api/workflowinstance` | Lists all workflow instances with optional filtering and pagination. |
+| `POST` | `api/workflowinstance/{instanceId}/retry` | Retries a failed or suspended instance, resuming from the last failed activity. |
+| `POST` | `api/workflowinstance/{instanceId}/terminate` | Terminates a running instance. |
+| `GET` | `api/workflowinstance/{instanceId}/history` | Retrieves execution history and detailed activity logs for an instance. |
+| `POST` | `api/workflowinstance/{instanceId}/pause` | Pauses a running instance, transitioning it to `Suspended`. |
+| `POST` | `api/workflowinstance/{instanceId}/resume` | Resumes a paused instance, transitioning it back to `Active`. |
+| `POST` | `api/workflowinstance/{instanceId}/cancel` | Cancels a running instance, transitioning it to `Cancelled`. |
+
+### POST api/workflowinstance/{workflowId}/execute
+
+Executes a workflow for a given workflow ID. Creates a new `WorkflowInstance` record and begins execution. The optional request body is a `Dictionary<string, object>` of input data.
+
+Returns `202 Accepted` with the created instance (and its `instanceId`), `400` if the workflow ID is empty, `404` if the workflow is not found, or `500` on server error.
+
+### GET api/workflowinstance/{instanceId}
+
+Retrieves the current state and history of a workflow instance, including all activities executed, their results, and the current state.
+
+Returns `200 OK` with the instance, `400` if the instance ID is empty, `404` if not found, or `500` on server error.
+
+### GET api/workflowinstance
+
+Lists all workflow instances. Supports optional query parameters:
+
+| Query parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `workflowId` | `string` | — | Filters by workflow ID. |
+| `status` | `string` | — | Filters by instance status (a `WorkflowStatus` enum member). |
+| `createdFrom` | `DateTime` | — | Filters instances created on or after this date. |
+| `createdTo` | `DateTime` | — | Filters instances created on or before this date. |
+| `skip` | `int` | `0` | Number of instances to skip for pagination. |
+| `take` | `int` | `50` | Maximum number of instances to return. |
+
+Returns `200 OK` with a paginated response containing `items`, `total`, `page`, `pageSize`, and `totalPages`, or `500` on server error.
+
+### POST api/workflowinstance/{instanceId}/retry
+
+Retries a failed or suspended workflow instance, attempting to resume execution from the last failed activity.
+
+Returns `202 Accepted` if the retry was successfully queued, `400` if the instance ID is empty, `404` if not found, `409` if the retry cannot proceed, or `500` on server error.
+
+### POST api/workflowinstance/{instanceId}/terminate
+
+Terminates a running workflow instance, setting it to `Terminated` status and preventing further execution. The optional request body is a string `reason`.
+
+Returns `204 No Content` on success, `400` if the instance ID is empty, `404` if not found, `409` if the instance cannot be terminated, or `500` on server error.
+
+### GET api/workflowinstance/{instanceId}/history
+
+Retrieves execution history and detailed activity logs for an instance, useful for debugging and understanding the execution flow.
+
+Returns `200 OK` with an array of `ActivityResult`, `400` if the instance ID is empty, `404` if not found, or `500` on server error.
+
+### POST api/workflowinstance/{instanceId}/pause
+
+Pauses a running workflow instance, transitioning it to `Suspended`. Can only pause instances in `Active` status. The optional request body is a string `reason`.
+
+Returns `202 Accepted` on success, `400` if the instance ID is empty, `404` if not found, `409` if the instance is already `Suspended`/`WaitingForMessage`, or `500` on server error.
+
+### POST api/workflowinstance/{instanceId}/resume
+
+Resumes a paused workflow instance, transitioning it back to `Active` and continuing execution. Can only resume instances in `Suspended` or `WaitingForMessage` status.
+
+Returns `202 Accepted` on success, `400` if the instance ID is empty, `404` if not found, `409` if the instance is `Active`/`Archived`/`Cancelled`, or `500` on server error.
+
+### POST api/workflowinstance/{instanceId}/cancel
+
+Cancels a running workflow instance, transitioning it to `Cancelled`. The optional request body is a string `reason`.
+
+Returns `202 Accepted` on success, `400` if the instance ID is empty, `404` if not found, `409` if the instance cannot be cancelled, or `500` on server error.
