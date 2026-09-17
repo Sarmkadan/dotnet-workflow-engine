@@ -39,71 +39,226 @@ public interface IEventBus
 /// </summary>
 public interface IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the type identifier of the event (e.g. "workflow.started").
+    /// </summary>
     string EventType { get; }
+
+    /// <summary>
+    /// Gets the UTC timestamp when the event was created.
+    /// </summary>
     DateTime Timestamp { get; }
 }
 
 /// <summary>
 /// Workflow lifecycle events.
 /// </summary>
+/// <summary>
+/// Raised when a workflow instance starts executing.
+/// </summary>
 public class WorkflowStartedEvent : IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the event type identifier.
+    /// </summary>
     public string EventType => "workflow.started";
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the event was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow definition.
+    /// </summary>
     public string? WorkflowId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the input data passed to the workflow.
+    /// </summary>
     public Dictionary<string, object>? InputData { get; set; }
 }
 
+/// <summary>
+/// Raised when a workflow instance completes successfully.
+/// </summary>
 public class WorkflowCompletedEvent : IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the event type identifier.
+    /// </summary>
     public string EventType => "workflow.completed";
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the event was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow definition.
+    /// </summary>
     public string? WorkflowId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the output data produced by the workflow.
+    /// </summary>
     public Dictionary<string, object>? OutputData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total execution duration of the workflow in milliseconds.
+    /// </summary>
     public long DurationMs { get; set; }
 }
 
+/// <summary>
+/// Raised when a workflow instance fails.
+/// </summary>
 public class WorkflowFailedEvent : IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the event type identifier.
+    /// </summary>
     public string EventType => "workflow.failed";
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the event was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow definition.
+    /// </summary>
     public string? WorkflowId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the error message describing the failure.
+    /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the activity that failed.
+    /// </summary>
     public string? FailedActivityId { get; set; }
 }
 
 /// <summary>
 /// Activity-level events.
 /// </summary>
+/// <summary>
+/// Raised when an activity within a workflow instance starts executing.
+/// </summary>
 public class ActivityStartedEvent : IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the event type identifier.
+    /// </summary>
     public string EventType => "activity.started";
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the event was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the activity.
+    /// </summary>
     public string? ActivityId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the input data passed to the activity.
+    /// </summary>
     public Dictionary<string, object>? InputData { get; set; }
 }
 
+/// <summary>
+/// Raised when an activity within a workflow instance completes successfully.
+/// </summary>
 public class ActivityCompletedEvent : IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the event type identifier.
+    /// </summary>
     public string EventType => "activity.completed";
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the event was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the activity.
+    /// </summary>
     public string? ActivityId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the output data produced by the activity.
+    /// </summary>
     public Dictionary<string, object>? OutputData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the execution duration of the activity in milliseconds.
+    /// </summary>
     public long DurationMs { get; set; }
 }
 
+/// <summary>
+/// Raised when an activity within a workflow instance fails.
+/// </summary>
 public class ActivityFailedEvent : IWorkflowEvent
 {
+    /// <summary>
+    /// Gets the event type identifier.
+    /// </summary>
     public string EventType => "activity.failed";
+
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the event was created.
+    /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the identifier of the workflow instance.
+    /// </summary>
     public string? InstanceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the activity.
+    /// </summary>
     public string? ActivityId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the error message describing the failure.
+    /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of retry attempts made for the activity.
+    /// </summary>
     public int RetryAttempt { get; set; }
 }
 
@@ -116,6 +271,10 @@ public class EventBus : IEventBus
     private readonly ILogger<EventBus> _logger;
     private readonly object _lock = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventBus"/> class.
+    /// </summary>
+    /// <param name="logger">The logger used to record event bus activity.</param>
     public EventBus(ILogger<EventBus> logger)
     {
         _logger = logger;
