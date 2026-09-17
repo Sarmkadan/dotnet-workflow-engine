@@ -140,4 +140,19 @@ public static class TransitionExtensions
 		ArgumentNullException.ThrowIfNull(activityId);
 		return transition.FromActivityId.Equals(activityId, StringComparison.Ordinal);
 	}
+
+	/// <summary>
+	/// Determines whether this transition has a higher priority than another transition.
+	/// </summary>
+	/// <param name="transition">The transition to compare.</param>
+	/// <param name="other">The other transition to compare against.</param>
+	/// <returns>True if this transition has a higher priority than <paramref name="other"/>; otherwise, false.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="transition"/> is null.</exception>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="other"/> is null.</exception>
+	public static bool HasHigherPriorityThan(this Transition transition, Transition other)
+	{
+		ArgumentNullException.ThrowIfNull(transition);
+		ArgumentNullException.ThrowIfNull(other);
+		return transition.Priority > other.Priority;
+	}
 }
