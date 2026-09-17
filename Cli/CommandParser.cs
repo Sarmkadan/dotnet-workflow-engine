@@ -27,6 +27,7 @@ public class CommandParser
     /// </summary>
     public CommandContext Parse(string[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
         if (args.Length == 0)
             throw new ArgumentException("No command provided");
 
@@ -113,6 +114,7 @@ For more information, visit: https://github.com/sarmkadan/dotnet-workflow-engine
     /// </summary>
     public bool IsValidCommand(string commandName)
     {
+        ArgumentNullException.ThrowIfNull(commandName);
         var validCommands = new[]
         {
             "create-workflow", "list-workflows", "get-workflow",
