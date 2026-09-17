@@ -213,4 +213,35 @@ public static class RetryPolicyConfigExtensions
         config.JitterFactor = jitterFactor;
         return config;
     }
+
+    /// <summary>
+    /// Determines whether the retry policy configuration is valid.
+    /// </summary>
+    /// <param name="config">The retry policy configuration to validate.</param>
+    /// <returns>True if the configuration is valid; otherwise, false.</returns>
+    public static bool IsValid(this RetryPolicyConfig config)
+    {
+        if (config is null)
+            return false;
+
+        if (config.MaxAttempts <= 0)
+            return false;
+
+        if (config.InitialDelayMs <= 0)
+            return false;
+
+        if (config.MaxDelayMs <= 0)
+            return false;
+
+        if (config.BackoffMultiplier <= 0)
+            return false;
+
+        if (config.JitterFactor < 0.0 || config.JitterFactor > 1.0)
+            return false;
+
+        if (config.RetryableExceptionTypes is null)
+            return false;
+
+        return true;
+    }
 }
