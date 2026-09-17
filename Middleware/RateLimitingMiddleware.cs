@@ -46,6 +46,12 @@ public class RateLimitingMiddleware
     private readonly Dictionary<string, RateLimitBucket> _buckets = new();
     private readonly HashSet<IPAddress> _trustedProxies;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RateLimitingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next delegate in the request pipeline.</param>
+    /// <param name="logger">The logger used to record rate limiting events.</param>
+    /// <param name="config">Optional rate limiting configuration; defaults are used when omitted.</param>
     public RateLimitingMiddleware(
         RequestDelegate next,
         ILogger<RateLimitingMiddleware> logger,
@@ -300,8 +306,17 @@ public class RateLimitConfig
     private const int DefaultWindowSeconds = 60;
     private const int DefaultRetryAfterSeconds = 60;
 
+    /// <summary>
+    /// Gets or sets the maximum number of requests allowed within the time window.
+    /// </summary>
     public int MaxRequests { get; set; } = DefaultMaxRequests;
+    /// <summary>
+    /// Gets or sets the duration of the rate limiting window in seconds.
+    /// </summary>
     public int WindowSeconds { get; set; } = DefaultWindowSeconds;
+    /// <summary>
+    /// Gets or sets the number of seconds a client must wait before retrying after being rate limited.
+    /// </summary>
     public int RetryAfterSeconds { get; set; } = DefaultRetryAfterSeconds;
 }
 
