@@ -70,6 +70,11 @@ public class StandardHttpClientFactory : IHttpClientFactory
     private readonly Dictionary<string, HttpClientConfig> _configs = new();
     private readonly ILogger<StandardHttpClientFactory> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StandardHttpClientFactory"/> class.
+    /// </summary>
+    /// <param name="httpClientFactory">The underlying HTTP client factory used to create clients.</param>
+    /// <param name="logger">The logger used to record factory activity.</param>
     public StandardHttpClientFactory(
         IHttpClientFactory httpClientFactory,
         ILogger<StandardHttpClientFactory> logger)
