@@ -201,7 +201,11 @@ public static class SerializationHelper
     /// </summary>
     public static string PrettyPrintJson(string json)
     {
-        ArgumentException.ThrowIfNullOrEmpty(json);
+        ArgumentNullException.ThrowIfNull(json);
+        if (json.Length == 0)
+        {
+            throw new ArgumentException("Value cannot be null or empty.");
+        }
 
         try
         {
@@ -222,7 +226,11 @@ public static class SerializationHelper
     /// </summary>
     public static string MinifyJson(string json)
     {
-        ArgumentException.ThrowIfNullOrEmpty(json);
+        ArgumentNullException.ThrowIfNull(json);
+        if (json.Length == 0)
+        {
+            throw new ArgumentException("Value cannot be null or empty.");
+        }
 
         try
         {
