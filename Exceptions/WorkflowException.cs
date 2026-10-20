@@ -51,4 +51,47 @@ public class WorkflowException : Exception
         ErrorCode = errorCode;
         CorrelationId = correlationId;
     }
+
+    /// <summary>
+    /// Returns a string representation that includes contextual workflow data
+    /// (error code and correlation ID) alongside the standard exception details.
+    /// </summary>
+    public override string ToString()
+    {
+        var builder = new System.Text.StringBuilder();
+
+        builder.Append(GetType().FullName);
+        builder.Append(": ");
+        builder.Append(Message);
+
+        if (!string.IsNullOrEmpty(ErrorCode))
+        {
+            builder.Append(" (ErrorCode: ");
+            builder.Append(ErrorCode);
+            builder.Append(')');
+        }
+
+        if (!string.IsNullOrEmpty(CorrelationId))
+        {
+            builder.Append(" [CorrelationId: ");
+            builder.Append(CorrelationId);
+            builder.Append(']');
+        }
+
+        if (InnerException is not null)
+        {
+            builder.Append(" ---> ");
+            builder.Append(InnerException);
+            builder.AppendLine();
+            builder.Append("   --- End of inner exception stack trace ---");
+        }
+
+        if (StackTrace is not null)
+        {
+            builder.AppendLine();
+            builder.Append(StackTrace);
+        }
+
+        return builder.ToString();
+    }
 }
