@@ -93,4 +93,82 @@ public class DotnetWorkflowEngineOptionsValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "DefaultCacheExpiration");
     }
+
+    [Fact]
+    public void Validate_InvalidRetryCount_ReturnsError()
+    {
+        var options = new DotnetWorkflowEngineOptions
+        {
+            ConnectionString = "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;",
+            RetryCount = 11, // Outside range 0-10
+            RetryDelaySeconds = 5
+        };
+
+        var result = _validator.Validate(options);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "RetryCount");
+    }
+
+    [Fact]
+    public void Validate_InvalidRetryDelaySeconds_ReturnsError()
+    {
+        var options = new DotnetWorkflowEngineOptions
+        {
+            ConnectionString = "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;",
+            RetryCount = 3,
+            RetryDelaySeconds = 0 // Outside range 1-3600
+        };
+
+        var result = _validator.Validate(options);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "RetryDelaySeconds");
+    }
+
+    [Fact]
+    public void Validate_RetryCountZeroWithZeroDelay_IsValid()
+    {
+        var options = new DotnetWorkflowEngineOptions
+        {
+            ConnectionString = "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;",
+            RetryCount = 0,
+            RetryDelaySeconds = 0 // Should be valid when retry count is 0
+        };
+
+        var result = _validator.Validate(options);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_RetryCountGreaterThanZeroWithZeroDelay_IsInvalid()
+    {
+        var options = new DotnetWorkflowEngineOptions
+        {
+            ConnectionString = "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;",
+            RetryCount = 3,
+            RetryDelaySeconds = 0 // Should be invalid when retry count > 0
+        };
+
+        var result = _validator.Validate(options);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("RetryDelaySeconds must be positive when RetryCount is greater than 0"));
+    }
+
+    [Fact]
+    public void Validate_RetryCountGreaterThanZeroWithPositiveDelay_IsValid()
+    {
+        var options = new DotnetWorkflowEngineOptions
+        {
+            ConnectionString = "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;",
+            RetryCount = 3,
+            RetryDelaySeconds = 5
+        };
+
+        var result = _validator.Validate(options);
+
+        result.IsValid.Should().BeTrue();
+    }
 }

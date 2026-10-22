@@ -31,6 +31,15 @@ public class DotnetWorkflowEngineOptions
     [Range(1, 86400)]
     public int DefaultActivityTimeoutSeconds { get; set; } = 300;
 
+    // Added for fail-fast validation: retry count and retry delay
+    [Required]
+    [Range(0, 10)]
+    public int RetryCount { get; set; } = 3;
+
+    [Required]
+    [Range(1, 3600)]
+    public int RetryDelaySeconds { get; set; } = 5;
+
     public bool ValidateWorkflowsOnLoad { get; set; } = true;
 
     // Infrastructure configuration
@@ -91,7 +100,7 @@ public class DotnetWorkflowEngineOptions
     [Range(1024, 65535)]
     public int MetricsPort { get; set; } = 9090;
 
-    public override string ToString() => $"DotnetWorkflowEngineOptions {{ ConnectionString = {ConnectionString}, DefaultRetryPolicy = {DefaultRetryPolicy}, EnableAuditLogging = {EnableAuditLogging}, MaxConcurrentWorkflows = {MaxConcurrentWorkflows}, DefaultActivityTimeoutSeconds = {DefaultActivityTimeoutSeconds}, ValidateWorkflowsOnLoad = {ValidateWorkflowsOnLoad} }}";
+    public override string ToString() => $"DotnetWorkflowEngineOptions {{ ConnectionString = {ConnectionString}, DefaultRetryPolicy = {DefaultRetryPolicy}, EnableAuditLogging = {EnableAuditLogging}, MaxConcurrentWorkflows = {MaxConcurrentWorkflows}, DefaultActivityTimeoutSeconds = {DefaultActivityTimeoutSeconds}, RetryCount = {RetryCount}, RetryDelaySeconds = {RetryDelaySeconds}, ValidateWorkflowsOnLoad = {ValidateWorkflowsOnLoad} }}";
 }
 
 /// <summary>

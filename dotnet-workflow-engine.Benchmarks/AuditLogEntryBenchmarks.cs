@@ -125,7 +125,7 @@ namespace DotNetWorkflowEngine.Benchmarks
         [Benchmark]
         public AuditLogEntry DeserializeSingleViaExtension()
         {
-            return AuditLogEntryJsonExtensions.FromJson(_jsonEntries[0])!;
+            return JsonSerializer.Deserialize<AuditLogEntry>(_jsonEntries[0])!;
         }
 
         /// <summary>
@@ -134,7 +134,14 @@ namespace DotNetWorkflowEngine.Benchmarks
         [Benchmark]
         public bool TryDeserializeSingleViaExtension()
         {
-            return AuditLogEntryJsonExtensions.TryFromJson(_jsonEntries[0], out _);
+            try
+            {
+                return JsonSerializer.Deserialize<AuditLogEntry>(_jsonEntries[0]) != null;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
     }
 }

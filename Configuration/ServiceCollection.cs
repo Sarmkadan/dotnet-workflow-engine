@@ -5,6 +5,7 @@
 
 using DotNetWorkflowEngine.Data.Context;
 using DotNetWorkflowEngine.Services;
+using DotNetWorkflowEngine.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using FluentValidation;
@@ -44,10 +45,16 @@ public static class ServiceCollection
         // Configure options with validation
         if (connectionString != null)
         {
-            services.Configure<DotnetWorkflowEngineOptions>(options =>
-            {
-                options.ConnectionString = connectionString;
-            });
+            services.AddOptions<DotnetWorkflowEngineOptions>()
+                .Configure(options =>
+                {
+                    options.ConnectionString = connectionString;
+                })
+                .ValidateDataAnnotations()
+                // Custom validation: retry delay must be positive when retry count > 0
+                .Validate(options => !(options.RetryCount > 0 && options.RetryDelaySeconds <= 0),
+                    "RetryDelaySeconds must be positive when RetryCount is greater than 0")
+                .ValidateOnStart();
         }
 
         // Register options validator
@@ -98,5 +105,18 @@ public static class ServiceCollection
         ArgumentNullException.ThrowIfNull(services);
         var context = services.GetRequiredService<DatabaseContext>();
         await context.InitializeAsync();
+
+        // Validate all registered workflow definitions on startup
+        var workflowDefinitionService = services.GetRequiredService<WorkflowDefinitionService>();
+        var allWorkflows = workflowDefinitionService.GetAllWorkflows();
+
+        foreach (var workflow in allWorkflows)
+        {
+            var validationResult = WorkflowValidator.ValidateWorkflow(workflow);
+            if (!validationResult.IsValid)
+            {
+                throw new InvalidOperationException($"Workflow '{workflow.Id}' validation failed: {string.Join("; ", validationResult.Errors)}");
+            }
+        }
     }
 }
